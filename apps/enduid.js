@@ -453,18 +453,34 @@ export class EndfieldUid extends plugin {
     }
     const account = accounts.find(a => a.binding_id === deletedBinding.id)
     if (account?.login_type === 'auth') {
-      await this.reply(getMessage('enduid.unbind_auth_hint'))
+      await this.reply(getMessage('enduid.unbind_auth_polling'))
+      // 网页授权需用户在官网解除，轮询授权状态，解除后自动清理本地
+      const roleName = deletedBinding.nickname || '未知'
+      const reply = (msgKey, params = {}) => this.reply(getMessage(msgKey, params))
+      this.pollAuthRevokedAndClean(deletedBinding.id, String(this.e.user_id), String(this.e.self_id), reply, roleName)
       return true
     }
     const roleName = deletedBinding.nickname || '未知'
-    const success = await hypergryphAPI.deleteUnifiedBackendBinding(deletedBinding.id, String(this.e.user_id))
+    const bindingIdToDelete = deletedBinding.id
+    const success = await hypergryphAPI.deleteUnifiedBackendBinding(bindingIdToDelete, String(this.e.user_id))
 
     if (success) {
+      // 验证云端是否真的删除了：再次查询绑定列表，确认该绑定不存在
+      const verifyBindings = await hypergryphAPI.getUnifiedBackendBindings(String(this.e.user_id))
+      const stillExists = verifyBindings && verifyBindings.some(b => b.id === bindingIdToDelete)
+      
+      if (stillExists) {
+        logger.error(`[终末地插件][删除绑定]云端验证失败，绑定 ${bindingIdToDelete} 仍然存在`)
+        await this.reply(getMessage('enduid.delete_failed'))
+        return true
+      }
+      
+      // 删除本地 Redis 记录
       const txt = await redis.get(`ENDFIELD:USER:${this.e.user_id}`)
       if (txt) {
         try {
           const accounts = JSON.parse(txt)
-          const updatedAccounts = accounts.filter(acc => acc.binding_id !== deletedBinding.id)
+          const updatedAccounts = accounts.filter(acc => acc.binding_id !== bindingIdToDelete)
           if (updatedAccounts.length === 0) {
             await redis.del(`ENDFIELD:USER:${this.e.user_id}`)
           } else {
@@ -478,6 +494,47 @@ export class EndfieldUid extends plugin {
       await this.reply(getMessage('enduid.delete_failed'))
     }
     return true
+  }
+
+  /**
+   * 网页授权删除：轮询授权状态接口，检测到用户已在官网解除授权后清理本地记录
+   * @param {string} bindingId 要清理的绑定 ID
+   * @param {string} userId 用户 ID
+   * @param {string} clientId 客户端标识（self_id），用于请求 /authorization/clients/:client_id/status
+   * @param {function(string, object): Promise} reply 回复函数，入参为 message 键与插值参数
+   * @param {string} roleName 账号名称，用于提示文案
+   */
+  async pollAuthRevokedAndClean(bindingId, userId, clientId, reply, roleName = '未知') {
+    const POLL_INTERVAL_MS = 12000
+    const TIMEOUT_MS = 2.5 * 60 * 1000 // 2分30秒
+
+    const start = Date.now()
+    while (Date.now() - start < TIMEOUT_MS) {
+      const status = await hypergryphAPI.getAuthorizationClientStatus(clientId, userId)
+      if (status && status.is_active === false) {
+        // 先调用服务端删除绑定 DELETE /api/v1/bindings/:id
+        await hypergryphAPI.deleteUnifiedBackendBinding(bindingId, userId)
+        // 再清理本地 Redis 记录
+        const txt = await redis.get(`ENDFIELD:USER:${userId}`)
+        if (txt) {
+          try {
+            const accounts = JSON.parse(txt)
+            const updated = accounts.filter(acc => acc.binding_id !== bindingId)
+            if (updated.length === 0) {
+              await redis.del(`ENDFIELD:USER:${userId}`)
+            } else {
+              await redis.set(`ENDFIELD:USER:${userId}`, JSON.stringify(updated))
+            }
+          } catch (err) {
+            logger.error(`[终末地插件][网页授权轮询]清理本地记录失败: ${err}`)
+          }
+        }
+        await reply('enduid.unbind_auth_revoked', { roleName })
+        return
+      }
+      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
+    }
+    await reply('enduid.unbind_auth_poll_timeout')
   }
 
   async switchBind() {

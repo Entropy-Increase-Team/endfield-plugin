@@ -389,6 +389,49 @@ let hypergryphAPI = {
       logger.error(`[终末地插件][授权登陆][轮询状态]${error.toString()}`)
       return null
     }
+  },
+
+  /**
+   * 检查客户端授权状态（用于网页授权删除时轮询）
+   * GET /api/v1/authorization/clients/:client_id/status
+   * @param {string} clientId 客户端标识（如 bot 的 self_id）
+   * @param {string} [userIdentifier] 可选，用户标识，部分后端支持按用户查询
+   * @returns {{ is_active: boolean, framework_token?: string, message?: string } | null}
+   */
+  async getAuthorizationClientStatus(clientId, userIdentifier = '') {
+    const config = getUnifiedBackendConfig()
+    if (!config.apiKey) return null
+
+    const query = userIdentifier ? `?user_identifier=${encodeURIComponent(userIdentifier)}` : ''
+    try {
+      const response = await fetch(
+        `${config.baseUrl}/api/v1/authorization/clients/${encodeURIComponent(clientId)}/status${query}`,
+        {
+          timeout: 15000,
+          method: 'get',
+          headers: { 'X-API-Key': config.apiKey }
+        }
+      )
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return { is_active: false, message: '未找到该客户端的授权记录' }
+        }
+        logger.error(`[终末地插件][授权状态]${response.status} ${response.statusText}`)
+        return null
+      }
+
+      const res = await response.json()
+      if (res?.code !== 0) {
+        logger.error(`[终末地插件][授权状态]${JSON.stringify(res)}`)
+        return null
+      }
+
+      return res.data || null
+    } catch (error) {
+      logger.error(`[终末地插件][授权状态]${error.toString()}`)
+      return null
+    }
   }
 }
 

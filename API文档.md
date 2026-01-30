@@ -1,6 +1,6 @@
 # Endfield-API 接口文档
 
-版本号：1.7.2
+版本号：1.8.0
 
 ## 概述
 
@@ -853,14 +853,102 @@ GET /api/endfield/gacha/records?pools=limited,weapon&page=1&limit=100
 - `pages`: 总页数
 - 记录按 `seq_id` 降序排列，即最新抽取的记录在最前面
 
+### 获取可用账号列表
+
+获取当前用户可用于抽卡记录同步的游戏账号列表。用户可能绑定了多个账号（如官服 + B服），同步前需要选择账号。
+
+> **注意**: 只返回有角色绑定的账号，没有角色的账号无法获取抽卡记录会被自动过滤。
+
+```http
+GET /api/endfield/gacha/accounts
+X-Framework-Token: your-framework-token
+```
+
+**响应示例（单账号）**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "accounts": [
+      {
+        "uid": "081587252",
+        "game_uid": "1966952704",
+        "nick_name": "菅田将晖",
+        "channel_name": "bilibili服",
+        "channel_master_id": 2,
+        "is_official": false,
+        "server_id": "1",
+        "level": 48
+      }
+    ],
+    "count": 1,
+    "need_select": false
+  }
+}
+```
+
+**响应示例（多账号）**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "accounts": [
+      {
+        "uid": "513127610",
+        "game_uid": "1234567890",
+        "nick_name": "官服昵称",
+        "channel_name": "官服",
+        "channel_master_id": 1,
+        "is_official": true,
+        "server_id": "1",
+        "level": 50
+      },
+      {
+        "uid": "081587252",
+        "game_uid": "1966952704",
+        "nick_name": "B服昵称",
+        "channel_name": "bilibili服",
+        "channel_master_id": 2,
+        "is_official": false,
+        "server_id": "1",
+        "level": 48
+      }
+    ],
+    "count": 2,
+    "need_select": true
+  }
+}
+```
+
+**响应字段说明**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| accounts | array | 可用账号列表 |
+| accounts[].uid | string | 账号 UID（同步时需要指定） |
+| accounts[].game_uid | string | 游戏角色 UID |
+| accounts[].nick_name | string | 游戏昵称 |
+| accounts[].channel_name | string | 渠道名称（官服/bilibili服） |
+| accounts[].channel_master_id | int | 渠道 ID（1=官服，2=B服） |
+| accounts[].is_official | bool | 是否官服 |
+| accounts[].server_id | string | 服务器 ID |
+| accounts[].level | int | 角色等级 |
+| count | int | 账号数量 |
+| need_select | bool | 是否需要用户选择账号 |
+
+---
+
 ### 从官方 API 获取抽卡记录（异步）
 
 从鹰角官方 API 获取抽卡记录并保存。该接口为**异步执行**，立即返回，实际同步在后台进行。
 
 > **使用流程**:
-> 1. 调用此接口启动同步任务
-> 2. 轮询 `GET /api/endfield/gacha/sync/status` 获取进度
-> 3. 当状态为 `completed` 或 `failed` 时停止轮询
+> 1. 调用 `GET /api/endfield/gacha/accounts` 获取可用账号列表
+> 2. 如果 `need_select=true`（多账号），让用户选择账号
+> 3. 调用此接口启动同步任务（多账号时需传 `account_uid`）
+> 4. 轮询 `GET /api/endfield/gacha/sync/status` 获取进度
+> 5. 当状态为 `completed` 或 `failed` 时停止轮询
 
 ```http
 POST /api/endfield/gacha/fetch
@@ -868,7 +956,8 @@ X-Framework-Token: your-framework-token
 Content-Type: application/json
 
 {
-  "server_id": "1"
+  "server_id": "1",
+  "account_uid": "081587252"
 }
 ```
 
@@ -876,6 +965,9 @@ Content-Type: application/json
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | server_id | string | 否 | 服务器 ID，不传则使用凭证库中的值，默认 "1" |
+| account_uid | string | 否* | 账号 UID，通过 `/accounts` 获取。**多账号时必填** |
+
+> *当用户只有一个可用账号时可不传，系统自动使用该账号；多账号时必须指定。
 
 **响应示例（任务已启动）**:
 ```json
@@ -891,13 +983,32 @@ Content-Type: application/json
 
 **前端示例代码**:
 ```javascript
-// 1. 启动同步
-const startRes = await fetch('/api/endfield/gacha/fetch', {
-  method: 'POST',
+// 1. 先获取账号列表
+const accountsRes = await fetch('/api/endfield/gacha/accounts', {
   headers: { 'X-Framework-Token': token }
 })
+const { data: accountsData } = await accountsRes.json()
 
-// 2. 轮询进度
+// 2. 检查是否需要用户选择
+let selectedUid = null
+if (accountsData.need_select) {
+  // 让用户选择账号（弹出选择框）
+  selectedUid = await showAccountSelector(accountsData.accounts)
+} else if (accountsData.count === 1) {
+  selectedUid = accountsData.accounts[0].uid
+}
+
+// 3. 启动同步
+const startRes = await fetch('/api/endfield/gacha/fetch', {
+  method: 'POST',
+  headers: { 
+    'X-Framework-Token': token,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ account_uid: selectedUid })
+})
+
+// 4. 轮询进度
 const pollStatus = async () => {
   const res = await fetch('/api/endfield/gacha/sync/status', {
     headers: { 'X-Framework-Token': token }
@@ -2227,6 +2338,98 @@ Authorization: Bearer your-access-token
     "message": "已撤销授权"
   }
 }
+```
+
+### 检查客户端授权状态（客户端调用）
+
+> ⚠️ 需要 API Key 认证
+
+客户端可以通过此接口检查自己的授权是否仍然有效。当用户在网页上撤销授权后，客户端应及时清理本地保存的凭证。
+
+**建议**：客户端应定期（如每次启动时、或每隔一段时间）调用此接口检查授权状态，如果返回 `is_active: false`，应清理本地保存的 `framework_token` 
+
+```http
+GET /api/v1/authorization/clients/:client_id/status
+X-API-Key: your-api-key
+```
+
+**路径参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| client_id | string | 是 | 客户端标识（创建授权请求时使用的） |
+
+**响应示例（授权有效）**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "client_id": "my-bot-001",
+    "client_name": "我的机器人",
+    "is_active": true,
+    "framework_token": "abc123def456...",
+    "message": "授权有效"
+  }
+}
+```
+
+**响应示例（授权已撤销）**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "client_id": "my-bot-001",
+    "client_name": "我的机器人",
+    "is_active": false,
+    "revoked_at": "2026-01-30T10:30:00+08:00",
+    "message": "授权已被用户撤销，请重新申请授权"
+  }
+}
+```
+
+**响应字段说明**：
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| client_id | string | 客户端标识 |
+| client_name | string | 客户端名称 |
+| is_active | bool | **核心字段**：授权是否有效 |
+| framework_token | string | 当前有效的 Framework Token（仅 `is_active=true` 时返回） |
+| revoked_at | string | 撤销时间（仅 `is_active=false` 时返回） |
+| message | string | 状态说明 |
+
+**错误响应**：
+```json
+{
+  "code": 404,
+  "message": "未找到该客户端的授权记录"
+}
+```
+
+**客户端使用示例**：
+```javascript
+// 检查授权状态
+const checkAuthStatus = async (clientId) => {
+  const res = await fetch(`/api/v1/authorization/clients/${clientId}/status`, {
+    headers: { 'X-API-Key': API_KEY }
+  });
+  const { data } = await res.json();
+  
+  if (!data.is_active) {
+    // 授权已被撤销，清理本地凭证
+    localStorage.removeItem('framework_token');
+    console.log('授权已被撤销，请重新授权');
+    return null;
+  }
+  
+  // 授权有效，更新本地 framework_token（可能已刷新）
+  localStorage.setItem('framework_token', data.framework_token);
+  return data.framework_token;
+};
+
+// 建议：启动时检查、定期检查（如每小时）
+checkAuthStatus('my-bot-001');
+setInterval(() => checkAuthStatus('my-bot-001'), 3600000);
 ```
 
 ---
