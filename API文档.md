@@ -1300,6 +1300,10 @@ GET /api/endfield/gacha/global-stats
 }
 ```
 
+**字段说明（与展示对应）**：
+- `stats.current_pool`：当前限定池及 **UP 角色** 信息（`up_char_name`、`up_char_id`、`pool_name`）。
+- **UP 出货占比**：取 `stats.ranking.limited.six_star` 中与 `current_pool.up_char_id`（或 `up_char_name`）对应的那条的 `percent`，表示该 UP 角色占限定池所有 6 星出货的比例（如上例中莱万汀 24.0%）。
+
 **统计字段说明**:
 | 字段 | 说明 |
 |------|------|

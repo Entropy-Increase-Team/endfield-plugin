@@ -11,9 +11,12 @@ prefix_tips_mode2: "前缀为 #终末地 / #zmd"
 # 未绑定账号时的提示信息
 unbind_message: |
   未绑定终末地森空岛账号
-  绑定命令 (仅私聊 请注意冒号就是命令前缀)
-  1. {prefix}扫码登陆 -- 森空岛app扫码
-  2. {prefix}手机登陆 [手机号] -- 手机号验证码登陆
+  绑定命令查看 {prefix}帮助 (冒号就是前缀)
+  1. 去 官网 end.shallow.ink 绑定
+  2. 发送 {prefix}授权登陆
+  若不想使用网页授权，请发送
+  1. {prefix}扫码绑定 
+  2. {prefix}手机绑定 [手机号] -- 此功能需要私聊
 
 # Wiki 查询提示
 wiki:
@@ -111,6 +114,27 @@ attendance:
   task_complete: "终末地森空岛签到任务完成\n总计：{total} 个\n已签：{signed} 个\n成功：{success} 个\n失败：{fail} 个"
   task_complete_fail_users: "\n\n失败用户QQ号：\n{fail_users}"
   not_found_role_id: "未找到终末地角色ID，请重新绑定后再试"
+
+gacha:
+  global_stats_failed: "获取全服抽卡统计失败，请稍后重试"
+  no_accounts: "无可用账号或无法获取账号列表，请确认已绑定角色"
+  no_records: "暂无抽卡记录或获取失败，请先使用「{prefix}抽卡记录同步」从官方拉取"
+  select_account: "请选择要同步抽卡记录的账号："
+  reply_index: "请回复序号，例如：'{prefix}1'"
+  invalid_index: "序号无效，请回复列表中的数字"
+  sync_start: "正在启动抽卡记录同步…"
+  sync_busy: "正在同步中，请稍后再试"
+  sync_start_failed: "启动同步失败，请稍后重试"
+  sync_done: |
+    抽卡记录同步完成
+    共 {records_found} 条记录，本次新增 {new_records} 条
+    {pool_detail}
+  sync_done_pools: "【池子】{pools}"
+  sync_in_progress: "当前正在同步中，当前进度："
+  auth_incremental_sync: "检测到已有同步记录，将进行增量同步…"
+  auth_full_sync: "暂无同步记录，将从零拉取…"
+  sync_failed: "同步失败：{error}"
+  sync_timeout: "同步超时，请稍后重试"
 
 enduid:
   bind_help: |

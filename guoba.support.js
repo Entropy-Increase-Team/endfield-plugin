@@ -1204,49 +1204,44 @@ export function supportGuoba() {
             lodash.set(unflattenedData, key, data[key])
           }
           
-          // 分离不同配置文件的字段
+          // 分离不同配置文件的字段，分别写入 config/common.yaml、config/ai.yaml、config/sign.yaml、config/message.yaml（help 锅巴不配置）
           const commonFields = ['prefix_mode', 'keywords', 'auth_client_name', 'auth_client_type', 'auth_scopes', 'api_key']
-          const aiFields = ['app_id', 'bearer_token', 'api_base', 'stream_timeout']
-          const signFields = ['auto_sign', 'auto_sign_cron']
-          
-          // message.yaml 的所有字段（从 defSet/message.yaml 获取完整字段列表）
+
+          // message 仅包含 defSet/message.yaml 中的叶子键（如 gacha.no_records），用于写入 config/message.yaml
           const defSetMessagePath = `${_path}/plugins/endfield-plugin/defSet/message.yaml`
-          let messageFields = []
+          const messageFields = new Set()
           if (fs.existsSync(defSetMessagePath)) {
             try {
               const defSetMessage = YAML.parse(fs.readFileSync(defSetMessagePath, 'utf8')) || {}
-              messageFields = Object.keys(defSetMessage)
-              // 递归获取嵌套字段
               function extractKeys(obj, prefix = '') {
                 for (const key in obj) {
                   const fullKey = prefix ? `${prefix}.${key}` : key
                   if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
                     extractKeys(obj[key], fullKey)
                   } else {
-                    messageFields.push(fullKey)
+                    messageFields.add(fullKey)
                   }
                 }
               }
               extractKeys(defSetMessage)
             } catch (error) {
-              logger.warn('[终末地插件] 读取 defSet/message.yaml 失败，无法获取字段列表')
+              logger.warn('[终末地插件] 读取 defSet/message.yaml 失败，无法获取 message 字段列表')
             }
           }
-          
+
           const commonData = {}
           const aiData = {}
           const signData = {}
           const messageData = {}
-          
+
           for (const key in unflattenedData) {
-            if (key.startsWith('ai.')) {
+            if (commonFields.includes(key)) {
+              commonData[key] = unflattenedData[key]
+            } else if (key.startsWith('ai.')) {
               aiData[key.replace('ai.', '')] = unflattenedData[key]
             } else if (key.startsWith('sign.')) {
               signData[key.replace('sign.', '')] = unflattenedData[key]
-            } else if (commonFields.includes(key)) {
-              commonData[key] = unflattenedData[key]
-            } else {
-              // 其他字段归入 message（包括所有 message.yaml 的字段）
+            } else if (messageFields.has(key)) {
               messageData[key] = unflattenedData[key]
             }
           }

@@ -1,0 +1,647 @@
+/* Endfield Terminal 风格：深色、角标、等宽数字、琥珀色高亮 */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'JetBrains Mono', 'Consolas', 'Noto Sans SC', 'PingFang SC', sans-serif;
+  background-color: #030305;
+  color: #e0e0e0;
+  margin: 0;
+  padding: 24px;
+  min-height: 100vh;
+}
+
+.container {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+/* 标题：全服寻访统计 GLOBAL */
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.page-header h1 {
+  font-size: 1.75em;
+  font-weight: bold;
+  color: #fff;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.page-header .badge {
+  font-size: 0.65em;
+  font-family: inherit;
+  padding: 2px 8px;
+  border-radius: 2px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  letter-spacing: 0.1em;
+}
+
+.page-sub {
+  font-size: 0.75em;
+  color: #71717a;
+  font-family: inherit;
+  margin-bottom: 20px;
+}
+
+/* 卡片：角标 + 半透明边框 */
+.card-wrap {
+  position: relative;
+  padding: 16px;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.card-wrap::before,
+.card-wrap::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: rgba(245, 158, 11, 0.25);
+  border-style: solid;
+  border-width: 0;
+}
+
+.card-wrap::before {
+  top: 0;
+  left: 0;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+
+.card-wrap::after {
+  top: 0;
+  right: 0;
+  border-top-width: 2px;
+  border-right-width: 2px;
+}
+
+.card-wrap .corner-b {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: rgba(245, 158, 11, 0.25);
+  border-style: solid;
+  border-width: 0;
+  bottom: 0;
+}
+
+.card-wrap .corner-b.left {
+  left: 0;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+}
+
+.card-wrap .corner-b.right {
+  right: 0;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+/* 四宫格总览 */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.overview-item {
+  position: relative;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.overview-item .label {
+  font-size: 0.65em;
+  color: #71717a;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 4px;
+}
+
+.overview-item .value {
+  font-size: 1.35em;
+  font-weight: bold;
+  font-family: inherit;
+  color: #fff;
+}
+
+.overview-item .value.amber {
+  color: #f59e0b;
+}
+
+/* 当前UP 区块（参考图片二：左文案 + 右大数字与竖条） */
+.up-block {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.up-block-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.up-block .up-tag {
+  font-size: 0.6em;
+  font-weight: bold;
+  background: #f59e0b;
+  color: #000;
+  padding: 2px 6px;
+  margin-right: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.up-block .up-name {
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #f59e0b;
+}
+
+.up-block .up-title {
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #fff;
+  margin: 10px 0 4px 0;
+}
+
+.up-block .up-desc {
+  font-size: 0.75em;
+  color: #71717a;
+  margin: 0;
+}
+
+.up-block-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.up-block-right .up-rate-circle {
+  position: absolute;
+  right: 72px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 64px;
+  height: 64px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.03), 0 0 0 16px rgba(255, 255, 255, 0.02);
+  pointer-events: none;
+}
+
+.up-block-right .up-rate-text {
+  text-align: right;
+  position: relative;
+  z-index: 1;
+}
+
+.up-block .up-rate-value {
+  font-size: 2.2em;
+  font-weight: bold;
+  font-family: inherit;
+  color: #f59e0b;
+  line-height: 1.1;
+}
+
+.up-block .theoretical {
+  font-size: 0.65em;
+  color: #71717a;
+  font-family: inherit;
+  margin-top: 4px;
+}
+
+.up-rate-vertical-wrap {
+  width: 10px;
+  height: 56px;
+  background: rgba(245, 158, 11, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.up-rate-vertical-bar {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.up-rate-vertical-fill {
+  width: 100%;
+  min-height: 2px;
+  background: #f59e0b;
+  border-radius: 2px;
+  transition: height 0.3s;
+}
+
+/* 官服/B服 两列 */
+.channel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.channel-card {
+  position: relative;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.channel-card .card-head {
+  padding: 12px 14px 0 14px;
+  font-size: 0.75em;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.channel-card .card-sub {
+  padding: 4px 14px 10px 14px;
+  font-size: 0.6em;
+  color: #71717a;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.channel-card .card-body {
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+}
+
+.channel-card .item-label {
+  font-size: 0.75em;
+  color: #71717a;
+}
+
+.channel-card .item-value {
+  font-size: 1em;
+  font-weight: bold;
+  font-family: inherit;
+  color: #fff;
+}
+
+.channel-card .item-value.amber {
+  color: #f59e0b;
+}
+
+/* 卡池选择页：4 个池子列表 */
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 12px;
+}
+
+.section-head .title {
+  font-size: 0.8em;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.section-head .num {
+  font-size: 0.65em;
+  color: #71717a;
+  font-family: inherit;
+  letter-spacing: 0.1em;
+}
+
+.section-sub {
+  padding: 0 14px 10px 14px;
+  margin-bottom: 10px;
+  font-size: 0.6em;
+  color: #71717a;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* 两列布局：左 卡池+数据概览，右 分布图+排名 */
+.two-col-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.col-left,
+.col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 6星出货分布柱状图：仅正向显示，柱从基线向上 */
+.dist-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 140px;
+  padding: 0 14px 14px 14px;
+}
+
+.dist-bar-row {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
+  height: 100%;
+}
+
+.dist-bar-outer {
+  width: 100%;
+  flex: 1;
+  min-height: 60px;
+  max-height: 110px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.dist-bar {
+  width: 100%;
+  min-height: 4px;
+  max-height: 100%;
+  background: rgba(249, 115, 22, 0.85);
+  border-radius: 2px;
+  transition: height 0.2s;
+}
+
+.dist-bar-row:nth-child(n+7) .dist-bar {
+  background: rgba(234, 179, 8, 0.85);
+}
+
+.dist-label {
+  font-size: 0.6em;
+  color: #71717a;
+  font-family: inherit;
+  transform: rotate(-45deg);
+  transform-origin: center top;
+  white-space: nowrap;
+}
+
+.dist-legend {
+  display: flex;
+  gap: 16px;
+  padding: 0 14px 14px 14px;
+  font-size: 0.7em;
+  color: #71717a;
+}
+
+.dist-legend .dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 1px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.dist-legend .dot.normal {
+  background: rgba(249, 115, 22, 0.85);
+}
+
+.dist-legend .dot.high {
+  background: rgba(234, 179, 8, 0.85);
+}
+
+/* 出货排名 Tab */
+.ranking-tabs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px 10px 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ranking-tabs .tab {
+  font-size: 0.85em;
+  font-weight: bold;
+  color: #71717a;
+  cursor: default;
+}
+
+.ranking-tabs .tab.active {
+  color: #f59e0b;
+}
+
+.pool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pool-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 0.9em;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+}
+
+.pool-row.primary {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.2);
+  color: #fff;
+}
+
+.pool-row .pool-name {
+  color: inherit;
+  font-weight: 500;
+}
+
+.pool-row .pool-count {
+  font-family: inherit;
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+/* 数据概览：进度条 + 5星4星 */
+.stats-overview .stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85em;
+  margin-bottom: 6px;
+}
+
+.stats-overview .stat-row .label {
+  color: #71717a;
+}
+
+.stats-overview .stat-row .value {
+  font-weight: bold;
+  font-family: inherit;
+}
+
+.stats-overview .bar-wrap {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.stats-overview .bar-fill {
+  height: 100%;
+  background: #f59e0b;
+  border-radius: 2px;
+}
+
+.stats-overview .bar-fill.primary {
+  background: #6366f1;
+}
+
+.stats-overview .two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stats-overview .two-col .label {
+  font-size: 0.75em;
+  color: #71717a;
+}
+
+.stats-overview .two-col .label.block {
+  display: block;
+}
+
+.stats-overview .two-col .value {
+  font-size: 1.1em;
+  font-weight: bold;
+  font-family: inherit;
+}
+
+.stats-overview .two-col .value.purple {
+  color: #a78bfa;
+}
+
+.stats-overview .two-col .value.blue {
+  color: #60a5fa;
+}
+
+/* 出货排名 */
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 0.9em;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ranking-item .rank {
+  width: 22px;
+  text-align: center;
+  font-weight: bold;
+  font-family: inherit;
+  color: #71717a;
+  flex-shrink: 0;
+}
+
+.ranking-item .name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  color: #fff;
+}
+
+.ranking-item .name .up-tag {
+  font-size: 0.65em;
+  background: #f59e0b;
+  color: #000;
+  padding: 1px 4px;
+  margin-left: 6px;
+  font-weight: bold;
+}
+
+.ranking-item .count {
+  font-family: inherit;
+  font-size: 0.9em;
+}
+
+.ranking-item .count .percent {
+  font-size: 0.85em;
+  color: #71717a;
+  margin-left: 2px;
+}
+
+.ranking-item .bar-wrap {
+  width: 80px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.ranking-item .bar-fill {
+  height: 100%;
+  background: #f59e0b;
+  border-radius: 2px;
+}
+
+.footer-note {
+  margin-top: 16px;
+  padding: 12px 14px;
+  font-size: 0.8em;
+  color: #71717a;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.footer-note .footer-icon {
+  color: #6366f1;
+  flex-shrink: 0;
+}

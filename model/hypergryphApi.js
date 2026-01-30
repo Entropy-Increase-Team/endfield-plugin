@@ -432,6 +432,185 @@ let hypergryphAPI = {
       logger.error(`[终末地插件][授权状态]${error.toString()}`)
       return null
     }
+  },
+
+  /**
+   * 抽卡记录：获取可用账号列表
+   * GET /api/endfield/gacha/accounts
+   * @param {string} frameworkToken 用户凭证
+   * @returns {{ accounts: Array, count: number, need_select: boolean } | null}
+   */
+  async getGachaAccounts(frameworkToken) {
+    const config = getUnifiedBackendConfig()
+    const headers = { 'X-Framework-Token': frameworkToken }
+    if (config.apiKey) headers['X-API-Key'] = config.apiKey
+
+    try {
+      const response = await fetch(`${config.baseUrl}/api/endfield/gacha/accounts`, {
+        timeout: 15000,
+        method: 'get',
+        headers
+      })
+      const bodyText = await response.text()
+      const res = bodyText ? JSON.parse(bodyText) : null
+      if (!response.ok) {
+        logger.error(`[终末地插件][抽卡账号列表]${response.status} ${response.statusText} | ${res?.message || bodyText?.slice(0, 100)}`)
+        return null
+      }
+      if (res?.code !== 0) return null
+      return res.data || null
+    } catch (error) {
+      logger.error(`[终末地插件][抽卡账号列表]${error.toString()}`)
+      return null
+    }
+  },
+
+  /**
+   * 抽卡记录：启动同步任务（异步）
+   * POST /api/endfield/gacha/fetch
+   * @param {string} frameworkToken 用户凭证
+   * @param {{ server_id?: string, account_uid?: string }} body
+   * @returns {{ status: string, message?: string } | null} 成功返回 data，409 表示正在同步中
+   */
+  async postGachaFetch(frameworkToken, body = {}) {
+    const config = getUnifiedBackendConfig()
+    const headers = { 'X-Framework-Token': frameworkToken, 'Content-Type': 'application/json' }
+    if (config.apiKey) headers['X-API-Key'] = config.apiKey
+
+    try {
+      const response = await fetch(`${config.baseUrl}/api/endfield/gacha/fetch`, {
+        timeout: 15000,
+        method: 'post',
+        headers,
+        body: JSON.stringify(body)
+      })
+      const bodyText = await response.text()
+      const res = bodyText ? JSON.parse(bodyText) : null
+      if (!response.ok) {
+        if (response.status === 409) return { status: 'conflict', message: res?.message || '正在同步中' }
+        logger.error(`[终末地插件][抽卡同步启动]${response.status} ${response.statusText} | ${res?.message || bodyText?.slice(0, 100)}`)
+        return null
+      }
+      if (res?.code !== 0) return null
+      return res.data || null
+    } catch (error) {
+      logger.error(`[终末地插件][抽卡同步启动]${error.toString()}`)
+      return null
+    }
+  },
+
+  /**
+   * 抽卡记录：获取同步状态（轮询）
+   * GET /api/endfield/gacha/sync/status
+   * @param {string} frameworkToken 用户凭证
+   * @returns {{ status: string, progress?: number, message?: string, records_found?: number, new_records?: number, error?: string, ... } | null}
+   */
+  async getGachaSyncStatus(frameworkToken) {
+    const config = getUnifiedBackendConfig()
+    const headers = { 'X-Framework-Token': frameworkToken }
+    if (config.apiKey) headers['X-API-Key'] = config.apiKey
+
+    try {
+      const response = await fetch(`${config.baseUrl}/api/endfield/gacha/sync/status`, {
+        timeout: 15000,
+        method: 'get',
+        headers
+      })
+      const bodyText = await response.text()
+      const res = bodyText ? JSON.parse(bodyText) : null
+      if (!response.ok) return null
+      if (res?.code !== 0) return null
+      return res.data || null
+    } catch (error) {
+      logger.error(`[终末地插件][抽卡同步状态]${error.toString()}`)
+      return null
+    }
+  },
+
+  /**
+   * 抽卡记录：获取已保存的记录（分页、卡池筛选）
+   * GET /api/endfield/gacha/records
+   * @param {string} frameworkToken 用户凭证
+   * @param {{ pools?: string, page?: number, limit?: number }} params
+   * @returns {{ records: Array, total: number, stats?: object, user_info?: object } | null}
+   */
+  async getGachaRecords(frameworkToken, params = {}) {
+    const config = getUnifiedBackendConfig()
+    const headers = { 'X-Framework-Token': frameworkToken }
+    if (config.apiKey) headers['X-API-Key'] = config.apiKey
+    const q = new URLSearchParams()
+    if (params.pools) q.set('pools', params.pools)
+    if (params.page != null) q.set('page', String(params.page))
+    if (params.limit != null) q.set('limit', String(params.limit))
+    const query = q.toString()
+
+    try {
+      const url = `${config.baseUrl}/api/endfield/gacha/records${query ? `?${query}` : ''}`
+      const response = await fetch(url, { timeout: 15000, method: 'get', headers })
+      const bodyText = await response.text()
+      const res = bodyText ? JSON.parse(bodyText) : null
+      if (!response.ok) return null
+      if (res?.code !== 0) return null
+      return res.data || null
+    } catch (error) {
+      logger.error(`[终末地插件][抽卡记录]${error.toString()}`)
+      return null
+    }
+  },
+
+  /**
+   * 抽卡记录：获取统计信息
+   * GET /api/endfield/gacha/stats
+   * @param {string} frameworkToken 用户凭证
+   * @returns {{ stats: object, pool_stats?: object, last_fetch?: string, has_records?: boolean, user_info?: object } | null}
+   */
+  async getGachaStats(frameworkToken) {
+    const config = getUnifiedBackendConfig()
+    const headers = { 'X-Framework-Token': frameworkToken }
+    if (config.apiKey) headers['X-API-Key'] = config.apiKey
+
+    try {
+      const response = await fetch(`${config.baseUrl}/api/endfield/gacha/stats`, {
+        timeout: 15000,
+        method: 'get',
+        headers
+      })
+      const bodyText = await response.text()
+      const res = bodyText ? JSON.parse(bodyText) : null
+      if (!response.ok) return null
+      if (res?.code !== 0) return null
+      return res.data || null
+    } catch (error) {
+      logger.error(`[终末地插件][抽卡统计]${error.toString()}`)
+      return null
+    }
+  },
+
+  /**
+   * 抽卡记录：全服统计（公开接口，无需认证）
+   * GET /api/endfield/gacha/global-stats
+   * @returns {{ cached?: boolean, last_update?: string, stats?: object } | null}
+   */
+  async getGachaGlobalStats() {
+    const config = getUnifiedBackendConfig()
+    const headers = {}
+    if (config.apiKey) headers['X-API-Key'] = config.apiKey
+
+    try {
+      const response = await fetch(`${config.baseUrl}/api/endfield/gacha/global-stats`, {
+        timeout: 15000,
+        method: 'get',
+        headers: Object.keys(headers).length ? headers : undefined
+      })
+      const bodyText = await response.text()
+      const res = bodyText ? JSON.parse(bodyText) : null
+      if (!response.ok) return null
+      if (res?.code !== 0) return null
+      return res.data || null
+    } catch (error) {
+      logger.error(`[终末地插件][全服抽卡统计]${error.toString()}`)
+      return null
+    }
   }
 }
 

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{title}}</title>
+  <link rel="stylesheet" href="{{_res_path}}gacha/global-stats.css">
+</head>
+<body>
+  <main class="container" style="max-width:{{maxWidth}}px;">
+    <div class="page-header">
+      <h1>{{title}}</h1>
+      <span class="badge">GLOBAL</span>
+    </div>
+    <p class="page-sub">Server: ALL &nbsp;|&nbsp; Sync: {{syncTime}}</p>
+
+    <div class="overview-grid">
+      <div class="card-wrap overview-item">
+        <div class="label">TOTAL PULLS</div>
+        <div class="value">{{totalPulls}}</div>
+      </div>
+      <div class="card-wrap overview-item">
+        <div class="label">SAMPLE SIZE</div>
+        <div class="value">{{totalUsers}}</div>
+      </div>
+      <div class="card-wrap overview-item">
+        <div class="label">6★ COUNT</div>
+        <div class="value amber">{{star6}}</div>
+      </div>
+      <div class="card-wrap overview-item">
+        <div class="label">AVG PITY</div>
+        <div class="value">{{globalAvgPity}}</div>
+      </div>
+    </div>
+
+    <div class="card-wrap up-block">
+      <div class="up-block-left">
+        <div><span class="up-tag">Current UP</span><span class="up-name">{{upName}}</span></div>
+        <h3 class="up-title">UP出货占比 (Win Rate)</h3>
+        <p class="up-desc">当前限定池中，UP角色占所有6星出货的比例。</p>
+      </div>
+      <div class="up-block-right">
+        <div class="up-rate-circle"></div>
+        <div class="up-rate-text">
+          <div class="up-rate-value">{{upWinRate}}</div>
+          <div class="theoretical">THEORETICAL: 50.0%</div>
+        </div>
+        <div class="up-rate-vertical-wrap">
+          <div class="up-rate-vertical-bar"><div class="up-rate-vertical-fill" style="height:{{upWinRateNum}}%;"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="channel-grid">
+      {{if official}}
+      <div class="card-wrap channel-card">
+        <span class="corner-b left"></span>
+        <span class="corner-b right"></span>
+        <div class="card-head">官服数据 (Official) · CN-01</div>
+        <div class="card-sub">CHANNEL STATISTICS</div>
+        <div class="card-body">
+          <div><div class="item-label">用户数</div><div class="item-value">{{official.total_users}}</div></div>
+          <div><div class="item-label">总抽数</div><div class="item-value">{{official.total_pulls}}</div></div>
+          <div><div class="item-label">6星总数</div><div class="item-value amber">{{official.star6_total}}</div></div>
+          <div><div class="item-label">平均出货</div><div class="item-value">{{official.avg_pity}}</div></div>
+        </div>
+      </div>
+      {{/if}}
+      {{if bilibili}}
+      <div class="card-wrap channel-card">
+        <span class="corner-b left"></span>
+        <span class="corner-b right"></span>
+        <div class="card-head">B服数据 (Bilibili) · CN-02</div>
+        <div class="card-sub">CHANNEL STATISTICS</div>
+        <div class="card-body">
+          <div><div class="item-label">用户数</div><div class="item-value">{{bilibili.total_users}}</div></div>
+          <div><div class="item-label">总抽数</div><div class="item-value">{{bilibili.total_pulls}}</div></div>
+          <div><div class="item-label">6星总数</div><div class="item-value amber">{{bilibili.star6_total}}</div></div>
+          <div><div class="item-label">平均出货</div><div class="item-value">{{bilibili.avg_pity}}</div></div>
+        </div>
+      </div>
+      {{/if}}
+    </div>
+
+    <div class="two-col-layout">
+      <div class="col-left">
+        <div class="card-wrap">
+          <span class="corner-b left"></span>
+          <span class="corner-b right"></span>
+          <div class="section-head">
+            <span class="title">卡池选择</span>
+            <span class="num">01</span>
+          </div>
+          <div class="section-sub">POOL SELECTION</div>
+          <div class="pool-list">
+            <div class="pool-row {{if highlightLimited}}primary{{/if}}">
+              <span class="pool-name">限定角色</span>
+              <span class="pool-count">{{limitedTotal}}</span>
+            </div>
+            <div class="pool-row {{if highlightStandard}}primary{{/if}}">
+              <span class="pool-name">常驻角色</span>
+              <span class="pool-count">{{standardTotal}}</span>
+            </div>
+            <div class="pool-row {{if highlightBeginner}}primary{{/if}}">
+              <span class="pool-name">新手池</span>
+              <span class="pool-count">{{beginnerTotal}}</span>
+            </div>
+            <div class="pool-row {{if highlightWeapon}}primary{{/if}}">
+              <span class="pool-name">武器池</span>
+              <span class="pool-count">{{weaponTotal}}</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-wrap">
+          <span class="corner-b left"></span>
+          <span class="corner-b right"></span>
+          <div class="section-head">
+            <span class="title">数据概览</span>
+            <span class="num">02</span>
+          </div>
+          <div class="section-sub">STATISTICS</div>
+          <div class="stats-overview">
+            <div class="stat-row">
+              <span class="label">平均出货 (Avg)</span>
+              <span class="value">{{avgPity}}</span>
+            </div>
+            <div class="bar-wrap"><div class="bar-fill primary" style="width:{{avgPityPercent}}%;"></div></div>
+            <div class="stat-row">
+              <span class="label">6星占比 (Rate)</span>
+              <span class="value amber">{{star6Rate}}</span>
+            </div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:{{star6RatePercent}}%;"></div></div>
+            <div class="two-col">
+              <div>
+                <span class="label block">5星数量</span>
+                <span class="value purple">{{star5}}</span>
+              </div>
+              <div>
+                <span class="label block">4星数量</span>
+                <span class="value blue">{{star4}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="card-wrap">
+          <span class="corner-b left"></span>
+          <span class="corner-b right"></span>
+          <div class="section-head">
+            <span class="title">{{poolChartTitle}} - 6星出货分布</span>
+            <span class="num">03</span>
+          </div>
+          <div class="section-sub">DISTRIBUTION CHART</div>
+          <div class="dist-chart">
+            {{each distributionList}}
+            <div class="dist-bar-row">
+              <div class="dist-bar-outer">
+                <div class="dist-bar" style="height:{{$value.height}}%;"></div>
+              </div>
+              <span class="dist-label">{{$value.range}}</span>
+            </div>
+            {{/each}}
+          </div>
+          <div class="dist-legend">
+            <span><i class="dot normal"></i>常规出货</span>
+            <span><i class="dot high"></i>高水位 (60+)</span>
+          </div>
+        </div>
+        <div class="card-wrap">
+          <span class="corner-b left"></span>
+          <span class="corner-b right"></span>
+          <div class="section-head">
+            <span class="title">出货排名</span>
+            <span class="num">04</span>
+          </div>
+          <div class="section-sub">SHIPMENT RANKING</div>
+          <div class="ranking-tabs">
+            <span class="tab active">★ {{rankingTab6}}</span>
+            <span class="tab">★ {{rankingTab5}}</span>
+          </div>
+          <div class="ranking-list">
+            {{each rankingList}}
+            <div class="ranking-item">
+              <span class="rank">{{$index + 1}}</span>
+              <div class="name">{{$value.char_name}}{{if $value.isUp}}<span class="up-tag">UP</span>{{/if}}</div>
+              <span class="count">{{$value.count}} <span class="percent">({{$value.percent}}%)</span></span>
+              <div class="bar-wrap"><div class="bar-fill" style="width:{{$value.percent}}%;"></div></div>
+            </div>
+            {{/each}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      <span class="footer-icon">ⓘ</span>
+      所有数据来源于已绑定账号的玩家自动同步。数据会缓存 5 分钟以减轻服务器压力。
+    </div>
+  </main>
+</body>
+</html>
