@@ -24,7 +24,7 @@ help_group:
         desc: "网页授权登陆（需先去网站绑定）"
       - icon: 3
         title: "{prefix}扫码绑定"
-        desc: "森空岛App扫码绑定"
+        desc: "森空岛 App 扫码绑定"
       - icon: 3
         title: "{prefix}手机绑定 [手机号]"
         desc: "手机验证码绑定（私聊）"
@@ -33,12 +33,12 @@ help_group:
         desc: "查看绑定方式说明"
       - icon: 4
         title: "{prefix}绑定列表"
-        desc: "查看已绑定账号（⭐标记当前激活账号）"
+        desc: "查看已绑定账号（当前激活账号高亮）"
       - icon: 5
-        title: "{prefix}切换绑定 <序号>"
+        title: "{prefix}切换登陆 <序号>"
         desc: "切换当前激活账号"
       - icon: 5
-        title: "{prefix}删除绑定 <序号>"
+        title: "{prefix}删除登陆 <序号>"
         desc: "删除指定绑定"
       - icon: 18
         title: "{prefix}我的cred"
@@ -76,8 +76,20 @@ help_group:
         title: "{prefix}理智"
         desc: "查询理智与日常活跃"
       - icon: 11
-        title: "{prefix}订阅理智"
-        desc: "订阅理智与日常活跃推送"
+        title: "{prefix}订阅理智 [值]"
+        desc: "订阅理智推送，不设值则满时推送，设值则到该值推送"
+      - icon: 11
+        title: "{prefix}取消订阅理智"
+        desc: "取消理智推送订阅"
+      - icon: 12
+        title: "{prefix}抽卡记录同步"
+        desc: "从官方同步抽卡记录"
+      - icon: 12
+        title: "{prefix}抽卡记录 [页码]"
+        desc: "查看抽卡记录与统计"
+      - icon: 12
+        title: "{prefix}全服抽卡统计"
+        desc: "查看全服抽卡统计（合并转发多图）"
   - group: "Wiki 查询（需绑定）"
     list:
       - icon: 12
@@ -92,7 +104,7 @@ help_group:
       - icon: 15
         title: "{prefix}wiki 武器 <武器名称>"
         desc: "武器百科"
-  - group: "AI 对话 - 剧情AI"
+  - group: "AI 对话（需绑定）"
     list:
       - icon: 16
         title: "{prefix}ai [消息内容]"
@@ -100,13 +112,7 @@ help_group:
       - icon: 17
         title: "{prefix}ai 新会话 [消息内容]"
         desc: "创建新会话"
-  - group: "签到（管理员）"
-    auth: master
-    list:
-      - icon: 6
-        title: "{prefix}全部签到"
-        desc: "为所有已绑定账号执行签到"
-  - group: "攻略查询（管理员）"
+  - group: "攻略资源（管理员）"
     auth: master
     list:
       - icon: 22
@@ -118,3 +124,18 @@ help_group:
       - icon: 24
         title: "{prefix}攻略资源强制更新"
         desc: "强制更新所有攻略"
+      - icon: 25
+        title: "{prefix}攻略上传 [内容]"
+        desc: "上传攻略（需附带图片或链接）"
+      - icon: 25
+        title: "{prefix}攻略上传干员 <干员名>"
+        desc: "指定干员后上传攻略"
+      - icon: 26
+        title: "{prefix}攻略删除 <链接>"
+        desc: "按链接删除攻略"
+  - group: "签到（管理员）"
+    auth: master
+    list:
+      - icon: 6
+        title: "{prefix}全部签到"
+        desc: "为所有已绑定账号执行签到"
