@@ -6,20 +6,41 @@
 
 基于森空岛 API 的 Yunzai-Bot **终末地**插件 · 绑定 / 便签 / 干员面板 / Wiki / 攻略 / AI 对话
 
-[安装](#安装方法) · [功能](#当前功能) · [说明](#说明)
+[安装](#安装插件) · [功能](#当前功能) · [说明](#说明)
 
 </div>
 
 ---
 
-## 安装方法
+- 一个适用于 [Yunzai 系列机器人框架](https://github.com/yhArcadia/Yunzai-Bot-plugins-index) 的明日方舟：终末地游戏数据查询插件
+
+- 支持网页授权 / 扫码 / 手机号 / Cred 绑定，支持便签、干员面板、Wiki、攻略、帝江号与地区建设等查询
+
+- **使用中遇到问题请加 QQ 群咨询：160759479**
+
+> [!TIP]
+> 终末地-协议终端交流群，欢迎加入 [160759479](https://qm.qq.com/q/zZXruW6V4Q) 交流反馈。
+
+## 安装插件
+
+### 1. 克隆仓库
 
 在 Yunzai 根目录执行：
 
 ```bash
-git clone https://github.com/QingYingX-Bot/endfield-plugin.git ./plugins/endfield-plugin/
+git clone https://github.com/Entropy-Increase-Team/endfield-plugin ./plugins/endfield-plugin/
+```
+
+### 2. 安装依赖
+
+```bash
 pnpm install --filter=endfield-plugin
 ```
+
+### 3. 配置
+
+> [!TIP]
+> **官网**：[终末地协议终端](https://end.shallow.ink)。授权登陆、绑定列表等接口需配置 `api_key`，请在官网注册并获取 API 密钥后，在 `config/common.yaml` 中填写。
 
 ---
 
@@ -42,9 +63,9 @@ pnpm install --filter=endfield-plugin
 | `:扫码绑定` | 森空岛 App 扫码绑定 |
 | `:手机绑定 [手机号]` | 手机验证码绑定（私聊） |
 | `:绑定帮助` | 查看绑定方式说明 |
-| `:绑定列表` | 查看已绑定账号（⭐ 标记当前激活） |
+| `:绑定列表` | 查看已绑定账号（含绑定类型、⭐ 当前） |
 | `:切换绑定 <序号>` | 切换当前激活账号 |
-| `:删除绑定 <序号>` | 删除指定绑定 |
+| `:删除绑定 <序号>` | 删除指定绑定（网页授权需前往官网解除） |
 | `:我的cred` | 查询当前激活账号的 cred |
 | `:删除cred` | 删除所有绑定 |
 
@@ -102,8 +123,10 @@ pnpm install --filter=endfield-plugin
 
 ## 说明
 
+- **官网与 api_key**：[终末地协议终端](https://end.shallow.ink) 为插件统一后端官网；授权登陆、绑定列表等需在官网获取 `api_key` 并填入 `config/common.yaml`。
 - **多账号**：支持绑定多个终末地账号，使用 `:切换绑定 <序号>` 切换当前激活账号。
+- **绑定类型**：绑定列表会显示 网页授权 / 手机号 / 扫码；网页授权绑定需前往官网解除，删除绑定时会提示。
 - **帮助菜单**：内容与布局来自 `defSet/help.yaml`；自定义请复制到 `config/help.yaml` 后修改。修改后再次发送 `:帮助` 即生效，无需重启。
 - **帮助页布局**：`help_layout` 中 `col_count`、`col_width`、`width_gap` 控制列数与总宽度，截图视口会与之匹配，避免右侧被裁切。
-- **提示文案**：默认使用 `defSet/message.yaml`；自定义请复制到 `config/message.yaml` 后修改。
+- **提示文案**：默认使用 `defSet/message.yaml`；若存在 `config/message.yaml` 则使用 config，否则使用 defSet。
 - **攻略资源**：攻略图片按角色名存放在 `data/strategyimg/`。

@@ -51,6 +51,13 @@ class Setting {
   }
 
   getConfig(app) {
+    if (CONFIG_SKIP_COPY.includes(app)) {
+      const configFile = `${this.configPath}${app}.yaml`
+      if (fs.existsSync(configFile)) {
+        return this.getYaml(app, 'config')
+      }
+      return this.getdefSet(app)
+    }
     return { ...this.getdefSet(app), ...this.getYaml(app, 'config') }
   }
 

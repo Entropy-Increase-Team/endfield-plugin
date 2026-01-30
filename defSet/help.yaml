@@ -10,6 +10,7 @@ help_group:
   - group: "支持多账号绑定，请使用'{prefix}扫码绑定'或'{prefix}手机绑定'完成绑定"
   - group: "可通过'{prefix}切换绑定 <序号>'切换当前激活账号"
   - group: "蓝图文档链接 {bluemap_help}"
+  - group: "官网链接 https://end.shallow.ink"
   - group: "基础指令"
     list:
       - icon: 1

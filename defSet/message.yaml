@@ -155,6 +155,7 @@ enduid:
   delete_index_hint: "请输入有效的序号，例如：{prefix}删除登陆 1"
   index_out_of_range: "序号超出范围，当前共有 {count} 个账号"
   deleted_role: "已删除登陆：{roleName}{suffix}"
+  unbind_auth_hint: "该绑定为网页授权，请前往官网解除绑定，官网链接发送 {prefix}帮助 查看"
   delete_failed: "删除失败，请稍后重试"
   switch_index_hint: "请输入有效的序号，例如：{prefix}切换登陆 1"
   switched: "已切换至账号：{nickname}\n角色ID：{role_id}"

@@ -442,6 +442,19 @@ export class EndfieldUid extends plugin {
     }
 
     const deletedBinding = bindings[index - 1]
+    let accounts = []
+    const txt = await redis.get(`ENDFIELD:USER:${this.e.user_id}`)
+    if (txt) {
+      try {
+        const parsed = JSON.parse(txt)
+        accounts = Array.isArray(parsed) ? parsed : [parsed]
+      } catch (err) {}
+    }
+    const account = accounts.find(a => a.binding_id === deletedBinding.id)
+    if (account?.login_type === 'auth') {
+      await this.reply(getMessage('enduid.unbind_auth_hint'))
+      return true
+    }
     const roleName = deletedBinding.nickname || '未知'
     const success = await hypergryphAPI.deleteUnifiedBackendBinding(deletedBinding.id)
 
