@@ -31,13 +31,7 @@
 git clone https://github.com/Entropy-Increase-Team/endfield-plugin ./plugins/endfield-plugin/
 ```
 
-### 2. 安装依赖
-
-```bash
-pnpm install --filter=endfield-plugin
-```
-
-### 3. 配置
+### 2. 配置
 
 > [!TIP]
 > **官网**：[终末地协议终端](https://end.shallow.ink)。授权登陆、绑定列表等接口需配置 `api_key`，请在官网注册并获取 API 密钥后，在 `config/common.yaml` 中填写。

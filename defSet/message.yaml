@@ -5,8 +5,8 @@
 
 # 帮助页与蓝图（帮助菜单前缀提示、蓝图文档链接）
 bluemap_help_doc: "https://www.kdocs.cn/l/caI2H6e4APLS"
-prefix_tips_mode1: "前缀：: / ："
-prefix_tips_mode2: "前缀：#终末地 / #zmd"
+prefix_tips_mode1: "前缀为 : / ："
+prefix_tips_mode2: "前缀为 #终末地 / #zmd"
 
 # 未绑定账号时的提示信息
 unbind_message: |
