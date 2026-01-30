@@ -166,8 +166,6 @@ export class EndfieldUid extends plugin {
   }
 
   async authBind() {
-    if (this.e.isGroup && !this.e.atBot) return false
-
     const config = this.common_setting || {}
     if (!config.api_key) {
       await this.reply(getMessage('enduid.auth_need_api_key'))
@@ -258,7 +256,6 @@ export class EndfieldUid extends plugin {
   }
 
   async scanQRBind() {
-    if (this.e.isGroup && !this.e.atBot) return false
     await this.reply(getMessage('enduid.qr_generating'))
 
     try {
