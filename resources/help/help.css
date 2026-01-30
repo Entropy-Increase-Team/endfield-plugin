@@ -1,0 +1,141 @@
+@font-face {
+  font-family: 'HarmonyOS Sans SC';
+  src: url('../font/HarmonyOS_SansSC_Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'HarmonyOS Sans SC', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background-image: url('{{_res_path}}help/bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #1e1e1e;
+  color: #e0e0e0;
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+/* 容器：宽度 100% 且不超过 max-width，避免截图时右侧被裁切 */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  background-color: #282828;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.header h1 {
+  font-size: 2.8em;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+.header p {
+  font-size: 0.9em;
+  color: #b0b0b0;
+  margin: 0;
+}
+
+.info-block {
+  background-color: #3c3c3c;
+  padding: 15px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  font-size: 0.95em;
+  line-height: 1.5;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.info-block a {
+  color: #90b0ff;
+  text-decoration: none;
+}
+
+.info-block a:hover {
+  text-decoration: underline;
+}
+
+.section-title {
+  font-size: 1.4em;
+  color: #ffffff;
+  margin-top: 35px;
+  margin-bottom: 18px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #555555;
+  letter-spacing: 0.5px;
+}
+
+.commands-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+}
+
+.command-item {
+  background-color: #333333;
+  padding: 15px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.help-item-icon {
+  width: 50px;
+  height: 50px;
+  overflow: hidden;
+  border-radius: 4px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.help-item-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.command-item .text-content {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.command-name {
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 4px;
+  font-size: 1em;
+}
+
+.command-description {
+  font-size: 0.85em;
+  color: #b0b0b0;
+  line-height: 1.4;
+}
+
+.footer {
+  text-align: center;
+  font-size: 0.8em;
+  color: #888888;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #3a3a3a;
+}

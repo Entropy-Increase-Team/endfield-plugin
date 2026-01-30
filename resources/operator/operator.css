@@ -1,0 +1,104 @@
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
+body { background: #f9fafb; color: #333; min-height: 100vh; }
+#container { max-width: 1200px; margin: 0 auto; }
+
+.hero-section { position: relative; width: 100%; height: 600px; background: #d1d5db; overflow: hidden; }
+.hero-grid-pattern { position: absolute; inset: 0; opacity: 0.2; background-image: linear-gradient(#444 1px, transparent 1px), linear-gradient(90deg, #444 1px, transparent 1px); background-size: 40px 40px; }
+.hero-corner-accent { position: absolute; top: 0; right: 0; width: 0; height: 0; border-top: 300px solid #fbbf24; border-left: 100px solid transparent; z-index: 0; }
+.vertical-text { position: absolute; top: 40px; right: 32px; z-index: 10; display: flex; flex-direction: column; align-items: center; writing-mode: vertical-rl; }
+.vertical-title { font-size: 5rem; font-weight: 900; color: white; letter-spacing: 0.2em; text-transform: uppercase; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); opacity: 0.9; }
+.vertical-subtitle { font-size: 0.75rem; font-weight: bold; color: white; letter-spacing: 0.5em; margin-top: 16px; text-transform: uppercase; opacity: 0.8; }
+.character-illustration { position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-start; padding-left: 80px; z-index: 10; }
+.character-illustration img { height: 110%; object-fit: contain; filter: drop-shadow(0 25px 25px rgba(0,0,0,0.5)); transform: translateY(10px); }
+.character-info-overlay { position: absolute; bottom: 48px; left: 96px; z-index: 20; }
+.character-title { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 8px; }
+.profession-icon { width: 48px; height: 48px; background: #1f2937; display: flex; align-items: center; justify-content: center; color: white; border-radius: 2px; transform: skew(-12deg); }
+.character-name { font-size: 3rem; font-weight: bold; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.7); }
+.rarity-stars { display: flex; align-items: center; gap: 2px; margin-bottom: 16px; }
+.star { width: 12px; height: 12px; background: #fbbf24; opacity: 0.8; transform: rotate(45deg); }
+.tags-container { display: flex; background: rgba(31,41,55,0.8); backdrop-filter: blur(8px); border-radius: 6px; overflow: hidden; color: white; font-size: 0.875rem; font-weight: bold; max-width: 28rem; flex-wrap: wrap; }
+.tag-item { padding: 8px 24px; border-right: 1px solid #4b5563; display: flex; align-items: center; justify-content: center; min-width: 80px; }
+.tag-item:last-child { border-right: none; }
+.level-box { position: absolute; bottom: 48px; right: 128px; z-index: 20; background: rgba(31,41,55,0.9); backdrop-filter: blur(8px); color: white; padding: 24px; border-radius: 4px; min-width: 200px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+.level-display { display: flex; align-items: baseline; border-bottom: 1px solid #4b5563; padding-bottom: 8px; margin-bottom: 8px; }
+.level-number { font-size: 3.75rem; font-weight: bold; }
+.level-label { font-size: 1.125rem; margin-left: 8px; font-weight: 300; text-transform: uppercase; letter-spacing: 0.1em; }
+.level-icons { display: flex; justify-content: space-between; color: #9ca3af; }
+.vertical-divider { height: 24px; width: 1px; background: #4b5563; }
+
+.content-section { max-width: 72rem; margin: 0 auto; padding: 24px 16px; }
+.section-title { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.section-line { width: 4px; height: 24px; background: black; }
+.section-heading { font-size: 1.25rem; font-weight: bold; color: #1f2937; }
+
+/* 内容区：技能 → 武器+基质 → 装备，纵向排列 */
+.panel-skills { margin-bottom: 24px; }
+.panel-weapon-gem { margin-bottom: 24px; }
+.panel-equipment { margin-bottom: 0; }
+
+/* 装备 左侧一列 2 个、右侧一列 3 个，无则空占位；左右总高一致，左底不镂空 */
+.equipment-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: stretch; }
+.equip-col-left { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.equip-col-right { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.equip-col-left > *,
+.equip-col-right > * { flex: 1; min-height: 120px; }
+.equip-card { background: #e5e7eb; border-radius: 12px; padding: 12px; position: relative; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #d1d5db; }
+.equip-card.tactical { background: #fef3c7; }
+.equip-top-decoration { position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(to right, #d1d5db, transparent); }
+.equip-info { display: flex; flex-direction: column; justify-content: space-between; height: 100%; z-index: 10; min-width: 0; }
+.equip-level { display: flex; align-items: baseline; }
+.equip-level-number { font-size: 1.5rem; font-weight: bold; color: #1f2937; }
+.equip-level-label { font-size: 0.65rem; font-weight: bold; color: #6b7280; margin-left: 4px; text-transform: uppercase; }
+.equip-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-bottom: 4px; opacity: 0.6; }
+.equip-stat-icon { font-size: 0.5rem; color: #6b7280; }
+.equip-name { font-weight: bold; font-size: 0.8rem; line-height: 1.2; max-width: 6rem; }
+.equip-image { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+.equip-image img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.25)); }
+.equip-bottom-accent { position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; }
+/* 品质色：1灰 2绿 3蓝 4紫 5橙 6红 */
+.equip_rarity_1 .equip-bottom-accent { background: #9ca3af; }
+.equip_rarity_1 .equip-name { color: #6b7280; }
+.equip_rarity_2 .equip-bottom-accent { background: #10b981; }
+.equip_rarity_2 .equip-name { color: #059669; }
+.equip_rarity_3 .equip-bottom-accent { background: #3b82f6; }
+.equip_rarity_3 .equip-name { color: #2563eb; }
+.equip_rarity_4 .equip-bottom-accent { background: #8b5cf6; }
+.equip_rarity_4 .equip-name { color: #7c3aed; }
+.equip_rarity_5 .equip-bottom-accent { background: #f97316; }
+.equip_rarity_5 .equip-name { color: #ea580c; }
+.equip_rarity_6 .equip-bottom-accent { background: #ef4444; }
+.equip_rarity_6 .equip-name { color: #dc2626; }
+.tactical-label { display: flex; align-items: center; gap: 4px; color: #6b7280; }
+.tactical-text { font-size: 0.7rem; font-weight: bold; }
+.equip-slot-empty { background: #e5e7eb; border-radius: 12px; min-height: 120px; display: flex; align-items: center; justify-content: center; border: 1px dashed #d1d5db; }
+.equip-slot-icon { font-size: 2rem; color: #9ca3af; opacity: 0.5; }
+
+/* 技能：最上 4 个一行 */
+.skills-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.skill-item { display: flex; flex-direction: column; align-items: center; gap: 6px; background: #f9fafb; border-radius: 12px; padding: 10px; height: 120px; justify-content: center; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.08); }
+.skill-icon-container { width: 48px; height: 48px; border-radius: 50%; background: #4b5563; border: 3px solid #d1d5db; overflow: hidden; flex-shrink: 0; }
+.skill-icon { width: 100%; height: 100%; object-fit: cover; }
+.skill-info { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.skill-rank { background: #6b7280; color: white; font-size: 0.55rem; padding: 2px 6px; border-radius: 9999px; text-transform: uppercase; }
+.skill-name { color: #1f2937; font-weight: bold; font-size: 0.75rem; text-align: center; line-height: 1.2; }
+.skill-slot-empty { background: #e5e7eb; border-radius: 12px; height: 120px; display: flex; align-items: center; justify-content: center; border: 1px dashed #d1d5db; }
+
+/* 武器+基质：一行两格 */
+.weapon-gem-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.weapon-compact { background: #f3f4f6; border-radius: 12px; padding: 12px; position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; height: 120px; overflow: hidden; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
+.weapon-compact-level { display: flex; align-items: baseline; }
+.weapon-compact-num { font-size: 1.5rem; font-weight: bold; color: #1f2937; }
+.weapon-compact-label { font-size: 0.65rem; font-weight: bold; color: #6b7280; margin-left: 4px; text-transform: uppercase; }
+.weapon-compact-rarity { display: flex; gap: 2px; margin-bottom: 4px; }
+.weapon-compact-star { width: 8px; height: 8px; background: #fbbf24; transform: rotate(45deg); }
+.weapon-compact-name { font-size: 0.8rem; font-weight: bold; color: #1f2937; max-width: 5rem; line-height: 1.2; }
+.weapon-compact-img { position: absolute; right: 4px; bottom: 4px; width: 56px; height: 56px; }
+.weapon-compact-img img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.25)); }
+.weapon-compact-accent { position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: #f59e0b; }
+.weapon-slot-empty { background: #e5e7eb; border-radius: 12px; height: 120px; display: flex; align-items: center; justify-content: center; border: 1px dashed #d1d5db; }
+.gem-card { background: #fef3c7; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #fde68a; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.1); min-height: 120px; }
+.gem-label { font-size: 0.7rem; font-weight: bold; color: #92400e; }
+.gem-info { display: flex; align-items: center; gap: 8px; flex: 1; }
+.gem-name { font-size: 0.85rem; font-weight: bold; color: #1f2937; }
+.gem-img { width: 48px; height: 48px; flex-shrink: 0; }
+.gem-img img { width: 100%; height: 100%; object-fit: contain; }

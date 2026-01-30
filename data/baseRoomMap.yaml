@@ -1,0 +1,6 @@
+# 基地建设房间映射表（roomId -> 中文名称）
+control_center: "总控中枢"
+guest_room_clue_extension: "会客室"
+room_a_2: "制造舱 II"
+room_a_1: "制造舱 I"
+room_b_1: "培养舱"

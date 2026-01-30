@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{helpCfg.title}}</title>
+  <link rel="stylesheet" href="{{_res_path}}help/help.css">
+</head>
+<body>
+  <main class="container" style="width:100%;max-width:{{helpLayoutMaxWidth}}px;box-sizing:border-box;">
+    <header class="header">
+      <h1>{{helpCfg.title}}</h1>
+      <p>{{helpCfg.subTitle}}</p>
+    </header>
+
+    {{each helpGroup}}
+      {{if $value.group && !$value.list}}
+    <div class="info-block">{{$value.group}}</div>
+      {{else if $value.list}}
+    <h2 class="section-title">{{$value.group}}</h2>
+    <div class="commands-grid" style="grid-template-columns:repeat({{helpLayoutColCount}},1fr);">
+        {{each $value.list}}
+      <article class="command-item">
+          {{if $value.iconUrl}}
+        <div class="help-item-icon"><img src="{{$value.iconUrl}}" alt=""></div>
+          {{/if}}
+        <div class="text-content">
+          <div class="command-name">{{$value.title}}</div>
+          <div class="command-description">{{$value.desc}}</div>
+        </div>
+      </article>
+        {{/each}}
+    </div>
+      {{/if}}
+    {{/each}}
+
+    <footer class="footer">
+      Created By TRSS-Yunzai & endfield-plugin {{endfieldVersion}}
+    </footer>
+  </main>
+</body>
+</html>

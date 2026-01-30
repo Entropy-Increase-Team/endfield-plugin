@@ -1,0 +1,4 @@
+# 自动签到开关
+auto_sign: true
+# 自动签到cron表达式（每天 1 点）
+auto_sign_cron: 0 0 1 * * ?

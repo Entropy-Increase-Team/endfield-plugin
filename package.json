@@ -1,0 +1,19 @@
+{
+  "name": "endfield-plugin",
+  "version": "0.1.0",
+  "description": "Yunzai-Bot 终末地插件（基于森空岛）",
+  "type": "module",
+  "module": "index.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {},
+  "keywords": [
+    "云崽",
+    "终末地",
+    "Yunzai-Bot"
+  ],
+  "author": "endfield-plugin",
+  "license": "MIT"
+}

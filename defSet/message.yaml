@@ -1,0 +1,221 @@
+# 提示信息配置
+# 注意：此文件不会自动复制到 config 目录
+# 如需自定义，请手动复制 defSet/message.yaml 到 config/message.yaml 后修改
+# 支持占位符：{prefix} 会被替换为实际命令前缀（: 或 #zmd），{name} 会被替换为实际名称
+
+# 帮助页与蓝图（帮助菜单前缀提示、蓝图文档链接）
+bluemap_help_doc: "https://www.kdocs.cn/l/caI2H6e4APLS"
+prefix_tips_mode1: "前缀：: / ："
+prefix_tips_mode2: "前缀：#终末地 / #zmd"
+
+# 未绑定账号时的提示信息
+unbind_message: |
+  未绑定终末地森空岛账号
+  绑定命令 (仅私聊 请注意冒号就是命令前缀)
+  1. {prefix}扫码登陆 -- 森空岛app扫码
+  2. {prefix}手机登陆 [手机号] -- 手机号验证码登陆
+
+# Wiki 查询提示
+wiki:
+  # 请提供名称的提示
+  provide_operator: "请提供干员名称，例如：{prefix}wiki 干员 管理员"
+  provide_weapon: "请提供武器名称，例如：{prefix}wiki 武器 不知归"
+  provide_equip: "请提供装备名称，例如：{prefix}wiki 装备 脉冲式干扰服"
+  provide_tactical: "请提供战术物品名称，例如：{prefix}wiki 战术物品 谷地馅饼"
+  # 未找到的提示
+  not_found_operator: "未找到干员：{name}"
+  not_found_weapon: "未找到武器：{name}"
+  not_found_equip: "未找到装备：{name}"
+  not_found_tactical: "未找到战术物品：{name}"
+
+# 干员相关提示
+operator:
+  provide_name: "请使用“干员名+面板”，例如：{prefix}黎风面板"
+  loading_detail: "正在获取干员信息..."
+  no_operator_id: "未获取到干员ID，请稍后重试"
+  panel_failed: "生成面板图片失败，请稍后重试"
+  loading_list: "正在获取干员列表..."
+  list_failed: "生成干员列表图片失败，请稍后重试"
+  not_found_info: "未找到干员信息"
+  not_found: "未找到干员：{name}"
+  get_detail_failed: "获取干员详情失败，请稍后重试"
+  query_failed: "查询失败：{error}"
+  get_bind_failed: "获取绑定信息失败，请稍后重试"
+  get_user_failed: "获取用户信息失败，请稍后重试"
+  get_role_failed: "获取角色信息失败，请稍后重试"
+
+# 通用错误提示
+common:
+  # 绑定/登陆相关
+  not_found_bind_info: "未找到终末地绑定信息"
+  not_found_role_id: "未找到终末地角色ID，请确认该账号已创建角色。"
+  not_found_role_info: "未找到角色信息"
+  not_found_login_info: "未找到登陆信息"
+  not_found_skland_user_id: "未找到森空岛用户ID，请稍后重试"
+  not_found_cred: "未找到cred"
+  switch_failed: "切换账号失败"
+  # 查询失败
+  query_failed: "查询失败：{error}"
+  # 获取信息失败
+  get_bind_failed: "获取绑定信息失败，请稍后重试"
+  get_user_failed: "获取用户信息失败，请稍后重试"
+  get_role_failed: "获取角色信息失败，请稍后重试"
+  # 读取/解析失败
+  read_info_failed: "读取登陆信息失败"
+  parse_info_failed: "解析登陆信息失败"
+  delete_failed: "删除登陆失败"
+  # 登陆相关
+  login_failed: "登陆失败，请检查 cred 是否有效"
+  login_failed_no_cred: "登陆失败，无法获取cred，请查看日志了解详细错误信息，或尝试使用cred直接登陆"
+  login_failed_no_cred_phone: "登陆失败，无法获取cred，请查看日志了解详细错误信息"
+
+# 功能模块特定提示
+spaceship:
+  loading: "正在获取帝江号建设信息..."
+  not_found_info: "未找到帝江号建设信息"
+  get_bind_failed: "获取绑定信息失败，请稍后重试"
+  get_user_failed: "获取用户信息失败，请稍后重试"
+  get_role_failed: "获取角色信息失败，请稍后重试"
+  query_failed: "查询失败：{error}"
+
+area:
+  loading: "正在获取地区建设信息..."
+  not_found_info: "未找到地区建设信息"
+  get_bind_failed: "获取绑定信息失败，请稍后重试"
+  get_user_failed: "获取用户信息失败，请稍后重试"
+  get_role_failed: "获取角色信息失败，请稍后重试"
+  get_zone_failed: "获取地区建设信息失败，请稍后重试"
+  query_failed: "查询失败：{error}"
+
+note:
+  loading: "正在获取角色信息..."
+  get_bind_failed: "获取绑定信息失败，请稍后重试"
+  get_user_failed: "获取用户信息失败，请稍后重试"
+  get_role_failed: "获取角色信息失败，请稍后重试"
+  query_failed: "查询失败：{error}"
+
+stamina:
+  subscribed: "已订阅理智推送"
+  subscribe_ok: "订阅理智推送成功"
+  loading: "正在获取理智信息..."
+  get_role_failed: "获取角色信息失败，请稍后重试"
+  query_failed: "查询失败：{error}"
+
+attendance:
+  sign_failed: "签到失败，请稍后再试"
+  already_signed: "今天已经签到过了"
+  task_start: "签到任务开始"
+  task_start_broadcast: "终末地森空岛签到任务开始\n共 {count} 个账号需要签到"
+  task_complete: "终末地森空岛签到任务完成\n总计：{total} 个\n已签：{signed} 个\n成功：{success} 个\n失败：{fail} 个"
+  task_complete_fail_users: "\n\n失败用户QQ号：\n{fail_users}"
+  not_found_role_id: "未找到终末地角色ID，请重新绑定后再试"
+
+enduid:
+  bind_help: |
+    绑定命令 (请注意冒号就是命令前缀)
+    1. {prefix}授权登陆 [手机号] -- 网页授权登陆 此功能需要先去网站绑定
+    2. {prefix}扫码登陆 -- 森空岛app扫码
+    3. {prefix}手机登陆 [手机号] -- 手机号验证码登陆 仅私聊！
+  auth_link_intro: "请复制下方链接到浏览器打开，在终末地-协议终端完成授权："
+  auth_link_expiry: "链接有效时间至：{time}"
+  auth_link_wait: "授权完成后我会自动完成绑定，请等待..."
+  please_private: "请私聊登陆"
+  cred_please: "请发送森空岛 cred（SK_OAUTH_CRED_KEY，32位）用于登陆终末地。"
+  cred_no_token: "当前终末地插件暂未接入 token->cred 流程，请发送 32 位 cred 进行登陆。"
+  cred_invalid: "请发送有效的 32 位 cred。"
+  cred_checking: "cred 已收到，校验中..."
+  binding_ok: "账号已更新！\n角色名：{nickname}\n角色ID：{role_id}\n服务器：{server_id}"
+  login_ok: "登陆成功！\n角色名：{nickname}\n角色ID：{role_id}\n服务器：{server_id}\n当前账号数：{count}"
+  auth_please_private: "请私聊进行授权登陆"
+  auth_need_api_key: "授权登陆需要配置 api_key，请在插件 config/common.yaml 中填写。"
+  auth_create_failed: "创建授权请求失败，请检查 api_key 配置或稍后重试。"
+  auth_rejected: "您已拒绝授权，本次登陆已取消。"
+  auth_expired: "授权链接已过期，请重新发送「授权登陆」获取新链接。"
+  auth_timeout: "授权超时，请重新发送「授权登陆」获取新链接。"
+  auth_success: "授权成功，正在创建绑定..."
+  bind_create_failed: "创建绑定失败，请稍后重试"
+  auth_error: "授权登陆过程出现错误，请稍后重试"
+  qr_please_private: "请私聊进行扫码登陆"
+  qr_generating: "正在生成二维码，请稍候..."
+  get_qrcode_failed: "获取二维码失败，请稍后重试"
+  qr_expired: "二维码已过期，请重新获取并扫码"
+  qr_login_failed: "登录失败，请重新尝试"
+  qr_confirm: "检测到扫码，请在APP中确认登录..."
+  qr_authed: "已授权，正在获取凭证..."
+  qr_timeout: "二维码已超时，请重新获取并扫码"
+  qr_login_ok: "登录成功，正在创建绑定..."
+  qr_error: "扫码登陆过程出现错误，请稍后重试"
+  please_private_op: "请私聊操作"
+  unbind_hint: "未绑定终末地cred，请先使用「{prefix}扫码绑定」。"
+  token_show: "当前激活账号的 Framework Token：\n{token}"
+  token_not_found: "未找到 Framework Token"
+  read_bind_failed: "读取绑定信息失败"
+  delete_ok: "删除成功"
+  not_logged_in: "未登陆终末地账号"
+  delete_index_hint: "请输入有效的序号，例如：{prefix}删除登陆 1"
+  index_out_of_range: "序号超出范围，当前共有 {count} 个账号"
+  deleted_role: "已删除登陆：{roleName}{suffix}"
+  delete_failed: "删除失败，请稍后重试"
+  switch_index_hint: "请输入有效的序号，例如：{prefix}切换登陆 1"
+  switched: "已切换至账号：{nickname}\n角色ID：{role_id}"
+  switch_failed: "切换失败，请稍后重试"
+  phone_please_private: "请私聊进行手机登陆"
+  phone_ask: "请发送您的手机号码（11位）："
+  phone_ask_example: "请使用「{prefix}手机登陆 [11位手机号]」，例如：{prefix}手机登陆 13800138000"
+  phone_code_verify_example: "请使用「{prefix}验证码 [6位验证码]」，例如：{prefix}验证码 123456"
+  phone_invalid: "请输入有效的手机号码（11位）"
+  phone_send_failed: "验证码发送失败，请稍后重试"
+  phone_code_sent: "验证码已发送至 {mask}，5分钟内请发送「{prefix}验证码 [6位验证码]」完成登陆，例如：{prefix}验证码 123456"
+  phone_code_digit: "请输入6位数字验证码"
+  phone_code_expired: "验证码已过期，请重新发起手机登陆"
+  phone_cache_error: "缓存数据异常，请重新发起手机登陆"
+  phone_code_wrong: "验证码错误或已过期，请重新发起手机登陆"
+  phone_login_ok: "手机登陆成功"
+  phone_login_error: "登陆过程出现错误，请稍后重试"
+  get_token_failed: "获取token失败，请重试"
+
+strategy:
+  provide_name: "请提供攻略名称，例如：{prefix}xx攻略"
+  not_found: "未找到攻略：{name}"
+  not_downloaded: "攻略资源未下载，请先使用 {prefix}攻略资源下载 下载资源"
+  download_github: "正在从 GitHub 下载攻略资源，请稍候..."
+  update_github: "正在从 GitHub 更新攻略资源，请稍候..."
+  download_start: "开始下载攻略资源，这可能需要一些时间..."
+  download_complete: "下载完成！成功：{success} 个，失败：{fail} 个"
+  update_no_new: "没有发现新的攻略，资源已是最新版本"
+  update_complete: "更新完成！{message}"
+  query_failed: "查询失败：{error}"
+  download_failed: "下载失败：{error}"
+  update_failed: "更新失败：{error}"
+  no_images: "攻略「{title}」没有图片"
+  admin_only: "此命令仅限管理员使用"
+  upload_format_error: "格式错误，请使用：:攻略上传 [干员名称（可选）] [标题（可选）] [作者（可选）] [链接] [图片链接]"
+  upload_need_character: "无法从标题中提取干员名称，请发送：:攻略上传干员 [干员名称]"
+  upload_need_image: "请提供图片链接或在消息中附带图片\n格式：:攻略上传 [干员名称（可选）] [标题（可选）] [作者（可选）] [链接] [图片链接]"
+  image_download_failed: "图片下载失败，请检查图片链接"
+  image_exists: "该图片链接已存在，请使用其他图片链接"
+  upload_need_title: "无法获取标题，请手动提供标题"
+  upload_success: "攻略上传成功！\n干员：{characterName}\n标题：{finalTitle}\n作者：{finalAuthor}"
+  upload_failed: "上传失败：{error}"
+  upload_expired: "上传信息已过期，请重新发起上传"
+  upload_character_example: "请提供干员名称，例如：:攻略上传干员 莱万汀"
+  delete_format_error: "格式错误，请使用：:攻略删除 [链接]"
+  delete_not_found: "未找到该攻略"
+  delete_success: "攻略删除成功！\n标题：{title}"
+  delete_failed: "删除失败：{error}"
+  no_available_images: "攻略「{title}」没有可用的图片文件，请使用 :攻略资源下载 重新下载资源"
+  redownload_hint: "⚠️ 攻略图片文件不存在，请使用 :攻略资源下载 重新下载资源"
+
+# 蓝图文档
+bluemap:
+  not_configured: "未配置蓝图文档链接，请在 config/message.yaml 中设置 bluemap_help_doc。"
+  doc_url: "蓝图文档：{url}"
+
+# AI 问答
+ai:
+  provide_content_new: "请发送要询问的内容，例如：{prefix}ai 新会话 终末地讲了什么故事"
+  provide_content: "请发送要询问的内容，例如：{prefix}ai 终末地讲了什么故事"
+  create_new_failed: "创建新会话失败，请稍后重试"
+  create_failed: "创建会话失败，请稍后重试"
+  empty_response: "AI响应为空，请重试"
+  request_failed: "请求失败: {error}"

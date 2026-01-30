@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>干员列表 - 终末地</title>
+    <link rel="stylesheet" href="{{listCssHref}}">
+    {{if listBgUrl}}
+    <style>.list-page-body { background-image: url({{listBgUrl}}); background-size: cover; background-position: center; background-repeat: no-repeat; }</style>
+    {{/if}}
+</head>
+<body class="list-page-body">
+    <div class="operator-list-container">
+        <div class="list-top-bar">
+            <div class="user-info">
+                <img src="{{userAvatar}}" alt="用户头像" class="user-avatar">
+                <div class="user-details">
+                    <div class="user-name">{{userNickname}}</div>
+                    <div class="user-level">Lv.{{userLevel}}</div>
+                </div>
+            </div>
+            <div class="list-header-center">
+                <h1 class="list-title">干员列表</h1>
+                <p class="list-count">共 {{totalCount}} 个干员</p>
+            </div>
+            <div class="logo-container">
+                <img src="{{logoUrl}}" alt="Logo" class="logo-image">
+            </div>
+        </div>
+
+        <div class="operators-grid">
+            {{each operators operator}}
+            <div class="operator-card">
+                <div class="showcase-inner showcase-container" data-color-code="{{operator.colorCode}}">
+                    <div class="background-character">
+                        <img src="{{operator.imageUrl}}" alt="character">
+                    </div>
+                    <div class="left-triangles">
+                        <svg class="triangle-vector-2" viewBox="0 0 172.5 680.5" preserveAspectRatio="none">
+                            <path d="M172.5 0l-172.5 0 0 680.5 172.5-680.5z" />
+                        </svg>
+                        <svg class="triangle-vector-1" viewBox="0 0 235.5 1186" preserveAspectRatio="none">
+                            <path d="M235.5 1186l-235.5-1186 0 1186 235.5 0z" />
+                        </svg>
+                    </div>
+                    <div class="card-icons">
+                        {{if operator.professionIcon}}
+                        <div class="decoration-image">
+                            <img src="{{operator.professionIcon}}" alt="{{operator.profession}}">
+                        </div>
+                        {{/if}}
+                        {{if operator.propertyIcon}}
+                        <div class="property-icon">
+                            <img src="{{operator.propertyIcon}}" alt="{{operator.property}}">
+                        </div>
+                        {{/if}}
+                    </div>
+                    <div class="vertical-title-container">
+                        {{each operator.nameChars ch}}
+                        <span class="vertical-title-char">{{ch}}</span>
+                        {{/each}}
+                    </div>
+                </div>
+            </div>
+            {{/each}}
+        </div>
+    </div>
+    <script>
+        (function(){
+            const palette = {
+                PHY: {hex: '#888888', opaque: '#888888', semi: 'rgba(136,136,136,0.5)'},
+                FIRE: {hex: '#FF623D', opaque: '#FF623D', semi: 'rgba(255,98,61,0.5)'},
+                ELEC: {hex: '#FFC000', opaque: '#FFC000', semi: 'rgba(255,192,0,0.5)'},
+                ICE: {hex: '#21C6D0', opaque: '#21C6D0', semi: 'rgba(33,198,208,0.5)'},
+                NATURE: {hex: '#9EDC23', opaque: '#9EDC23', semi: 'rgba(158,220,35,0.5)'}
+            };
+
+            document.querySelectorAll('.showcase-container').forEach(function(container) {
+                const code = (container.dataset.colorCode || 'PHY').toUpperCase();
+                const entry = palette[code] || palette.PHY;
+                container.style.setProperty('--tri1-color', entry.opaque);
+                container.style.setProperty('--tri2-color', entry.semi);
+                container.style.setProperty('--border-color', entry.opaque);
+                container.style.setProperty('--stroke-color', entry.opaque);
+                container.style.setProperty('--title-color', container.dataset.titleColor || '#ffffff');
+                container.style.setProperty('--base-hex', entry.hex);
+            });
+        })();
+    </script>
+</body>
+</html>

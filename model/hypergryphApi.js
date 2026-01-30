@@ -1,0 +1,393 @@
+import setting from '../utils/setting.js'
+
+function getUnifiedBackendConfig() {
+  const commonConfig = setting.getConfig('common') || {}
+  return {
+    baseUrl: (commonConfig.unified_backend_base_url || 'https://end-api.shallow.ink').replace(/\/$/, ''),
+    authorizationFrontendUrl: (commonConfig.authorization_frontend_url || '').replace(/\/$/, ''),
+    apiKey: commonConfig.api_key || ''
+  }
+}
+
+let hypergryphAPI = {
+  async getUnifiedBackendQR() {
+    const config = getUnifiedBackendConfig()
+
+    try {
+      const response = await fetch(`${config.baseUrl}/login/endfield/qr`, {
+        timeout: 25000,
+        method: 'get'
+      })
+
+      if (!response.ok) {
+        logger.error(`[终末地插件][统一后端][获取二维码]${response.status} ${response.statusText}`)
+        return null
+      }
+
+      const res = await response.json()
+      if (res?.code !== 0) {
+        logger.error(`[终末地插件][统一后端][获取二维码]${JSON.stringify(res)}`)
+        return null
+      }
+
+      return res.data
+    } catch (error) {
+      logger.error(`[终末地插件][统一后端][获取二维码]${error.toString()}`)
+      return null
+    }
+  },
+
+  async getUnifiedBackendQRStatus(frameworkToken) {
+    const config = getUnifiedBackendConfig()
+    const requestUrl = `${config.baseUrl}/login/endfield/qr/status?framework_token=${frameworkToken}`
+
+    try {
+      const response = await fetch(requestUrl, {
+        timeout: 25000,
+        method: 'get'
+      })
+
+      if (!response.ok) {
+        logger.error(`[终末地插件][统一后端][检查扫码状态]HTTP错误: ${response.status} ${response.statusText}`)
+        return null
+      }
+
+      const res = await response.json()
+      if (res?.code !== 0) {
+        logger.error(`[终末地插件][统一后端][检查扫码状态]业务错误: code=${res?.code}, message=${res?.message || '(无)'}`)
+        return null
+      }
+
+      return res.data
+    } catch (error) {
+      logger.error(`[终末地插件][统一后端][检查扫码状态]请求异常: ${error.toString()}`)
+      return null
+    }
+  },
+
+  async confirmUnifiedBackendLogin(frameworkToken, userIdentifier = '') {
+    const config = getUnifiedBackendConfig()
+    const requestUrl = `${config.baseUrl}/login/endfield/qr/confirm`
+    const requestBody = {
+      framework_token: frameworkToken,
+      user_identifier: userIdentifier,
+      platform: 'bot'
+    }
+
+    try {
+      const response = await fetch(requestUrl, {
+        timeout: 25000,
+        method: 'post',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      })
+
+      if (!response.ok) {
+        try {
+          const errorBody = await response.text()
+          logger.error(`[终末地插件][统一后端][确认登录]请求失败: ${response.status} ${response.statusText}, 响应: ${errorBody}`)
+        } catch (e) {
+          logger.error(`[终末地插件][统一后端][确认登录]请求失败: ${response.status} ${response.statusText}`)
+        }
+        return null
+      }
+
+      const res = await response.json()
+      
+      if (res?.code !== 0) {
+        logger.error(`[终末地插件][统一后端][确认登录]业务错误: ${JSON.stringify(res)}`)
+        return null
+      }
+
+      return res.data
+    } catch (error) {
+      logger.error(`[终末地插件][统一后端][确认登录]请求异常: ${error.toString()}`)
+      return null
+    }
+  },
+
+  async unifiedBackendPhoneLogin(phone, code) {
+    const config = getUnifiedBackendConfig()
+
+    try {
+      const response = await fetch(`${config.baseUrl}/login/endfield/phone/verify`, {
+        timeout: 25000,
+        method: 'post',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code })
+      })
+
+      if (!response.ok) {
+        logger.error(`[终末地插件][统一后端][手机登录]${response.status} ${response.statusText}`)
+        return null
+      }
+
+      const res = await response.json()
+      if (res?.code !== 0) {
+        logger.error(`[终末地插件][统一后端][手机登录]${JSON.stringify(res)}`)
+        return null
+      }
+
+      return res.data
+    } catch (error) {
+      logger.error(`[终末地插件][统一后端][手机登录]${error.toString()}`)
+      return null
+    }
+  },
+
+  async unifiedBackendSendPhoneCode(phone) {
+    const config = getUnifiedBackendConfig()
+
+    try {
+      const response = await fetch(`${config.baseUrl}/login/endfield/phone/send`, {
+        timeout: 25000,
+        method: 'post',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      })
+
+      if (!response.ok) {
+        logger.error(`[终末地插件][统一后端][发送验证码]${response.status} ${response.statusText}`)
+        return false
+      }
+
+      const res = await response.json()
+      if (res?.code !== 0) {
+        logger.error(`[终末地插件][统一后端][发送验证码]${JSON.stringify(res)}`)
+        return false
+      }
+
+      logger.mark(`[终末地插件][统一后端][发送验证码]验证码发送成功`)
+      return true
+    } catch (error) {
+      logger.error(`[终末地插件][统一后端][发送验证码]${error.toString()}`)
+      return false
+    }
+  },
+
+  async unifiedBackendCredLogin(cred) {
+    const config = getUnifiedBackendConfig()
+
+    try {
+      const response = await fetch(`${config.baseUrl}/login/endfield/cred`, {
+        timeout: 25000,
+        method: 'post',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cred })
+      })
+
+      if (!response.ok) {
+        logger.error(`[终末地插件][统一后端][Cred登录]${response.status} ${response.statusText}`)
+        return null
+      }
+
+      const res = await response.json()
+      if (res?.code !== 0) {
+        logger.error(`[终末地插件][统一后端][Cred登录]${JSON.stringify(res)}`)
+        return null
+      }
+
+      return res.data
+    } catch (error) {
+      logger.error(`[终末地插件][统一后端][Cred登录]${error.toString()}`)
+      return null
+    }
+  },
+
+  async createUnifiedBackendBinding(frameworkToken, userIdentifier, isPrimary = true, clientId = '') {
+    const config = getUnifiedBackendConfig()
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(config.apiKey ? { 'X-API-Key': config.apiKey } : {})
+    }
+
+    try {
+      const response = await fetch(`${config.baseUrl}/api/v1/bindings`, {
+        timeout: 25000,
+        method: 'post',
+        headers,
+        body: JSON.stringify({
+          framework_token: frameworkToken,
+          user_identifier: userIdentifier,
+          client_type: 'bot',
+          client_id: clientId || `bot-${userIdentifier}`,
+          is_primary: isPrimary
+        })
+      })
+
+      if (!response.ok) {
+        logger.error(`[终末地插件][统一后端][创建绑定]${response.status} ${response.statusText}`)
+        return null
+      }
+
+      const res = await response.json()
+      if (res?.code !== 0) {
+        logger.error(`[终末地插件][统一后端][创建绑定]${JSON.stringify(res)}`)
+        return null
+      }
+
+      return res.data
+    } catch (error) {
+      logger.error(`[终末地插件][统一后端][创建绑定]${error.toString()}`)
+      return null
+    }
+  },
+
+  async getUnifiedBackendBindings(userIdentifier) {
+    const config = getUnifiedBackendConfig()
+    const headers = config.apiKey ? { 'X-API-Key': config.apiKey } : {}
+
+    try {
+      const response = await fetch(`${config.baseUrl}/api/v1/bindings?user_identifier=${userIdentifier}&client_type=bot`, {
+        timeout: 25000,
+        method: 'get',
+        headers
+      })
+
+      if (!response.ok) {
+        logger.error(`[终末地插件][统一后端][获取绑定列表]${response.status} ${response.statusText}`)
+        return []
+      }
+
+      const res = await response.json()
+      if (res?.code !== 0) {
+        logger.error(`[终末地插件][统一后端][获取绑定列表]${JSON.stringify(res)}`)
+        return []
+      }
+
+      return res.data?.bindings || []
+    } catch (error) {
+      logger.error(`[终末地插件][统一后端][获取绑定列表]${error.toString()}`)
+      return []
+    }
+  },
+
+  async deleteUnifiedBackendBinding(bindingId) {
+    const config = getUnifiedBackendConfig()
+    const headers = config.apiKey ? { 'X-API-Key': config.apiKey } : {}
+
+    try {
+      const response = await fetch(`${config.baseUrl}/api/v1/bindings/${bindingId}`, {
+        timeout: 25000,
+        method: 'delete',
+        headers
+      })
+
+      if (!response.ok) {
+        logger.error(`[终末地插件][统一后端][删除绑定]${response.status} ${response.statusText}`)
+        return false
+      }
+
+      const res = await response.json()
+      return res?.code === 0
+    } catch (error) {
+      logger.error(`[终末地插件][统一后端][删除绑定]${error.toString()}`)
+      return false
+    }
+  },
+
+  async setUnifiedBackendPrimaryBinding(bindingId) {
+    const config = getUnifiedBackendConfig()
+    const headers = config.apiKey ? { 'X-API-Key': config.apiKey } : {}
+
+    try {
+      const response = await fetch(`${config.baseUrl}/api/v1/bindings/${bindingId}/primary`, {
+        timeout: 25000,
+        method: 'post',
+        headers
+      })
+
+      if (!response.ok) {
+        logger.error(`[终末地插件][统一后端][设置主绑定]${response.status} ${response.statusText}`)
+        return false
+      }
+
+      const res = await response.json()
+      return res?.code === 0
+    } catch (error) {
+      logger.error(`[终末地插件][统一后端][设置主绑定]${error.toString()}`)
+      return false
+    }
+  },
+
+  async createAuthorizationRequest(params) {
+    const config = getUnifiedBackendConfig()
+    if (!config.apiKey) {
+      logger.error('[终末地插件][授权登陆]未配置 api_key，请在 config/common.yaml 中填写')
+      return null
+    }
+
+    try {
+      const response = await fetch(`${config.baseUrl}/api/v1/authorization/requests`, {
+        timeout: 25000,
+        method: 'post',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': config.apiKey
+        },
+        body: JSON.stringify({
+          client_id: params.client_id || 'qqbot',
+          client_name: params.client_name || '终末地机器人',
+          client_type: params.client_type || 'bot',
+          scopes: params.scopes || ['user_info', 'binding_info', 'game_data', 'attendance']
+        })
+      })
+
+      if (!response.ok) {
+        logger.error(`[终末地插件][授权登陆][创建请求]${response.status} ${response.statusText}`)
+        return null
+      }
+
+      const res = await response.json()
+      if (res?.code !== 0) {
+        logger.error(`[终末地插件][授权登陆][创建请求]${JSON.stringify(res)}`)
+        return null
+      }
+
+      const data = res.data || {}
+      let authUrl = data.auth_url || ''
+      if (authUrl && authUrl.startsWith('/')) {
+        const base = config.authorizationFrontendUrl || config.baseUrl
+        authUrl = base ? base + authUrl : config.baseUrl + authUrl
+      }
+      return { ...data, auth_url: authUrl }
+    } catch (error) {
+      logger.error(`[终末地插件][授权登陆][创建请求]${error.toString()}`)
+      return null
+    }
+  },
+
+  async getAuthorizationRequestStatus(requestId) {
+    const config = getUnifiedBackendConfig()
+    if (!config.apiKey) return null
+
+    try {
+      const response = await fetch(
+        `${config.baseUrl}/api/v1/authorization/requests/${encodeURIComponent(requestId)}/status`,
+        {
+          timeout: 25000,
+          method: 'get',
+          headers: { 'X-API-Key': config.apiKey }
+        }
+      )
+
+      if (!response.ok) {
+        logger.error(`[终末地插件][授权登陆][轮询状态]${response.status} ${response.statusText}`)
+        return null
+      }
+
+      const res = await response.json()
+      if (res?.code !== 0) {
+        logger.error(`[终末地插件][授权登陆][轮询状态]${JSON.stringify(res)}`)
+        return null
+      }
+
+      return res.data || null
+    } catch (error) {
+      logger.error(`[终末地插件][授权登陆][轮询状态]${error.toString()}`)
+      return null
+    }
+  }
+}
+
+export default hypergryphAPI

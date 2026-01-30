@@ -1,0 +1,27 @@
+# 插件命令前缀模式
+# 1: 符号前缀（: 或 ：）
+# 2: 关键词前缀（#终末地 / #zmd）
+prefix_mode: 1
+
+# 关键词列表（命令需要匹配其中任意一个关键词）
+keywords:
+  - 终末地
+  - zmd
+
+# 统一后端（Endfield-API）
+unified_backend_base_url: "https://end-api.shallow.ink"
+# 授权前端页面（授权登陆链接使用此地址，与 API 分离）
+authorization_frontend_url: "https://end.shallow.ink"
+# 授权请求：客户端名称（授权登陆时展示）
+auth_client_name: "终末地机器人"
+# 授权请求：客户端类型（如 bot）
+auth_client_type: "bot"
+# 授权请求：授权范围
+auth_scopes:
+  - user_info
+  - binding_info
+  - game_data
+  - attendance
+# API 秘钥（用于第三方客户端认证，通过 X-API-Key 请求头传递，请自行填写）
+api_key: ""
+
