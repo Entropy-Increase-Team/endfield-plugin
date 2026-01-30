@@ -22,6 +22,10 @@ export class EndfieldStamina extends plugin {
         {
           reg: `^${rulePrefix}订阅理智$`,
           fnc: 'subscribeStamina'
+        },
+        {
+          reg: `^${rulePrefix}取消订阅理智$`,
+          fnc: 'unsubscribeStamina'
         }
       ]
     })
@@ -49,6 +53,29 @@ export class EndfieldStamina extends plugin {
     list.push(sub)
     await this.setStaminaSubList(list)
     await this.reply(getMessage('stamina.subscribe_ok'), false, { at: isGroup })
+    return true
+  }
+
+  /** 取消订阅理智推送 */
+  async unsubscribeStamina() {
+    const isGroup = !!this.e.isGroup
+    const sub = {
+      bot_id: String(this.e.self_id),
+      user_id: String(this.e.user_id),
+      group_id: isGroup ? String(this.e.group_id) : ''
+    }
+    const list = await this.getStaminaSubList()
+    const filtered = list.filter((item) => !(
+      item.bot_id === sub.bot_id
+      && item.user_id === sub.user_id
+      && item.group_id === sub.group_id
+    ))
+    if (filtered.length === list.length) {
+      await this.reply(getMessage('stamina.not_subscribed'), false, { at: isGroup })
+      return true
+    }
+    await this.setStaminaSubList(filtered)
+    await this.reply(getMessage('stamina.unsubscribe_ok'), false, { at: isGroup })
     return true
   }
 
@@ -107,20 +134,22 @@ export class EndfieldStamina extends plugin {
     msg += `理智：${current}/${max}\n`
     msg += `回满时间：${fullTime}\n`
     msg += `日常活跃：${dailyMission.activation ?? 0}/${dailyMission.maxActivation ?? 100}\n`
-    return { ok: true, msg: msg.trim() }
+    return { ok: true, msg: msg.trim(), current, max }
   }
 
+  /** 理智订阅推送：仅当理智满时推送 */
   async pushStamina() {
     const list = await this.getStaminaSubList()
     if (!Array.isArray(list) || list.length === 0) return
     for (const sub of list) {
       try {
-        const { ok, msg } = await this.getStaminaText(sub.user_id)
-        if (!ok) {
+        const result = await this.getStaminaText(sub.user_id)
+        const { ok, msg, current = 0, max = 0 } = result
+        if (!ok) continue
+        // 只有理智满的情况才推送
+        if (max > 0 && current >= max) {
           await this.sendStaminaMsg(sub, msg)
-          continue
         }
-        await this.sendStaminaMsg(sub, msg)
       } catch (error) {
         logger.error(`[终末地理智]订阅推送失败: ${error}`)
       }

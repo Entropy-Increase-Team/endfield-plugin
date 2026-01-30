@@ -380,7 +380,7 @@ GET /login/endfield/cred/verify?cred=xxx
 
 ## 统一绑定 API
 
-> 支持 **Web 用户**（JWT）和**第三方客户端**（user_identifier）两种认证方式
+> 支持 **Web 用户**（JWT）和**第三方客户端**（API Key + user_identifier）两种认证方式
 >
 > 凭证数据存储在凭证库（`endfield_login_sessions`），绑定关系存储在绑定库（`endfield_users`）
 
@@ -389,19 +389,35 @@ GET /login/endfield/cred/verify?cred=xxx
 | 客户端类型 | 认证方式 | 说明 |
 |-----------|---------|------|
 | Web 用户 | `Authorization: Bearer <jwt>` | 从 JWT 自动获取用户 ID |
-| 第三方客户端 | `user_identifier` 参数 | 请求参数中指定用户标识 |
+| 第三方客户端 | `X-API-Key` + `user_identifier` | **必须提供 API Key**，否则返回 401 |
+
+### 数据隔离（安全机制）
+
+> ⚠️ **重要**: 绑定数据按 API Key 所有者完全隔离，防止跨客户端数据泄露
+
+| 场景 | 数据可见性 |
+|------|-----------|
+| Web 用户（JWT） | 只能看到自己创建的绑定（`api_key_user_id` 为空） |
+| 第三方客户端（API Key） | 只能看到该 API Key 创建的绑定 |
+| 不同 API Key 使用相同 `user_identifier` | **互相不可见**，数据完全隔离 |
+
+**示例说明**:
+- 客户端 A（API Key A）为用户 `QQ12345` 创建绑定
+- 客户端 B（API Key B）也为用户 `QQ12345` 创建绑定
+- 客户端 A **无法**看到或操作客户端 B 的绑定数据，反之亦然
 
 ### 获取绑定列表
 
+**Web 用户**:
 ```http
 GET /api/v1/bindings
-Authorization: Bearer your-access-token  # Web 用户
+Authorization: Bearer your-access-token
 ```
 
-或
-
+**第三方客户端**（必须携带 API Key）:
 ```http
-GET /api/v1/bindings?user_identifier=QQ12345&client_type=bot  # 第三方客户端
+GET /api/v1/bindings?user_identifier=QQ12345&client_type=bot
+X-API-Key: your-api-key
 ```
 
 **Query 参数**:
@@ -422,7 +438,7 @@ GET /api/v1/bindings?user_identifier=QQ12345&client_type=bot  # 第三方客户�
         "role_id": "123456",
         "nickname": "玩家昵称#1234",
         "server_id": 1,
-        "client_type": "web",
+        "client_type": "bot",
         "is_primary": true,
         "is_valid": true,
         "framework_token": "uuid-xxx-xxx",
@@ -434,11 +450,20 @@ GET /api/v1/bindings?user_identifier=QQ12345&client_type=bot  # 第三方客户�
 }
 ```
 
+**错误响应**（第三方客户端未提供 API Key）:
+```json
+{
+  "code": 401,
+  "message": "第三方客户端必须提供有效的 API Key（X-API-Key header）"
+}
+```
+
 ### 创建绑定
 
+**Web 用户**:
 ```http
 POST /api/v1/bindings
-Authorization: Bearer your-access-token  # Web 用户
+Authorization: Bearer your-access-token
 Content-Type: application/json
 
 {
@@ -447,10 +472,10 @@ Content-Type: application/json
 }
 ```
 
-或
-
+**第三方客户端**（必须携带 API Key）:
 ```http
 POST /api/v1/bindings
+X-API-Key: your-api-key
 Content-Type: application/json
 
 {
@@ -487,16 +512,25 @@ Content-Type: application/json
 
 ### 删除绑定
 
+**Web 用户**:
 ```http
 DELETE /api/v1/bindings/:id
 Authorization: Bearer your-access-token
 ```
 
+**第三方客户端**:
+```http
+DELETE /api/v1/bindings/:id
+X-API-Key: your-api-key
+```
+
+> 注意：只能删除自己创建的绑定（按 API Key 所有者隔离）
+
 ### 设置主绑定
 
 ```http
 POST /api/v1/bindings/:id/primary
-Authorization: Bearer your-access-token
+Authorization: Bearer your-access-token  # 或 X-API-Key
 ```
 
 ### 刷新绑定凭证
@@ -505,7 +539,7 @@ Authorization: Bearer your-access-token
 
 ```http
 POST /api/v1/bindings/:id/refresh
-Authorization: Bearer your-access-token
+Authorization: Bearer your-access-token  # 或 X-API-Key
 ```
 
 ---
@@ -1194,6 +1228,11 @@ GET /api/endfield/gacha/global-stats
       "star5_total": 12500,
       "star4_total": 111250,
       "avg_pity": 62.5,
+      "current_pool": {
+        "pool_name": "熔火灼痕",
+        "up_char_name": "莱万汀",
+        "up_char_id": "0b199a0eaae5a9b37a5d3c990b6c8bca"
+      },
       "by_type": {
         "limited": {
           "total": 50000,
@@ -1212,37 +1251,48 @@ GET /api/endfield/gacha/global-stats
             {"range": "71-80", "count": 150}
           ]
         },
-        "standard": {
-          "total": 30000,
-          "star6": 300,
-          "star5": 3000,
-          "star4": 26700,
-          "avg_pity": 63.1,
-          "distribution": [...]
+        "standard": { "...": "..." },
+        "beginner": { "...": "..." },
+        "weapon": { "...": "..." },
+        "character": { "...": "..." }
+      },
+      "by_channel": {
+        "official": {
+          "total_users": 200,
+          "total_pulls": 50000,
+          "star6_total": 500,
+          "star5_total": 5000,
+          "star4_total": 44500,
+          "avg_pity": 62.8
         },
-        "beginner": {
-          "total": 5000,
-          "star6": 50,
-          "star5": 500,
-          "star4": 4450,
-          "avg_pity": 60.0,
-          "distribution": [...]
+        "bilibili": {
+          "total_users": 300,
+          "total_pulls": 75000,
+          "star6_total": 750,
+          "star5_total": 7500,
+          "star4_total": 66750,
+          "avg_pity": 62.3
+        }
+      },
+      "ranking": {
+        "limited": {
+          "six_star": [
+            {"char_id": "0b199a0eaae5a9b37a5d3c990b6c8bca", "char_name": "莱万汀", "count": 120, "percent": 24.0},
+            {"char_id": "abc123", "char_name": "伊冯", "count": 100, "percent": 20.0},
+            {"char_id": "def456", "char_name": "安洁莉娜", "count": 80, "percent": 16.0}
+          ],
+          "five_star": [
+            {"char_id": "5star1", "char_name": "5星角色A", "count": 500, "percent": 10.0},
+            {"char_id": "5star2", "char_name": "5星角色B", "count": 450, "percent": 9.0}
+          ]
+        },
+        "standard": {
+          "six_star": [...],
+          "five_star": [...]
         },
         "weapon": {
-          "total": 40000,
-          "star6": 400,
-          "star5": 4000,
-          "star4": 35600,
-          "avg_pity": 31.2,
-          "distribution": [...]
-        },
-        "character": {
-          "total": 80000,
-          "star6": 800,
-          "star5": 8000,
-          "star4": 71200,
-          "avg_pity": 62.5,
-          "distribution": []
+          "six_star": [...],
+          "five_star": [...]
         }
       }
     }
@@ -1257,8 +1307,39 @@ GET /api/endfield/gacha/global-stats
 | `total_users` | 已同步记录的用户数 |
 | `star6_total` | 6星总数 |
 | `avg_pity` | 全服平均出货（抽数/6星） |
+| `current_pool` | 当前UP卡池信息（用于判断歪不歪） |
 | `by_type` | 按卡池类型分类的统计 |
+| `by_channel` | 按渠道/服务器分类的统计（官服/B服） |
+| `ranking` | 出货排名（各角色/武器获取数量排名） |
 | `distribution` | 6星出货分布（按抽数区间） |
+
+**当前卡池信息**（用于判断是否歪了）:
+| 字段 | 说明 |
+|------|------|
+| `pool_name` | 当前卡池名称 |
+| `up_char_name` | UP角色名称 |
+| `up_char_id` | UP角色ID（可用于匹配抽卡记录） |
+
+> **注意**：当前卡池信息为临时硬编码，后续会通过独立接口动态获取。
+
+**出货排名**:
+| 字段 | 说明 |
+|------|------|
+| `ranking.limited` | 限定池排名 |
+| `ranking.standard` | 常驻池排名 |
+| `ranking.weapon` | 武器池排名 |
+| `six_star` | 6星出货排名 |
+| `five_star` | 5星出货排名 |
+| `char_id` | 角色/武器ID |
+| `char_name` | 角色/武器名称 |
+| `count` | 全服获取数量 |
+| `percent` | 占该星级总数的百分比 |
+
+**渠道/服务器类型**:
+| 类型 | 说明 |
+|------|------|
+| `official` | 官服 |
+| `bilibili` | B服（bilibili服） |
 
 **卡池类型**:
 | 类型 | 说明 |

@@ -97,6 +97,8 @@ note:
 stamina:
   subscribed: "已订阅理智推送"
   subscribe_ok: "订阅理智推送成功"
+  unsubscribe_ok: "已取消订阅理智推送"
+  not_subscribed: "当前未订阅理智推送"
   loading: "正在获取理智信息..."
   get_role_failed: "获取角色信息失败，请稍后重试"
   query_failed: "查询失败：{error}"
@@ -160,6 +162,15 @@ enduid:
   unbind_auth_revoked: "已检测到授权已解除，已删除绑定：{roleName}"
   unbind_auth_poll_timeout: "轮询超时（约2分钟），请确认已在官网解除授权后重试。"
   delete_failed: "删除失败，请稍后重试"
+  sync_result: "账号列表同步完成：保留 {kept}，删除 {removed}，新增 {added}"
+  sync_result_all: "全部账号列表同步完成：共 {users} 个用户，保留 {kept}，删除 {removed}，新增 {added}"
+  sync_confirm: "将删除 {removed} 条仅本地记录，发送 {prefix}确认 以确认执行"
+  sync_confirm_all: |
+    将删除 {removed} 条仅本地记录（共 {users} 个用户），发送 {prefix}确认 以确认执行
+
+    删除列表（用户名 - QQ号 - UID - 时间）：
+    {removed_detail}
+  sync_no_pending: "没有待确认的同步"
   switch_index_hint: "请输入有效的序号，例如：{prefix}切换登陆 1"
   switched: "已切换至账号：{nickname}\n角色ID：{role_id}"
   switch_failed: "切换失败，请稍后重试"
