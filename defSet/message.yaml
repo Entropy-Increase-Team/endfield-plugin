@@ -100,6 +100,8 @@ note:
 stamina:
   subscribed: "已订阅理智推送"
   subscribe_ok: "订阅理智推送成功"
+  subscribe_ok_full: "订阅成功，理智满时将推送"
+  subscribe_ok_threshold: "订阅成功，理智达到 {threshold} 时推送"
   unsubscribe_ok: "已取消订阅理智推送"
   not_subscribed: "当前未订阅理智推送"
   loading: "正在获取理智信息..."
@@ -110,9 +112,18 @@ attendance:
   sign_failed: "签到失败，请稍后再试"
   already_signed: "今天已经签到过了"
   task_start: "签到任务开始"
-  task_start_broadcast: "终末地森空岛签到任务开始\n共 {count} 个账号需要签到"
-  task_complete: "终末地森空岛签到任务完成\n总计：{total} 个\n已签：{signed} 个\n成功：{success} 个\n失败：{fail} 个"
-  task_complete_fail_users: "\n\n失败用户QQ号：\n{fail_users}"
+  task_start_broadcast: |
+    终末地森空岛签到任务开始
+    共 {count} 个账号需要签到
+  task_complete: |
+    终末地森空岛签到任务完成
+    总计：{total} 个
+    已签：{signed} 个
+    成功：{success} 个
+    失败：{fail} 个
+  task_complete_fail_users: |
+    失败用户QQ号：
+    {fail_users}
   not_found_role_id: "未找到终末地角色ID，请重新绑定后再试"
 
 gacha:
@@ -150,8 +161,17 @@ enduid:
   cred_no_token: "当前终末地插件暂未接入 token->cred 流程，请发送 32 位 cred 进行登陆。"
   cred_invalid: "请发送有效的 32 位 cred。"
   cred_checking: "cred 已收到，校验中..."
-  binding_ok: "账号已更新！\n角色名：{nickname}\n角色ID：{role_id}\n服务器：{server_id}"
-  login_ok: "登陆成功！\n角色名：{nickname}\n角色ID：{role_id}\n服务器：{server_id}\n当前账号数：{count}"
+  binding_ok: |
+    账号已更新！
+    角色名：{nickname}
+    角色ID：{role_id}
+    服务器：{server_id}
+  login_ok: |
+    登陆成功！
+    角色名：{nickname}
+    角色ID：{role_id}
+    服务器：{server_id}
+    当前账号数：{count}
   auth_please_private: "请私聊进行授权登陆"
   auth_need_api_key: "授权登陆需要配置 api_key，请在插件 config/common.yaml 中填写。"
   auth_create_failed: "创建授权请求失败，请检查 api_key 配置或稍后重试。"
@@ -173,7 +193,9 @@ enduid:
   qr_error: "扫码登陆过程出现错误，请稍后重试"
   please_private_op: "请私聊操作"
   unbind_hint: "未绑定终末地cred，请先使用「{prefix}扫码绑定」。"
-  token_show: "当前激活账号的 Framework Token：\n{token}"
+  token_show: |
+    当前激活账号的 Framework Token：
+    {token}
   token_not_found: "未找到 Framework Token"
   read_bind_failed: "读取绑定信息失败"
   delete_ok: "删除成功"
@@ -196,7 +218,9 @@ enduid:
     {removed_detail}
   sync_no_pending: "没有待确认的同步"
   switch_index_hint: "请输入有效的序号，例如：{prefix}切换登陆 1"
-  switched: "已切换至账号：{nickname}\n角色ID：{role_id}"
+  switched: |
+    已切换至账号：{nickname}
+    角色ID：{role_id}
   switch_failed: "切换失败，请稍后重试"
   phone_please_private: "请私聊进行手机登陆"
   phone_ask: "请发送您的手机号码（11位）："
@@ -230,17 +254,25 @@ strategy:
   admin_only: "此命令仅限管理员使用"
   upload_format_error: "格式错误，请使用：:攻略上传 [干员名称（可选）] [标题（可选）] [作者（可选）] [链接] [图片链接]"
   upload_need_character: "无法从标题中提取干员名称，请发送：:攻略上传干员 [干员名称]"
-  upload_need_image: "请提供图片链接或在消息中附带图片\n格式：:攻略上传 [干员名称（可选）] [标题（可选）] [作者（可选）] [链接] [图片链接]"
+  upload_need_image: |
+    请提供图片链接或在消息中附带图片
+    格式：:攻略上传 [干员名称（可选）] [标题（可选）] [作者（可选）] [链接] [图片链接]
   image_download_failed: "图片下载失败，请检查图片链接"
   image_exists: "该图片链接已存在，请使用其他图片链接"
   upload_need_title: "无法获取标题，请手动提供标题"
-  upload_success: "攻略上传成功！\n干员：{characterName}\n标题：{finalTitle}\n作者：{finalAuthor}"
+  upload_success: |
+    攻略上传成功！
+    干员：{characterName}
+    标题：{finalTitle}
+    作者：{finalAuthor}
   upload_failed: "上传失败：{error}"
   upload_expired: "上传信息已过期，请重新发起上传"
   upload_character_example: "请提供干员名称，例如：:攻略上传干员 莱万汀"
   delete_format_error: "格式错误，请使用：:攻略删除 [链接]"
   delete_not_found: "未找到该攻略"
-  delete_success: "攻略删除成功！\n标题：{title}"
+  delete_success: |
+    攻略删除成功！
+    标题：{title}
   delete_failed: "删除失败：{error}"
   no_available_images: "攻略「{title}」没有可用的图片文件，请使用 :攻略资源下载 重新下载资源"
   redownload_hint: "⚠️ 攻略图片文件不存在，请使用 :攻略资源下载 重新下载资源"

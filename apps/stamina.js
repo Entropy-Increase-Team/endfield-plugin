@@ -20,7 +20,7 @@ export class EndfieldStamina extends plugin {
           fnc: 'getStamina'
         },
         {
-          reg: `^${rulePrefix}订阅理智$`,
+          reg: `^${rulePrefix}订阅理智(?:\\s+(\\d+))?$`,
           fnc: 'subscribeStamina'
         },
         {
@@ -34,25 +34,38 @@ export class EndfieldStamina extends plugin {
 
   async subscribeStamina() {
     const isGroup = !!this.e.isGroup
+    const raw = (this.e.msg || '').trim()
+    const valueMatch = raw.match(/订阅理智\s*(\d+)/)
+    const threshold = valueMatch ? Math.max(0, parseInt(valueMatch[1], 10)) : undefined
     const sub = {
       bot_id: String(this.e.self_id),
       user_id: String(this.e.user_id),
       group_id: isGroup ? String(this.e.group_id) : '',
-      is_group: isGroup
+      is_group: isGroup,
+      threshold,
+      last_current: undefined
     }
     const list = await this.getStaminaSubList()
-    const exists = list.some((item) => (
+    const idx = list.findIndex((item) => (
       item.bot_id === sub.bot_id
       && item.user_id === sub.user_id
       && item.group_id === sub.group_id
     ))
-    if (exists) {
-      await this.reply(getMessage('stamina.subscribed'), false, { at: isGroup })
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], threshold, last_current: list[idx].last_current }
+      await this.setStaminaSubList(list)
+      const replyMsg = threshold != null
+        ? getMessage('stamina.subscribe_ok_threshold', { threshold })
+        : getMessage('stamina.subscribe_ok_full')
+      await this.reply(replyMsg, false, { at: isGroup })
       return true
     }
     list.push(sub)
     await this.setStaminaSubList(list)
-    await this.reply(getMessage('stamina.subscribe_ok'), false, { at: isGroup })
+    const replyMsg = threshold != null
+      ? getMessage('stamina.subscribe_ok_threshold', { threshold })
+      : getMessage('stamina.subscribe_ok_full')
+    await this.reply(replyMsg, false, { at: isGroup })
     return true
   }
 
@@ -137,23 +150,29 @@ export class EndfieldStamina extends plugin {
     return { ok: true, msg: msg.trim(), current, max }
   }
 
-  /** 理智订阅推送：仅当理智满时推送 */
+  /** 理智订阅推送：未设阈值时理智满推送，设阈值时达到该值推送（跨过阈值时推一次，避免重复） */
   async pushStamina() {
     const list = await this.getStaminaSubList()
     if (!Array.isArray(list) || list.length === 0) return
-    for (const sub of list) {
+    for (let i = 0; i < list.length; i++) {
+      const sub = list[i]
       try {
         const result = await this.getStaminaText(sub.user_id)
         const { ok, msg, current = 0, max = 0 } = result
         if (!ok) continue
-        // 只有理智满的情况才推送
-        if (max > 0 && current >= max) {
+        const target = sub.threshold != null ? sub.threshold : max
+        const last = sub.last_current ?? -1
+        const shouldPush = target > 0 && current >= target && last < target
+        if (shouldPush) {
           await this.sendStaminaMsg(sub, msg)
         }
+        sub.last_current = current
+        list[i] = sub
       } catch (error) {
         logger.error(`[终末地理智]订阅推送失败: ${error}`)
       }
     }
+    await this.setStaminaSubList(list)
   }
 
   async sendStaminaMsg(sub, msg) {
