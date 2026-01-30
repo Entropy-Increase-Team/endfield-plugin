@@ -5,7 +5,7 @@ export default class EndfieldApi {
     this.server = server
     this.uid = uid
     this.commonConfig = setting.getConfig('common') || {}
-    this.unifiedBackendBaseUrl = this.commonConfig.unified_backend_base_url || 'https://end-api.shallow.ink'
+    this.unifiedBackendBaseUrl = 'https://end-api.shallow.ink'
   }
 
   getUrlMap = (data = {}) => {

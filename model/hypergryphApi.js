@@ -3,8 +3,8 @@ import setting from '../utils/setting.js'
 function getUnifiedBackendConfig() {
   const commonConfig = setting.getConfig('common') || {}
   return {
-    baseUrl: (commonConfig.unified_backend_base_url || 'https://end-api.shallow.ink').replace(/\/$/, ''),
-    authorizationFrontendUrl: (commonConfig.authorization_frontend_url || '').replace(/\/$/, ''),
+    baseUrl: 'https://end-api.shallow.ink',
+    authorizationFrontendUrl: 'https://end.shallow.ink',
     apiKey: commonConfig.api_key || ''
   }
 }
@@ -262,12 +262,13 @@ let hypergryphAPI = {
     }
   },
 
-  async deleteUnifiedBackendBinding(bindingId) {
+  async deleteUnifiedBackendBinding(bindingId, userIdentifier) {
     const config = getUnifiedBackendConfig()
     const headers = config.apiKey ? { 'X-API-Key': config.apiKey } : {}
+    const queryParams = userIdentifier ? `?user_identifier=${userIdentifier}&client_type=bot` : ''
 
     try {
-      const response = await fetch(`${config.baseUrl}/api/v1/bindings/${bindingId}`, {
+      const response = await fetch(`${config.baseUrl}/api/v1/bindings/${bindingId}${queryParams}`, {
         timeout: 25000,
         method: 'delete',
         headers
@@ -286,12 +287,13 @@ let hypergryphAPI = {
     }
   },
 
-  async setUnifiedBackendPrimaryBinding(bindingId) {
+  async setUnifiedBackendPrimaryBinding(bindingId, userIdentifier) {
     const config = getUnifiedBackendConfig()
     const headers = config.apiKey ? { 'X-API-Key': config.apiKey } : {}
+    const queryParams = userIdentifier ? `?user_identifier=${userIdentifier}&client_type=bot` : ''
 
     try {
-      const response = await fetch(`${config.baseUrl}/api/v1/bindings/${bindingId}/primary`, {
+      const response = await fetch(`${config.baseUrl}/api/v1/bindings/${bindingId}/primary${queryParams}`, {
         timeout: 25000,
         method: 'post',
         headers

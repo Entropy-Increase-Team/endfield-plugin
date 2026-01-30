@@ -8,7 +8,7 @@ export default class EndfieldRequest {
     this.server = 'cn'
     this.endfieldApi = new EndfieldApi(this.uid, this.server)
     this.commonConfig = setting.getConfig('common') || {}
-    this.unifiedBackendBaseUrl = this.commonConfig.unified_backend_base_url || 'https://end-api.shallow.ink'
+    this.unifiedBackendBaseUrl = 'https://end-api.shallow.ink'
 
     this.option = {
       log: true,

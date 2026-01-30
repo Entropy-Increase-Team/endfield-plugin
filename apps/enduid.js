@@ -12,15 +12,15 @@ export class EndfieldUid extends plugin {
       priority: 100,
       rule: [
         {
-          reg: `^${rulePrefix}(绑定|登陆)$`,
+          reg: `^${rulePrefix}(绑定|登陆|登录)$`,
           fnc: 'bind'
         },
         {
-          reg: `^${rulePrefix}扫码(绑定|登陆)$`,
+          reg: `^${rulePrefix}扫码(绑定|登陆|登录)$`,
           fnc: 'scanQRBind'
         },
         {
-          reg: `^${rulePrefix}授权(绑定|登陆)$`,
+          reg: `^${rulePrefix}授权(绑定|登陆|登录)$`,
           fnc: 'authBind'
         },
         {
@@ -32,23 +32,23 @@ export class EndfieldUid extends plugin {
           fnc: 'delCred'
         },
         {
-          reg: `^${rulePrefix}(绑定|登陆)列表$`,
+          reg: `^${rulePrefix}(绑定|登陆|登录)列表$`,
           fnc: 'bindList'
         },
         {
-          reg: `^${rulePrefix}删除(绑定|登陆)\\s+(\\d+)$`,
+          reg: `^${rulePrefix}删除(绑定|登陆|登录)\\s+(\\d+)$`,
           fnc: 'deleteBind'
         },
         {
-          reg: `^${rulePrefix}切换(绑定|登陆)\\s+(\\d+)$`,
+          reg: `^${rulePrefix}切换(绑定|登陆|登录)\\s+(\\d+)$`,
           fnc: 'switchBind'
         },
         {
-          reg: `^${rulePrefix}(cred|绑定|登陆)帮助$`,
+          reg: `^${rulePrefix}(cred|绑定|登陆|登录)帮助$`,
           fnc: 'credHelp'
         },
         {
-          reg: `^${rulePrefix}手机(绑定|登陆)(\\s*\\d{11})?$`,
+          reg: `^${rulePrefix}手机(绑定|登陆|登录)(\\s*\\d{11})?$`,
           fnc: 'phoneBind'
         },
         {
@@ -392,6 +392,12 @@ export class EndfieldUid extends plugin {
     }
 
     const loginTypeLabel = { qr: '扫码', phone: '手机号', auth: '网页授权', cred: '网页授权' }
+    const serverLabel = (serverId) => {
+      const id = Number(serverId)
+      if (id === 1) return '官服'
+      if (id === 2) return 'B服'
+      return serverId ? `ID=${serverId}` : '未知'
+    }
 
     let msg = '【终末地登陆列表】\n\n'
     bindings.forEach((binding, index) => {
@@ -400,9 +406,7 @@ export class EndfieldUid extends plugin {
       const activeMark = binding.is_primary ? ' ⭐当前' : ''
       msg += `[${index + 1}] 角色名：${binding.nickname || '未知'}${activeMark}\n`
       msg += `    角色ID：${binding.role_id || '未知'}\n`
-      if (binding.server_id) {
-        msg += `    服务器ID：${binding.server_id}\n`
-      }
+      msg += `    服务器：${serverLabel(binding.server_id)}\n`
       msg += `    绑定类型：${typeLabel}\n`
       msg += `    绑定时间：${binding.created_at ? new Date(binding.created_at).toLocaleString('zh-CN') : '未知'}\n`
       if (index < bindings.length - 1) {
@@ -453,7 +457,7 @@ export class EndfieldUid extends plugin {
       return true
     }
     const roleName = deletedBinding.nickname || '未知'
-    const success = await hypergryphAPI.deleteUnifiedBackendBinding(deletedBinding.id)
+    const success = await hypergryphAPI.deleteUnifiedBackendBinding(deletedBinding.id, String(this.e.user_id))
 
     if (success) {
       const txt = await redis.get(`ENDFIELD:USER:${this.e.user_id}`)
@@ -501,7 +505,7 @@ export class EndfieldUid extends plugin {
     }
 
     const targetBinding = bindings[index - 1]
-    const success = await hypergryphAPI.setUnifiedBackendPrimaryBinding(targetBinding.id)
+    const success = await hypergryphAPI.setUnifiedBackendPrimaryBinding(targetBinding.id, String(this.e.user_id))
 
     if (success) {
       const txt = await redis.get(`ENDFIELD:USER:${this.e.user_id}`)

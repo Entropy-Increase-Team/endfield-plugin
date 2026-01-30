@@ -8,10 +8,6 @@ keywords:
   - 终末地
   - zmd
 
-# 统一后端（Endfield-API）
-unified_backend_base_url: "https://end-api.shallow.ink"
-# 授权前端页面（授权登陆链接使用此地址，与 API 分离）
-authorization_frontend_url: "https://end.shallow.ink"
 # 授权请求：客户端名称（授权登陆时展示）
 auth_client_name: "终末地机器人"
 # 授权请求：客户端类型（如 bot）
