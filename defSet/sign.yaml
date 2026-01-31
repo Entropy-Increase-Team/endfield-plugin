@@ -2,3 +2,5 @@
 auto_sign: true
 # 自动签到cron表达式（每天 1 点）
 auto_sign_cron: 0 0 1 * * ?
+# 签到任务开始/完成消息推送列表：friend:QQ号（私聊）、group:群号（群聊）
+notify_list: []

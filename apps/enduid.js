@@ -3,6 +3,118 @@ import EndfieldRequest from '../model/endfieldReq.js'
 import setting from '../utils/setting.js'
 import hypergryphAPI from '../model/hypergryphApi.js'
 
+// 网页授权绑定后台轮询任务
+let authPollingTimer = null
+
+/**
+ * 启动网页授权状态轮询任务
+ * 定期检查所有网页授权类型的绑定，若授权被撤销则自动清理
+ */
+async function startAuthPollingTask() {
+  // 避免重复启动
+  if (authPollingTimer) return
+
+  const POLL_INTERVAL_MS = 2 * 60 * 1000 // 2分钟轮询一次
+
+  const runPolling = async () => {
+    try {
+      await checkAllAuthBindings()
+    } catch (err) {
+      logger.error(`[终末地插件][授权轮询任务]执行出错: ${err}`)
+    }
+  }
+
+  // 首次延迟30秒后执行，避免启动时并发压力
+  setTimeout(async () => {
+    await runPolling()
+    authPollingTimer = setInterval(runPolling, POLL_INTERVAL_MS)
+  }, 30 * 1000)
+
+  logger.mark('[终末地插件]网页授权状态轮询任务已启动')
+}
+
+/**
+ * 检查所有用户的网页授权绑定状态
+ */
+async function checkAllAuthBindings() {
+  // 扫描 Redis 中所有 ENDFIELD:USER:* 的键
+  const keys = await redis.keys('ENDFIELD:USER:*')
+  if (!keys || keys.length === 0) return
+
+  for (const key of keys) {
+    const userId = key.replace('ENDFIELD:USER:', '')
+    try {
+      await checkUserAuthBindings(userId)
+    } catch (err) {
+      logger.error(`[终末地插件][授权轮询]检查用户 ${userId} 失败: ${err}`)
+    }
+  }
+}
+
+/**
+ * 检查单个用户的网页授权绑定状态
+ * @param {string} userId 用户ID
+ */
+async function checkUserAuthBindings(userId) {
+  const txt = await redis.get(`ENDFIELD:USER:${userId}`)
+  if (!txt) return
+
+  let accounts = []
+  try {
+    const parsed = JSON.parse(txt)
+    accounts = Array.isArray(parsed) ? parsed : [parsed]
+  } catch (err) {
+    return
+  }
+
+  // 筛选网页授权类型的账号
+  const authAccounts = accounts.filter(acc => acc.login_type === 'auth' || acc.login_type === 'cred')
+  if (authAccounts.length === 0) return
+
+  // 获取该用户云端绑定列表
+  const bindings = await hypergryphAPI.getUnifiedBackendBindings(userId)
+  const bindingIds = new Set((bindings || []).map(b => b.id))
+
+  let needUpdate = false
+  const updatedAccounts = []
+
+  for (const acc of accounts) {
+    // 仅对网页授权类型检查
+    if ((acc.login_type === 'auth' || acc.login_type === 'cred') && acc.binding_id) {
+      // 检查云端是否还存在该绑定
+      if (!bindingIds.has(acc.binding_id)) {
+        // 授权已被撤销，不保留该账号
+        logger.mark(`[终末地插件][授权轮询]用户 ${userId} 的绑定 ${acc.binding_id}(${acc.nickname || '未知'}) 授权已撤销，自动移除`)
+        needUpdate = true
+        // 尝试通知用户（如果Bot能够发送私聊）
+        try {
+          const notifyMsg = getMessage('enduid.auth_auto_revoked', { nickname: acc.nickname || '未知' })
+          if (Bot?.pickUser) {
+            await Bot.pickUser(userId).sendMsg(notifyMsg)
+          } else if (Bot?.sendPrivateMsg) {
+            await Bot.sendPrivateMsg(userId, notifyMsg)
+          }
+        } catch (e) {
+          // 通知失败不影响清理流程
+        }
+        continue
+      }
+    }
+    updatedAccounts.push(acc)
+  }
+
+  if (needUpdate) {
+    if (updatedAccounts.length === 0) {
+      await redis.del(`ENDFIELD:USER:${userId}`)
+    } else {
+      await redis.set(`ENDFIELD:USER:${userId}`, JSON.stringify(updatedAccounts))
+    }
+  }
+}
+
+// 启动后台轮询任务
+startAuthPollingTask()
+
 export class EndfieldUid extends plugin {
   constructor() {
     super({
@@ -452,12 +564,9 @@ export class EndfieldUid extends plugin {
       } catch (err) {}
     }
     const account = accounts.find(a => a.binding_id === deletedBinding.id)
-    if (account?.login_type === 'auth') {
-      await this.reply(getMessage('enduid.unbind_auth_polling'))
-      // 网页授权需用户在官网解除，轮询授权状态，解除后自动清理本地
-      const roleName = deletedBinding.nickname || '未知'
-      const reply = (msgKey, params = {}) => this.reply(getMessage(msgKey, params))
-      this.pollAuthRevokedAndClean(deletedBinding.id, String(this.e.user_id), String(this.e.self_id), reply, roleName)
+    if (account?.login_type === 'auth' || account?.login_type === 'cred') {
+      // 网页授权类型由后台任务自动检测，无需手动删除
+      await this.reply(getMessage('enduid.unbind_auth_auto'))
       return true
     }
     const roleName = deletedBinding.nickname || '未知'

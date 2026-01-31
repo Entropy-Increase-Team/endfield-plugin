@@ -2,14 +2,15 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width={{listPageWidth}}, initial-scale=1">
     <title>干员列表 - 终末地</title>
-    <link rel="stylesheet" href="{{listCssHref}}">
-    {{if listBgUrl}}
-    <style>.list-page-body { background-image: url({{listBgUrl}}); background-size: cover; background-position: center; background-repeat: no-repeat; }</style>
+    <link rel="stylesheet" href="{{pluResPath}}operator/list.css">
+    {{if listBgFile}}
+    <style>.list-page-body { background-image: url({{pluResPath}}operator/img/{{listBgFile}}); background-size: cover; background-position: center; background-repeat: no-repeat; }</style>
     {{/if}}
 </head>
-<body class="list-page-body">
-    <div class="operator-list-container">
+<body class="list-page-body" style="min-width: {{listPageWidth}}px;">
+    <div class="operator-list-container" style="min-width: {{listPageWidth}}px; max-width: {{listPageWidth}}px;">
         <div class="list-top-bar">
             <div class="user-info">
                 <img src="{{userAvatar}}" alt="用户头像" class="user-avatar">
@@ -23,11 +24,11 @@
                 <p class="list-count">共 {{totalCount}} 个干员</p>
             </div>
             <div class="logo-container">
-                <img src="{{logoUrl}}" alt="Logo" class="logo-image">
+                <img src="{{pluResPath}}img/logo.png" alt="Logo" class="logo-image">
             </div>
         </div>
 
-        <div class="operators-grid">
+        <div class="operators-grid" style="--list-card-scale: {{listCardScale}}; --list-column-count: {{listColumnCount}};">
             {{each operators operator}}
             <div class="operator-card">
                 <div class="showcase-inner showcase-container" data-color-code="{{operator.colorCode}}">

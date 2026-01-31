@@ -9,9 +9,10 @@ export class EndfieldStamina extends plugin {
       dsc: '终末地理智与日常活跃度',
       event: 'message',
       priority: 50,
+      // 轮询检查：每 5 分钟执行一次，避免整点一小时的提醒延迟
       task: {
         name: '[endfield-plugin]理智订阅推送',
-        cron: '0 * * * *',
+        cron: '*/5 * * * *',
         fnc: () => this.pushStamina()
       },
       rule: [

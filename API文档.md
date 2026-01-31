@@ -1,6 +1,6 @@
 # Endfield-API 接口文档
 
-版本号：1.8.0
+版本号：1.9.1
 
 ## 概述
 
@@ -732,6 +732,547 @@ X-Framework-Token: your-framework-token
 
 ---
 
+## Wiki 百科 API
+
+> **接口认证**: 需要 API Key / Web JWT / Anonymous Token 三选一
+> **数据来源**: 从森空岛同步的终末地百科数据
+> **缓存策略**: 使用 Redis 缓存，提升查询性能
+
+### 接口概览
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/wiki/categories` | 获取主分类列表 |
+| GET | `/api/wiki/categories/:main_type_id/sub` | 获取子分类列表 |
+| GET | `/api/wiki/items` | 获取条目列表（支持筛选） |
+| GET | `/api/wiki/items/:id` | 获取条目详情 |
+| GET | `/api/wiki/search` | 全文搜索 |
+| GET | `/api/wiki/char-pools` | 获取角色卡池 |
+| GET | `/api/wiki/activities` | 获取活动列表 |
+| GET | `/api/wiki/stickers` | 获取表情包列表 |
+| GET | `/api/wiki/stats` | 获取统计信息 |
+| POST | `/api/wiki/admin/sync` | 手动触发同步 |
+| GET | `/api/wiki/admin/sync/status` | 获取同步状态 |
+
+### 分类结构
+
+#### 主分类 (typeMainId)
+
+| ID | 名称 | 说明 |
+|----|------|------|
+| 1 | 游戏百科 | 游戏内容百科（干员、武器、威胁等） |
+| 2 | 游戏攻略辑 | 攻略相关内容 |
+| 3 | 情报档案库 | 情报、视频、壁纸等 |
+
+#### 子分类 (typeSubId)
+
+**游戏百科 (typeMainId=1)**
+| ID | 名称 | 说明 |
+|----|------|------|
+| 1 | 干员 | 可操作角色 |
+| 2 | 武器 | 武器装备 |
+| 3 | 威胁 | 敌方/威胁单位 |
+| 4 | 装备 | 角色装备 |
+| 5 | 设备 | 设备类物品 |
+| 6 | 物品 | 普通物品 |
+| 7 | 武器基质 | 武器强化素材 |
+| 8 | 任务 | 任务条目 |
+| 9 | 活动 | 活动相关 |
+
+**游戏攻略辑 (typeMainId=2)**
+| ID | 名称 | 说明 |
+|----|------|------|
+| 10 | 新手入门 | 新手攻略 |
+| 11 | 干员攻略 | 干员使用攻略 |
+| 16 | 贵重物品库 | 收藏品 |
+| 18 | 系统蓝图 | 蓝图/配方 |
+
+**情报档案库 (typeMainId=3)**
+| ID | 名称 | 说明 |
+|----|------|------|
+| 12 | 情报快讯 | 游戏情报 |
+| 13 | 游戏视频 | 视频内容 |
+| 14 | 游戏壁纸 | 壁纸资源 |
+
+---
+
+### 获取主分类列表
+
+```http
+GET /api/wiki/categories
+X-API-Key: your-api-key
+```
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": [
+    {
+      "type_id": "1",
+      "name": "游戏百科",
+      "status": 1,
+      "position": 1,
+      "created_at": "2026-01-31T12:00:00Z",
+      "updated_at": "2026-01-31T12:00:00Z"
+    },
+    {
+      "type_id": "2",
+      "name": "游戏攻略辑",
+      "status": 1,
+      "position": 2
+    },
+    {
+      "type_id": "3",
+      "name": "情报档案库",
+      "status": 1,
+      "position": 3
+    }
+  ]
+}
+```
+
+---
+
+### 获取子分类列表
+
+```http
+GET /api/wiki/categories/:main_type_id/sub
+X-API-Key: your-api-key
+```
+
+**路径参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| main_type_id | string | 是 | 主分类 ID（1/2/3） |
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": [
+    {
+      "sub_id": "1",
+      "main_type_id": "1",
+      "name": "干员",
+      "icon": "https://...",
+      "style": 1,
+      "status": 1,
+      "position": 1,
+      "item_count": 24
+    },
+    {
+      "sub_id": "2",
+      "main_type_id": "1",
+      "name": "武器",
+      "item_count": 62
+    }
+  ]
+}
+```
+
+---
+
+### 获取条目列表
+
+```http
+GET /api/wiki/items?main_type_id=1&sub_type_id=1&page=1&page_size=20
+X-API-Key: your-api-key
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| main_type_id | string | 否 | - | 主分类 ID |
+| sub_type_id | string | 否 | - | 子分类 ID |
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 20 | 每页数量（最大 100） |
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "items": [
+      {
+        "item_id": "7",
+        "main_type_id": "1",
+        "sub_type_id": "1",
+        "name": "莱万汀",
+        "lang": "zh_Hans",
+        "status": 2,
+        "published_at": "2026-01-11T12:00:00Z",
+        "cover": "https://bbs.hycdn.cn/image/...",
+        "associate": {
+          "id": "0b199a0eaae5a9b37a5d3c990b6c8bca",
+          "name": "莱万汀",
+          "type": "char",
+          "dot_type": "label_type_up"
+        },
+        "sub_type_list": [
+          { "sub_type_id": "10000", "value": "10006" },
+          { "sub_type_id": "10200", "value": "10203" }
+        ],
+        "caption": [
+          { "kind": "text", "text": { "text": ""火焰，照亮黄昏！"" } }
+        ],
+        "tag_ids": ["10203", "10006", "10101"]
+      }
+    ],
+    "total": 24,
+    "page": 1,
+    "page_size": 20,
+    "total_pages": 2
+  }
+}
+```
+
+---
+
+### 获取条目详情
+
+```http
+GET /api/wiki/items/:id
+X-API-Key: your-api-key
+```
+
+**路径参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| id | string | 是 | 条目 ID（item_id） |
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "item_id": "7",
+    "name": "莱万汀",
+    "main_type_id": "1",
+    "sub_type_id": "1",
+    "cover": "https://bbs.hycdn.cn/image/...",
+    "caption": [
+      { "kind": "text", "text": { "text": ""火焰，照亮黄昏！"" } },
+      { "kind": "text", "text": { "text": "莱万汀来自罗德岛，以管理员直属干员的身份为终末地工业提供服务。" } }
+    ],
+    "associate": {...},
+    "sub_type_list": [...],
+    "tag_ids": [...]
+  }
+}
+```
+
+---
+
+### 全文搜索
+
+```http
+GET /api/wiki/search?q=莱万汀&main_type_id=1&page=1&page_size=20
+X-API-Key: your-api-key
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| q | string | **是** | - | 搜索关键词（或使用 `keyword`） |
+| keyword | string | 否 | - | 搜索关键词（`q` 的别名） |
+| main_type_id | string | 否 | - | 主分类 ID 筛选 |
+| sub_type_id | string | 否 | - | 子分类 ID 筛选 |
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 20 | 每页数量（最大 100） |
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "items": [...],
+    "total": 5,
+    "page": 1,
+    "page_size": 20,
+    "total_pages": 1
+  }
+}
+```
+
+---
+
+### 获取角色卡池
+
+```http
+GET /api/wiki/char-pools
+X-API-Key: your-api-key
+```
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": [
+    {
+      "pool_id": "2",
+      "name": "熔火灼痕",
+      "chars": [
+        {
+          "id": "0b199a0eaae5a9b37a5d3c990b6c8bca",
+          "name": "莱万汀",
+          "pic": "https://bbs.hycdn.cn/image/2025/11/12/xxx.png",
+          "pc_link": "https://wiki.skland.com/endfield/detail?...",
+          "rarity": "rarity_6",
+          "dot_type": "label_type_up"
+        }
+      ],
+      "pool_start_at_ts": "1769050800",
+      "pool_end_at_ts": "1770436799",
+      "start_at_ts": "1768536000",
+      "end_at_ts": "1770436799",
+      "europe_pool_start_at_ts": "1769004000",
+      "europe_pool_end_at_ts": "1770389999",
+      "sort_id": 2
+    }
+  ]
+}
+```
+
+**字段说明**：
+| 字段 | 说明 |
+|------|------|
+| `pool_id` | 卡池ID |
+| `name` | 卡池名称 |
+| `chars[].id` | 角色ID（associate.id） |
+| `chars[].name` | 角色名称（自动从 Wiki 条目补充） |
+| `chars[].dot_type` | 标签类型（`label_type_up` 表示 UP 角色） |
+| `pool_start_at_ts` | 卡池开始时间戳 |
+| `pool_end_at_ts` | 卡池结束时间戳 |
+
+> **说明**：原始 API 返回的角色名字为空，系统在同步时会自动通过 `associate.id` 查询 Wiki 条目补充角色名字。
+
+---
+
+### 获取活动列表
+
+```http
+GET /api/wiki/activities
+X-API-Key: your-api-key
+```
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": [
+    {
+      "activity_id": "act_001",
+      "name": "开服活动",
+      "type": 1,
+      "start_time": "2026-01-15T00:00:00Z",
+      "end_time": "2026-02-15T23:59:59Z",
+      "description": "开服限时活动",
+      "cover": "https://..."
+    }
+  ]
+}
+```
+
+---
+
+### 获取表情包列表
+
+```http
+GET /api/wiki/stickers
+X-API-Key: your-api-key
+```
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": [
+    {
+      "category_name": "终末地表情包",
+      "title": "终末地官方表情",
+      "version": 1,
+      "position": 1,
+      "cover": "https://...",
+      "images": [
+        {
+          "id": "sticker_001",
+          "title": "点赞",
+          "path": "https://...",
+          "name": "thumbs_up"
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+### 获取统计信息
+
+```http
+GET /api/wiki/stats
+X-API-Key: your-api-key
+```
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "main_categories_count": 3,
+    "sub_categories_count": 16,
+    "items_count": 1027,
+    "char_pools_count": 1,
+    "activities_count": 8,
+    "stickers_count": 11,
+    "last_sync": {
+      "status": "completed",
+      "started_at": "2026-01-31T12:00:00Z",
+      "completed_at": "2026-01-31T12:00:30Z",
+      "main_categories_synced": 3,
+      "sub_categories_synced": 16,
+      "items_synced": 1027,
+      "char_pools_synced": 1,
+      "activities_synced": 8,
+      "stickers_synced": 11
+    }
+  }
+}
+```
+
+---
+
+### 手动触发同步
+
+```http
+POST /api/wiki/admin/sync
+X-API-Key: your-api-key
+```
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "message": "同步任务已启动",
+    "status": "running"
+  }
+}
+```
+
+**错误响应**（同步进行中）：
+```json
+{
+  "code": 409,
+  "message": "同步任务已在运行中"
+}
+```
+
+---
+
+### 获取同步状态
+
+```http
+GET /api/wiki/admin/sync/status
+X-API-Key: your-api-key
+```
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "is_running": false,
+    "last_task": {
+      "id": "65f1a2b3c4d5e6f7...",
+      "status": "completed",
+      "started_at": "2026-01-31T12:00:00Z",
+      "completed_at": "2026-01-31T12:00:30Z",
+      "main_categories_synced": 3,
+      "sub_categories_synced": 16,
+      "items_synced": 1027,
+      "char_pools_synced": 1,
+      "activities_synced": 8,
+      "stickers_synced": 11
+    }
+  }
+}
+```
+
+---
+
+### 子类型标签说明
+
+#### 星级 (subTypeId: 10000)
+| 值 | 说明 |
+|-----|------|
+| 10001 | 1星 |
+| 10002 | 2星 |
+| 10003 | 3星 |
+| 10004 | 4星 |
+| 10005 | 5星 |
+| 10006 | 6星 |
+
+#### 干员职业 (subTypeId: 10200)
+| 值 | 说明 |
+|-----|------|
+| 10201 | 近卫 |
+| 10202 | 术师 |
+| 10203 | 突击 |
+| 10204 | 先锋 |
+| 10205 | 重装 |
+| 10206 | 辅助 |
+
+### 缓存策略
+
+| 数据类型 | 缓存时间 | 说明 |
+|----------|----------|------|
+| 主分类列表 | 1 小时 | 分类变化不频繁 |
+| 子分类列表 | 1 小时 | 分类变化不频繁 |
+| 条目列表 | 30 分钟 | 条目列表 |
+| 条目详情 | 30 分钟 | 详情数据 |
+| 角色卡池 | 1 小时 | 卡池变化不频繁 |
+| 活动列表 | 30 分钟 | 活动可能更新 |
+| 表情包 | 1 小时 | 表情包变化不频繁 |
+| 搜索结果 | 10 分钟 | 搜索缓存较短 |
+| 统计信息 | 5 分钟 | 实时性要求较高 |
+
+### 数据同步
+
+- **同步间隔**：每 6 小时自动同步
+- **首次启动**：服务启动 30 秒后自动执行首次同步
+- **同步方式**：全量同步（使用公共账号池，复用同一客户端保持时间戳同步）
+- **优雅关闭**：支持 context 取消信号，关闭时有 5 秒超时保护
+- **数据来源**：森空岛 Wiki 接口
+  - `/web/v1/wiki/item/catalog` - 百科目录和条目
+  - `/web/v1/wiki/char-pool` - 角色卡池
+  - `/web/v1/wiki/activity` - 活动列表
+  - `/web/v1/sticker-categories` - 表情包列表
+
+**角色卡池名字补充**：
+- 原始 char-pool API 返回的角色 `name` 字段为空
+- 同步时自动通过 `chars[].id` 查询 Wiki 条目的 `brief.associate.id`
+- 补充角色名字后保存到数据库
+
+**与抽卡统计联动**：
+- 抽卡统计的 "当前卡池信息" 自动从 Wiki 角色卡池数据获取
+- 根据卡池有效期判断当前活跃卡池，获取 UP 角色信息
+
+---
+
 ## 抽卡记录 API
 
 > ⚠️ 以下接口需要**双重凭证**（同终末地数据 API）
@@ -764,13 +1305,14 @@ u8_token
 
 ### 数据模型说明
 
-抽卡记录采用**用户文档模型**，每个用户的所有抽卡记录存储在一个文档中，按卡池类型分类：
+抽卡记录采用**用户文档模型**，每个游戏账号（`game_uid`）的所有抽卡记录存储在一个文档中，按卡池类型分类。
+同一个游戏账号的记录会自动合并，即使通过不同的登录凭证同步也会归入同一份数据。
 
 ```json
 {
+  "game_uid": "1320645122",
   "framework_token": "uuid-xxx",
   "skland_uid": "205594538",
-  "game_uid": "1320645122",
   "nick_name": "玩家昵称",
   "channel_name": "官服",
   "is_official": true,
@@ -1300,10 +1842,6 @@ GET /api/endfield/gacha/global-stats
 }
 ```
 
-**字段说明（与展示对应）**：
-- `stats.current_pool`：当前限定池及 **UP 角色** 信息（`up_char_name`、`up_char_id`、`pool_name`）。
-- **UP 出货占比**：取 `stats.ranking.limited.six_star` 中与 `current_pool.up_char_id`（或 `up_char_name`）对应的那条的 `percent`，表示该 UP 角色占限定池所有 6 星出货的比例（如上例中莱万汀 24.0%）。
-
 **统计字段说明**:
 | 字段 | 说明 |
 |------|------|
@@ -1324,7 +1862,7 @@ GET /api/endfield/gacha/global-stats
 | `up_char_name` | UP角色名称 |
 | `up_char_id` | UP角色ID（可用于匹配抽卡记录） |
 
-> **注意**：当前卡池信息为临时硬编码，后续会通过独立接口动态获取。
+> **数据来源**：当前卡池信息自动从 Wiki 同步的角色卡池数据获取，根据卡池有效期（`pool_start_at_ts` ~ `pool_end_at_ts`）判断当前活跃的卡池，并获取 `dotType=label_type_up` 的 UP 角色信息。
 
 **出货排名**:
 | 字段 | 说明 |
@@ -1386,11 +1924,9 @@ X-Framework-Token: your-framework-token
       "serverId": 1
     },
     "stamina": {
-      "current": 77,
-      "max": 82,
-      "recover": 360,
-      "maxTs": 1706284800,
-      "updateTs": 1706280000
+      "current": "78",
+      "max": "328",
+      "maxTs": "1769899685"
     },
     "dailyMission": {
       "activation": 100,
@@ -3102,6 +3638,57 @@ const callWithAPIKey = async (apiKey, endpoint) => {
 ---
 
 ## 更新日志
+
+### v1.9.1 (2026-01-31)
+
+- ✅ **Wiki 角色卡池名字补充**
+  - 原始 API 返回的角色名字为空
+  - 同步时自动通过 `associate.id` 查询 Wiki 条目补充名字
+  - 数据库中保存完整的角色信息
+
+- ✅ **抽卡统计当前卡池信息动态获取**
+  - 移除硬编码的卡池信息
+  - 自动从 Wiki 角色卡池数据获取当前活跃卡池
+  - 根据卡池有效期和 `dot_type=label_type_up` 判断 UP 角色
+
+- ✅ **Wiki 插件优雅关闭优化**
+  - 使用可取消的 context 传递给同步任务
+  - 每个同步阶段检查取消信号，快速响应关闭请求
+  - 关闭时有 5 秒超时保护，避免无限等待
+
+### v1.9.0 (2026-01-31)
+
+- ✅ **新增 Wiki 百科 API**
+  - 提供终末地百科数据查询功能
+  - 数据来源：森空岛 Wiki 接口（4 个数据源）
+  - 支持主/子分类结构、条目列表、条目详情、全文搜索
+  - 3 个主分类，16 个子分类，约 1027 条百科条目
+  - 额外数据：角色卡池、活动列表、表情包
+
+- ✅ **Wiki 数据同步机制**
+  - 每 6 小时自动从森空岛同步数据
+  - 服务启动 30 秒后执行首次同步
+  - 使用公共账号池（复用同一客户端保持时间戳同步）
+  - 支持手动触发同步
+
+- ✅ **Wiki 缓存策略**
+  - 分类列表缓存 1 小时
+  - 条目列表/详情缓存 30 分钟
+  - 角色卡池/表情包缓存 1 小时
+  - 搜索结果缓存 10 分钟
+
+- ✅ **新增接口**
+  - `GET /api/wiki/categories` - 获取主分类列表
+  - `GET /api/wiki/categories/:main_type_id/sub` - 获取子分类列表
+  - `GET /api/wiki/items` - 获取条目列表（支持分类筛选）
+  - `GET /api/wiki/items/:id` - 获取条目详情
+  - `GET /api/wiki/search` - 全文搜索（支持 `q` 和 `keyword` 参数）
+  - `GET /api/wiki/char-pools` - 获取角色卡池
+  - `GET /api/wiki/activities` - 获取活动列表
+  - `GET /api/wiki/stickers` - 获取表情包列表
+  - `GET /api/wiki/stats` - 获取统计信息
+  - `POST /api/wiki/admin/sync` - 手动触发同步
+  - `GET /api/wiki/admin/sync/status` - 获取同步状态
 
 ### v1.6.4 (2026-01-29)
 

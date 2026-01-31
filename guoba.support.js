@@ -162,6 +162,15 @@ export function supportGuoba() {
           component: 'EasyCron',
         },
         {
+          field: 'sign.notify_list',
+          label: '签到通知推送列表',
+          bottomHelpMessage: '签到任务开始/完成消息推送目标。每行一个：friend:QQ号（私聊）、group:群号（群聊）',
+          component: 'GTags',
+          componentProps: {
+            placeholder: 'friend:QQ号 或 group:群号，回车添加',
+          },
+        },
+        {
           label: '消息配置',
           component: 'SOFT_GROUP_BEGIN'
         },
@@ -1159,6 +1168,7 @@ export function supportGuoba() {
           {
             auto_sign: true,
             auto_sign_cron: '0 0 1 * * ?',
+            notify_list: [],
           },
           signConfig
         )
@@ -1234,15 +1244,16 @@ export function supportGuoba() {
           const signData = {}
           const messageData = {}
 
-          for (const key in unflattenedData) {
+          // 必须遍历扁平键 data（锅巴传来 sign.notify_list 等），不能遍历 unflattenedData（只有顶层 sign）
+          for (const key in data) {
             if (commonFields.includes(key)) {
-              commonData[key] = unflattenedData[key]
+              commonData[key] = data[key]
             } else if (key.startsWith('ai.')) {
-              aiData[key.replace('ai.', '')] = unflattenedData[key]
+              aiData[key.replace('ai.', '')] = data[key]
             } else if (key.startsWith('sign.')) {
-              signData[key.replace('sign.', '')] = unflattenedData[key]
+              signData[key.replace('sign.', '')] = data[key]
             } else if (messageFields.has(key)) {
-              messageData[key] = unflattenedData[key]
+              messageData[key] = data[key]
             }
           }
           

@@ -1,104 +1,683 @@
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
-body { background: #f9fafb; color: #333; min-height: 100vh; }
-#container { max-width: 1200px; margin: 0 auto; }
+:root {
+  --c-bg: #e5e7eb;
+  --c-panel: #ffffff;
+  --c-accent: #f59e0b;
+  --c-text: #1f2937;
+  --c-subtext: #6b7280;
+  --c-grid: rgba(0, 0, 0, 0.04);
+  --footer-h: 80px;
+  --content-bottom-gap: 40px;
+}
 
-.hero-section { position: relative; width: 100%; height: 600px; background: #d1d5db; overflow: hidden; }
-.hero-grid-pattern { position: absolute; inset: 0; opacity: 0.2; background-image: linear-gradient(#444 1px, transparent 1px), linear-gradient(90deg, #444 1px, transparent 1px); background-size: 40px 40px; }
-.hero-corner-accent { position: absolute; top: 0; right: 0; width: 0; height: 0; border-top: 300px solid #fbbf24; border-left: 100px solid transparent; z-index: 0; }
-.vertical-text { position: absolute; top: 40px; right: 32px; z-index: 10; display: flex; flex-direction: column; align-items: center; writing-mode: vertical-rl; }
-.vertical-title { font-size: 5rem; font-weight: 900; color: white; letter-spacing: 0.2em; text-transform: uppercase; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); opacity: 0.9; }
-.vertical-subtitle { font-size: 0.75rem; font-weight: bold; color: white; letter-spacing: 0.5em; margin-top: 16px; text-transform: uppercase; opacity: 0.8; }
-.character-illustration { position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-start; padding-left: 80px; z-index: 10; }
-.character-illustration img { height: 110%; object-fit: contain; filter: drop-shadow(0 25px 25px rgba(0,0,0,0.5)); transform: translateY(10px); }
-.character-info-overlay { position: absolute; bottom: 48px; left: 96px; z-index: 20; }
-.character-title { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 8px; }
-.profession-icon { width: 48px; height: 48px; background: #1f2937; display: flex; align-items: center; justify-content: center; color: white; border-radius: 2px; transform: skew(-12deg); }
-.character-name { font-size: 3rem; font-weight: bold; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.7); }
-.rarity-stars { display: flex; align-items: center; gap: 2px; margin-bottom: 16px; }
-.star { width: 12px; height: 12px; background: #fbbf24; opacity: 0.8; transform: rotate(45deg); }
-.tags-container { display: flex; background: rgba(31,41,55,0.8); backdrop-filter: blur(8px); border-radius: 6px; overflow: hidden; color: white; font-size: 0.875rem; font-weight: bold; max-width: 28rem; flex-wrap: wrap; }
-.tag-item { padding: 8px 24px; border-right: 1px solid #4b5563; display: flex; align-items: center; justify-content: center; min-width: 80px; }
-.tag-item:last-child { border-right: none; }
-.level-box { position: absolute; bottom: 48px; right: 128px; z-index: 20; background: rgba(31,41,55,0.9); backdrop-filter: blur(8px); color: white; padding: 24px; border-radius: 4px; min-width: 200px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
-.level-display { display: flex; align-items: baseline; border-bottom: 1px solid #4b5563; padding-bottom: 8px; margin-bottom: 8px; }
-.level-number { font-size: 3.75rem; font-weight: bold; }
-.level-label { font-size: 1.125rem; margin-left: 8px; font-weight: 300; text-transform: uppercase; letter-spacing: 0.1em; }
-.level-icons { display: flex; justify-content: space-between; color: #9ca3af; }
-.vertical-divider { height: 24px; width: 1px; background: #4b5563; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-.content-section { max-width: 72rem; margin: 0 auto; padding: 24px 16px; }
-.section-title { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-.section-line { width: 4px; height: 24px; background: black; }
-.section-heading { font-size: 1.25rem; font-weight: bold; color: #1f2937; }
+body {
+  width: 1000px;
+  min-height: 1750px;
+  background-color: #f3f4f6;
+  font-family: 'Source Han Sans CN', 'Noto Sans SC', sans-serif;
+  overflow-x: hidden;
+  color: var(--c-text);
+}
 
-/* 内容区：技能 → 武器+基质 → 装备，纵向排列 */
-.panel-skills { margin-bottom: 24px; }
-.panel-weapon-gem { margin-bottom: 24px; }
-.panel-equipment { margin-bottom: 0; }
+.bg-layer {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 0;
+  background: #f3f4f6;
+}
 
-/* 装备 左侧一列 2 个、右侧一列 3 个，无则空占位；左右总高一致，左底不镂空 */
-.equipment-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: stretch; }
-.equip-col-left { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
-.equip-col-right { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
-.equip-col-left > *,
-.equip-col-right > * { flex: 1; min-height: 120px; }
-.equip-card { background: #e5e7eb; border-radius: 12px; padding: 12px; position: relative; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #d1d5db; }
-.equip-card.tactical { background: #fef3c7; }
-.equip-top-decoration { position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(to right, #d1d5db, transparent); }
-.equip-info { display: flex; flex-direction: column; justify-content: space-between; height: 100%; z-index: 10; min-width: 0; }
-.equip-level { display: flex; align-items: baseline; }
-.equip-level-number { font-size: 1.5rem; font-weight: bold; color: #1f2937; }
-.equip-level-label { font-size: 0.65rem; font-weight: bold; color: #6b7280; margin-left: 4px; text-transform: uppercase; }
-.equip-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-bottom: 4px; opacity: 0.6; }
-.equip-stat-icon { font-size: 0.5rem; color: #6b7280; }
-.equip-name { font-weight: bold; font-size: 0.8rem; line-height: 1.2; max-width: 6rem; }
-.equip-image { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
-.equip-image img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.25)); }
-.equip-bottom-accent { position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; }
-/* 品质色：1灰 2绿 3蓝 4紫 5橙 6红 */
-.equip_rarity_1 .equip-bottom-accent { background: #9ca3af; }
-.equip_rarity_1 .equip-name { color: #6b7280; }
-.equip_rarity_2 .equip-bottom-accent { background: #10b981; }
-.equip_rarity_2 .equip-name { color: #059669; }
-.equip_rarity_3 .equip-bottom-accent { background: #3b82f6; }
-.equip_rarity_3 .equip-name { color: #2563eb; }
-.equip_rarity_4 .equip-bottom-accent { background: #8b5cf6; }
-.equip_rarity_4 .equip-name { color: #7c3aed; }
-.equip_rarity_5 .equip-bottom-accent { background: #f97316; }
-.equip_rarity_5 .equip-name { color: #ea580c; }
-.equip_rarity_6 .equip-bottom-accent { background: #ef4444; }
-.equip_rarity_6 .equip-name { color: #dc2626; }
-.tactical-label { display: flex; align-items: center; gap: 4px; color: #6b7280; }
-.tactical-text { font-size: 0.7rem; font-weight: bold; }
-.equip-slot-empty { background: #e5e7eb; border-radius: 12px; min-height: 120px; display: flex; align-items: center; justify-content: center; border: 1px dashed #d1d5db; }
-.equip-slot-icon { font-size: 2rem; color: #9ca3af; opacity: 0.5; }
+.grid-deco {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-image: 
+    repeating-linear-gradient(45deg, rgba(0,0,0,0.02) 0px, rgba(0,0,0,0.02) 1px, transparent 1px, transparent 10px),
+    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+  background-size: 20px 20px, 40px 40px, 40px 40px;
+  z-index: 1;
+}
 
-/* 技能：最上 4 个一行 */
-.skills-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.skill-item { display: flex; flex-direction: column; align-items: center; gap: 6px; background: #f9fafb; border-radius: 12px; padding: 10px; height: 120px; justify-content: center; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.08); }
-.skill-icon-container { width: 48px; height: 48px; border-radius: 50%; background: #4b5563; border: 3px solid #d1d5db; overflow: hidden; flex-shrink: 0; }
-.skill-icon { width: 100%; height: 100%; object-fit: cover; }
-.skill-info { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.skill-rank { background: #6b7280; color: white; font-size: 0.55rem; padding: 2px 6px; border-radius: 9999px; text-transform: uppercase; }
-.skill-name { color: #1f2937; font-weight: bold; font-size: 0.75rem; text-align: center; line-height: 1.2; }
-.skill-slot-empty { background: #e5e7eb; border-radius: 12px; height: 120px; display: flex; align-items: center; justify-content: center; border: 1px dashed #d1d5db; }
+.char-layer {
+  position: absolute;
+  top: -60px;
+  right: -120px;
+  height: 1150px;
+  width: auto;
+  z-index: 2;
+  filter: drop-shadow(-15px 5px 25px rgba(0,0,0,0.15));
+}
 
-/* 武器+基质：一行两格 */
-.weapon-gem-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.weapon-compact { background: #f3f4f6; border-radius: 12px; padding: 12px; position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; height: 120px; overflow: hidden; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; }
-.weapon-compact-level { display: flex; align-items: baseline; }
-.weapon-compact-num { font-size: 1.5rem; font-weight: bold; color: #1f2937; }
-.weapon-compact-label { font-size: 0.65rem; font-weight: bold; color: #6b7280; margin-left: 4px; text-transform: uppercase; }
-.weapon-compact-rarity { display: flex; gap: 2px; margin-bottom: 4px; }
-.weapon-compact-star { width: 8px; height: 8px; background: #fbbf24; transform: rotate(45deg); }
-.weapon-compact-name { font-size: 0.8rem; font-weight: bold; color: #1f2937; max-width: 5rem; line-height: 1.2; }
-.weapon-compact-img { position: absolute; right: 4px; bottom: 4px; width: 56px; height: 56px; }
-.weapon-compact-img img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.25)); }
-.weapon-compact-accent { position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: #f59e0b; }
-.weapon-slot-empty { background: #e5e7eb; border-radius: 12px; height: 120px; display: flex; align-items: center; justify-content: center; border: 1px dashed #d1d5db; }
-.gem-card { background: #fef3c7; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #fde68a; box-shadow: 0 2px 4px -1px rgba(0,0,0,0.1); min-height: 120px; }
-.gem-label { font-size: 0.7rem; font-weight: bold; color: #92400e; }
-.gem-info { display: flex; align-items: center; gap: 8px; flex: 1; }
-.gem-name { font-size: 0.85rem; font-weight: bold; color: #1f2937; }
-.gem-img { width: 48px; height: 48px; flex-shrink: 0; }
-.gem-img img { width: 100%; height: 100%; object-fit: contain; }
+.overlay-gradient {
+  position: absolute;
+  bottom: 0; left: 0; width: 100%; height: 65%;
+  background: linear-gradient(to top, #f1f5f9 15%, rgba(241, 245, 249, 0.92) 55%, transparent 100%);
+  z-index: 3;
+}
+
+.ui-layer {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 10;
+  padding: 50px;
+  padding-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.header {
+  position: relative;
+  z-index: 20;
+  margin-bottom: 30px;
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* 共有卡片样式 */
+.header-main-card,
+.header-level-card {
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.header-main-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.header-level-card {
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+/* 左侧卡片头部 */
+.header-top-info {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.header-large-icon {
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8px;
+}
+
+.header-large-icon img {
+  width: 85%;
+  height: 85%;
+  object-fit: contain;
+}
+
+.header-text-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.char-name {
+  font-size: 52px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  margin: 0;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.meta-row-compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.meta-small-icon {
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.meta-separator {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.rarity-star-tiny {
+  width: 24px;
+  height: 24px;
+  margin-right: -2px;
+}
+
+/* 矩形大标签网格 */
+.header-tags-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.tag-rect {
+  background: rgba(255, 255, 255, 0.08);
+  height: 44px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 16px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 8px;
+}
+
+.tag-rect.element {
+  background: rgba(220, 38, 38, 0.35);
+  border-color: rgba(220, 38, 38, 0.2);
+  color: #fff;
+}
+
+.tag-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+/* 右侧卡片内容 */
+.level-display {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.level-num {
+  font-family: 'Oswald', sans-serif;
+  font-size: 80px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.level-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.potential-display-row {
+  display: flex;
+  gap: 8px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+}
+
+.potential-dot {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  opacity: 0.2;
+}
+
+.potential-dot.filled {
+  opacity: 1;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+}
+
+.content-panel {
+  position: relative;
+  width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  z-index: 10;
+}
+
+/* 技能与武器同行布局 */
+.skills-weapon-row {
+  display: flex;
+  gap: 25px;
+  align-items: flex-start;
+}
+
+.skills-section {
+  flex: 1;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #eee;
+  padding: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* 武器区：与技能卡片一致的白底卡片 */
+.weapon-section {
+  width: 380px;
+  flex-shrink: 0;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #eee;
+  padding: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.skills-section .section-title,
+.weapon-section .section-title {
+  margin-top: 0;
+}
+
+.section-title {
+  font-family: 'Source Han Sans CN', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: #1a1a1a;
+  margin-bottom: 15px;
+  border-left: 6px solid #1a1a1a;
+  padding-left: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.section-title span {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  font-size: 14px;
+  color: #999;
+  margin-left: 12px;
+  letter-spacing: 1px;
+}
+
+.skills-row {
+  display: flex;
+  gap: 20px;
+  padding-left: 5px;
+  flex-wrap: wrap;
+}
+
+.skill-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  overflow: visible;
+}
+
+/* 技能区：浅色风格 */
+/* 技能图标：浅灰圆底提升对比度，图标更清晰 */
+.skill-icon {
+  width: 85px;
+  height: 85px;
+  border-radius: 50%;
+  background: #e5e7eb !important;
+  border: 1px solid #d1d5db !important;
+  padding: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+}
+
+.skill-img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  filter: brightness(0.95) contrast(1.2) drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+
+.skill-rank {
+  position: absolute;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a1a;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+  border: none;
+}
+
+.skill-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-top: 14px;
+  text-align: center;
+  max-width: 90px;
+  line-height: 1.3;
+}
+
+/* 武器与装备卡片：白底清晰版式 */
+.weapon-card, .equip-card {
+  background: #fff !important;
+  border-radius: 6px;
+  border: 1px solid #eee !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+  padding: 20px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: stretch !important;
+  overflow: visible;
+  position: relative;
+}
+
+/* 武器卡片单独：不固定高度，保证武器图完整展示 */
+.weapon-card {
+  min-height: 140px;
+  height: auto !important;
+  align-items: center !important;
+}
+
+.weapon-card .weapon-img-wrap {
+  flex: 1;
+  min-width: 180px;
+  max-width: 55%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: visible;
+}
+
+.weapon-card .weapon-img {
+  max-height: 160px;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: right center;
+}
+
+.weapon-info, .equip-info-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  z-index: 2;
+}
+
+.weapon-level, .equip-level {
+  font-family: 'Oswald', sans-serif;
+  font-size: 40px !important;
+  font-weight: 700 !important;
+  color: #1a1a1a !important;
+  line-height: 1;
+}
+
+.weapon-level small, .equip-level span {
+  font-size: 14px;
+  color: #999;
+  margin-left: 6px;
+  font-weight: 500;
+}
+
+.weapon-name-text, .equip-name {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #1a1a1a !important;
+  border-left: 4px solid var(--c-accent);
+  padding-left: 10px;
+  margin-top: 10px;
+}
+
+.equip-img-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  z-index: 1;
+}
+
+.equip-icon {
+  max-height: 120px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 15px rgba(0,0,0,0.15));
+}
+
+.potential-row-mini {
+  display: flex;
+  gap: 3px;
+  margin: 8px 0;
+}
+
+.potential-dot-mini {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  opacity: 0.2;
+}
+
+.potential-dot-mini.filled {
+  opacity: 1;
+}
+
+/* 装备星级显示 */
+/* 装备星级：直接使用 star.png，不做 clip-path 或背景 */
+.equip-stars-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 0;
+}
+
+.equip-star-tiny {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
+}
+
+.skill-icon .empty-label {
+  font-size: 28px;
+  color: #9ca3af;
+}
+
+/* RANK 标签：保证完整显示不裁切，字号与内边距适中 */
+.skill-rank {
+  position: absolute;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  border: 1px solid var(--c-accent);
+  color: var(--c-accent);
+  font-family: 'JetBrains Mono', 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 3px 12px;
+  border-radius: 8px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+/* 技能名称：加大字号、加粗、锐化，提升可读性 */
+.skill-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-align: center;
+  max-width: 100px;
+  line-height: 1.35;
+}
+
+.weapon-row { width: 100%; }
+
+.weapon-card.empty {
+  background: #f5f5f5 !important;
+  border: 1px dashed #ddd !important;
+}
+
+.weapon-card.empty .weapon-info { color: #6b7280; }
+
+.weapon-info {
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+  color: #1a1a1a;
+  min-width: 0;
+}
+
+.weapon-level {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 36px;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.weapon-level small {
+  font-size: 20px;
+  margin-left: 5px;
+  font-weight: 500;
+  color: #555;
+  letter-spacing: 0;
+}
+
+.weapon-name-text {
+  font-family: 'Source Han Sans CN', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  margin-top: 2px;
+}
+
+.weapon-stars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.weapon-star {
+  width: 14px;
+  height: 14px;
+  background: #ccc;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+/* 装备栅格布局调整 */
+.equip-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.equip-left {
+  grid-row: span 2;
+}
+
+.equip-right {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 12px;
+}
+
+.equip-card {
+  min-height: 120px;
+  padding: 16px !important;
+}
+
+.equip-card.big {
+  height: 100%;
+  min-height: 280px;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  padding: 20px !important;
+}
+
+/* 战术道具：白底 */
+.equip-card.tactical {
+  background: #fff !important;
+  border: 1px solid #eee !important;
+}
+
+.tactical-tag {
+  font-size: 11px;
+  color: #fff;
+  background: var(--c-accent);
+  padding: 2px 8px;
+  border-radius: 3px;
+  margin-bottom: 6px;
+  display: inline-block;
+  font-weight: 700;
+}
+
+.equip-img-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.equip-card.big .equip-img-wrap {
+  justify-content: center;
+  flex: 1;
+  width: 100%;
+  position: relative;
+}
+
+.equip-card.big .equip-icon {
+  max-height: 180px;
+  max-width: 100%;
+}
+
+.equip-card.big .equip-stars-row {
+  position: absolute;
+  bottom: 50px;
+  left: 0;
+}
+
+.equip-card.big .equip-name {
+  margin-top: 0;
+}
+
+.empty-slot {
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+.empty-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  letter-spacing: 2px;
+}
+
+.empty-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}

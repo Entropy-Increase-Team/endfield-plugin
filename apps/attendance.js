@@ -70,6 +70,46 @@ export class EndfieldAttendance extends plugin {
     return true
   }
 
+  /**
+   * 向 sign.yaml 中 notify_list 配置的目标推送消息
+   * 仅支持 friend:QQ号（私聊）、group:群号（群聊）
+   * @param {string} msg 要发送的文本
+   */
+  async sendNotifyList(msg) {
+    const list = this.setting?.notify_list
+    if (!Array.isArray(list) || list.length === 0) return
+    for (const raw of list) {
+      try {
+        const str = String(raw).trim()
+        if (!str) continue
+        const lower = str.toLowerCase()
+        let type = null
+        let id = ''
+        if (lower.startsWith('group:')) {
+          type = 'group'
+          id = str.slice(6).trim()
+        } else if (lower.startsWith('friend:')) {
+          type = 'friend'
+          id = str.slice(7).trim()
+        }
+        if (!type || !id) continue
+        if (type === 'group') {
+          if (Bot?.pickGroup) {
+            await Bot.pickGroup(id).sendMsg(msg)
+          }
+        } else {
+          if (Bot?.pickUser) {
+            await Bot.pickUser(id).sendMsg(msg)
+          } else if (Bot?.sendPrivateMsg) {
+            await Bot.sendPrivateMsg(id, msg)
+          }
+        }
+      } catch (e) {
+        logger.error(`[终末地插件][签到任务]通知 ${raw} 失败: ${e?.message || e}`)
+      }
+    }
+  }
+
   async attendance_task() {
     const is_manual = !!this?.e?.msg
     const keys = await redis.keys('ENDFIELD:USER:*')
@@ -79,9 +119,11 @@ export class EndfieldAttendance extends plugin {
     const fail_users = []
 
     logger.mark('[终末地插件][签到任务]签到任务开始')
-    
+
+    // 从配置读取通知列表（notify_list），向配置的QQ号发送消息
+    this.setting = setting.getConfig('sign')
     const startMsg = getMessage('attendance.task_start_broadcast', { count: keys.length })
-    await Bot.sendMasterMsg(startMsg)
+    await this.sendNotifyList(startMsg)
     
     if (is_manual) {
       await this.e.reply(getMessage('attendance.task_start'))
@@ -125,8 +167,8 @@ export class EndfieldAttendance extends plugin {
     }
 
     logger.mark(`[终末地插件][签到任务]任务完成：${keys.length}个\n已签：${signed_count}个\n成功：${success_count}个\n失败：${fail_count}个`)
-    
-    await Bot.sendMasterMsg(completeMsg)
+
+    await this.sendNotifyList(completeMsg)
     
     if (is_manual) {
       await this.e.reply(completeMsg)
