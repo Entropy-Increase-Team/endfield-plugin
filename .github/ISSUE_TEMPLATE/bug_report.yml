@@ -1,0 +1,97 @@
+name: 🐛 Bug 报告
+description: 报告协议终端相关的 Bug
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢您花时间填写此 Bug 报告！请尽可能详细地描述问题，以便我们更快地定位和修复。
+
+  - type: dropdown
+    id: bug-type
+    attributes:
+      label: Bug 类型
+      description: 请选择 Bug 所属的类型
+      options:
+        - 前端 Bug（界面显示、交互问题）
+        - API Bug（接口请求、数据返回异常）
+        - 插件 Bug（功能异常、命令失效）
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 请清晰简洁地描述遇到的问题
+      placeholder: 描述你遇到的 Bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 请提供复现此问题的详细步骤
+      placeholder: |
+        1. 执行命令 '...'
+        2. 点击 '...'
+        3. 出现错误 '...'
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+      description: 描述你期望发生的结果
+      placeholder: 期望的正确行为...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: 描述实际发生的结果
+      placeholder: 实际出现的错误行为...
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图或日志
+      description: 如果有，请添加截图或错误日志来帮助说明问题
+      placeholder: 拖拽上传截图，或粘贴错误日志...
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: 插件版本
+      description: 请提供你使用的插件版本
+      placeholder: "例如: 1.0.0"
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 请提供你的运行环境信息（如：Yunzai 版本、Node.js 版本、适配器信息 等）
+      placeholder: "例如: Yunzai-Bot v3.x, Node.js v18.x，ICQQ/NapcatQQ/...等"
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 补充信息
+      description: 其他需要补充的信息
+      placeholder: 任何可能有助于解决问题的额外信息...
+    validations:
+      required: false

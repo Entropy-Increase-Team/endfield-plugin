@@ -1,0 +1,74 @@
+name: 💡 功能建议 / 意见反馈
+description: 提出新功能建议或反馈意见
+title: "[建议] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢您提出宝贵的建议！您的反馈对我们非常重要。
+
+  - type: dropdown
+    id: suggestion-type
+    attributes:
+      label: 建议类型
+      description: 请选择建议的类型
+      options:
+        - 新功能请求
+        - 现有功能改进
+        - UI/UX 优化
+        - API 改进
+        - 文档改进
+        - 其他意见
+    validations:
+      required: true
+
+  - type: dropdown
+    id: related-module
+    attributes:
+      label: 相关模块
+      description: 请选择建议涉及的模块
+      options:
+        - 前端（界面相关）
+        - API（接口相关）
+        - 插件功能
+        - 文档
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 问题背景
+      description: 您的建议是为了解决什么问题？或者是为了满足什么需求？
+      placeholder: 描述相关的问题或需求背景...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 建议方案
+      description: 请详细描述您希望实现的功能或改进方案
+      placeholder: 描述你期望的解决方案...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 替代方案
+      description: 您是否考虑过其他替代方案？
+      placeholder: 描述你考虑过的其他方案...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 补充信息
+      description: 其他需要补充的信息，如参考链接、截图等
+      placeholder: 任何其他相关信息...
+    validations:
+      required: false
