@@ -1,33 +1,67 @@
 import { rulePrefix, getMessage } from '../utils/common.js'
+import { saveUserBindings, REDIS_KEY } from '../model/endfieldUser.js'
 import EndfieldRequest from '../model/endfieldReq.js'
 import setting from '../utils/setting.js'
 import hypergryphAPI from '../model/hypergryphApi.js'
 
 // 网页授权绑定后台轮询任务
 let authPollingTimer = null
+let healthRecoveryTimer = null // 服务器不健康时，用于检测恢复的定时器
+
+const POLL_INTERVAL_MS = 2 * 60 * 1000 // 2分钟轮询一次
+const HEALTH_RECOVERY_INTERVAL_MS = 30 * 1000 // 服务器异常时，每30秒检测一次恢复
 
 /**
  * 启动网页授权状态轮询任务
  * 定期检查所有网页授权类型的绑定，若授权被撤销则自动清理
+ * 若 /health 检测不通过则暂停轮询，等服务器恢复后再开启
  */
 async function startAuthPollingTask() {
   // 避免重复启动
   if (authPollingTimer) return
 
-  const POLL_INTERVAL_MS = 2 * 60 * 1000 // 2分钟轮询一次
-
   const runPolling = async () => {
     try {
+      const healthy = await hypergryphAPI.getUnifiedBackendHealth()
+      if (!healthy) {
+        // 服务器不健康，暂停授权轮询，启动恢复检测
+        if (authPollingTimer) {
+          clearInterval(authPollingTimer)
+          authPollingTimer = null
+          logger.mark('[终末地插件][授权轮询]服务器健康检测不通过，暂停轮询，等待恢复')
+        }
+        startHealthRecoveryCheck()
+        return
+      }
       await checkAllAuthBindings()
     } catch (err) {
       logger.error(`[终末地插件][授权轮询任务]执行出错: ${err}`)
     }
   }
 
+  /**
+   * 服务器不健康时，定期检测 /health，恢复后重启授权轮询
+   */
+  function startHealthRecoveryCheck() {
+    if (healthRecoveryTimer) return // 已在恢复检测中
+    healthRecoveryTimer = setInterval(async () => {
+      const healthy = await hypergryphAPI.getUnifiedBackendHealth()
+      if (healthy) {
+        clearInterval(healthRecoveryTimer)
+        healthRecoveryTimer = null
+        logger.mark('[终末地插件][授权轮询]服务器已恢复，重新启动授权轮询')
+        authPollingTimer = setInterval(runPolling, POLL_INTERVAL_MS)
+        await runPolling() // 立即执行一次
+      }
+    }, HEALTH_RECOVERY_INTERVAL_MS)
+  }
+
   // 首次延迟30秒后执行，避免启动时并发压力
   setTimeout(async () => {
     await runPolling()
-    authPollingTimer = setInterval(runPolling, POLL_INTERVAL_MS)
+    if (!authPollingTimer && !healthRecoveryTimer) {
+      authPollingTimer = setInterval(runPolling, POLL_INTERVAL_MS)
+    }
   }, 30 * 1000)
 
   logger.mark('[终末地插件]网页授权状态轮询任务已启动')
@@ -42,7 +76,7 @@ async function checkAllAuthBindings() {
   if (!keys || keys.length === 0) return
 
   for (const key of keys) {
-    const userId = key.replace('ENDFIELD:USER:', '')
+    const userId = key.replace(/^ENDFIELD:USER:/, '')
     try {
       await checkUserAuthBindings(userId)
     } catch (err) {
@@ -56,7 +90,7 @@ async function checkAllAuthBindings() {
  * @param {string} userId 用户ID
  */
 async function checkUserAuthBindings(userId) {
-  const txt = await redis.get(`ENDFIELD:USER:${userId}`)
+  const txt = await redis.get(REDIS_KEY(userId))
   if (!txt) return
 
   let accounts = []
@@ -73,6 +107,8 @@ async function checkUserAuthBindings(userId) {
 
   // 获取该用户云端绑定列表
   const bindings = await hypergryphAPI.getUnifiedBackendBindings(userId)
+  // 502/500 等服务器错误时返回 null，此时不能判定授权状态，跳过本次检查，等后端恢复后再验
+  if (bindings === null) return
   const bindingIds = new Set((bindings || []).map(b => b.id))
 
   let needUpdate = false
@@ -104,11 +140,7 @@ async function checkUserAuthBindings(userId) {
   }
 
   if (needUpdate) {
-    if (updatedAccounts.length === 0) {
-      await redis.del(`ENDFIELD:USER:${userId}`)
-    } else {
-      await redis.set(`ENDFIELD:USER:${userId}`, JSON.stringify(updatedAccounts))
-    }
+    await saveUserBindings(userId, updatedAccounts)
   }
 }
 
@@ -136,14 +168,6 @@ export class EndfieldUid extends plugin {
           fnc: 'authBind'
         },
         {
-          reg: `^${rulePrefix}我的cred$`,
-          fnc: 'myCred'
-        },
-        {
-          reg: `^${rulePrefix}删除cred$`,
-          fnc: 'delCred'
-        },
-        {
           reg: `^${rulePrefix}(绑定|登陆|登录)列表$`,
           fnc: 'bindList'
         },
@@ -156,7 +180,7 @@ export class EndfieldUid extends plugin {
           fnc: 'switchBind'
         },
         {
-          reg: `^${rulePrefix}(cred|绑定|登陆|登录)帮助$`,
+          reg: `^${rulePrefix}(绑定|登陆|登录)帮助$`,
           fnc: 'credHelp'
         },
         {
@@ -178,30 +202,7 @@ export class EndfieldUid extends plugin {
       await this.reply(getMessage('enduid.please_private'))
       return true
     }
-    await this.reply(getMessage('enduid.cred_please'))
-    this.setContext('receiveCred')
-    return true
-  }
-
-  async receiveCred() {
-    if (this.e.isGroup) return true
-
-    const received = this.e.message?.[0]?.text?.trim?.() || ''
-    if (received.length === 24) {
-      await this.reply(getMessage('enduid.cred_no_token'))
-      this.finish('receiveCred')
-      return true
-    }
-
-    if (received.length !== 32) {
-      await this.reply(getMessage('enduid.cred_invalid'))
-      this.finish('receiveCred')
-      return true
-    }
-
-    await this.reply(getMessage('enduid.cred_checking'))
-    await this.checkCredAndSave(received)
-    this.finish('receiveCred')
+    await this.credHelp()
     return true
   }
 
@@ -221,9 +222,9 @@ export class EndfieldUid extends plugin {
       last_sync: Date.now()
     }
 
-    const existingText = await redis.get(`ENDFIELD:USER:${this.e.user_id}`)
+    const existingText = await redis.get(REDIS_KEY(this.e.user_id))
     let accounts = []
-    
+
     if (existingText) {
       try {
         const existing = JSON.parse(existingText)
@@ -247,34 +248,8 @@ export class EndfieldUid extends plugin {
       await this.reply(getMessage('enduid.login_ok', { nickname: bindingData.nickname, role_id: bindingData.role_id, server_id: bindingData.server_id || 1, count: accounts.length }))
     }
 
-    await redis.set(`ENDFIELD:USER:${this.e.user_id}`, JSON.stringify(accounts))
+    await saveUserBindings(this.e.user_id, accounts)
     return true
-  }
-
-  async checkCredAndSave(cred) {
-    const loginRes = await hypergryphAPI.unifiedBackendCredLogin(cred)
-    if (!loginRes || !loginRes.framework_token) {
-      logger.error(`[终末地插件][统一后端]Cred登录失败`)
-      await this.reply(getMessage('common.login_failed'))
-      return false
-    }
-
-    const frameworkToken = loginRes.framework_token
-
-    const bindingRes = await hypergryphAPI.createUnifiedBackendBinding(
-      frameworkToken,
-      String(this.e.user_id),
-      true,
-      String(this.e.self_id)
-    )
-
-    if (!bindingRes) {
-      logger.error(`[终末地插件][统一后端]创建绑定失败`)
-      await this.reply(getMessage('common.login_failed'))
-      return false
-    }
-
-    return await this.saveUnifiedBackendBinding(frameworkToken, bindingRes, 'cred')
   }
 
   async authBind() {
@@ -315,7 +290,7 @@ export class EndfieldUid extends plugin {
         formattedTime ? '\n' + getMessage('enduid.auth_link_expiry', { time: formattedTime }) : '',
         '\n' + getMessage('enduid.auth_link_wait')
       ].join('')
-      await this.reply(msg)
+      const authLinkSent = await this.reply(msg)
 
       const maxAttempts = 90
       let authData = null
@@ -359,6 +334,10 @@ export class EndfieldUid extends plugin {
       }
 
       await this.saveUnifiedBackendBinding(authData.framework_token, bindingRes, 'auth')
+      // 群聊时授权成功后撤回授权链接，私聊不管
+      if (this.e.isGroup && authLinkSent?.message_id && this.e.group?.recallMsg) {
+        try { await this.e.group.recallMsg(authLinkSent.message_id) } catch (e) { /* 撤回失败静默 */ }
+      }
       return true
     } catch (error) {
       logger.error(`[终末地插件][授权登陆]出错: ${error}`)
@@ -384,7 +363,7 @@ export class EndfieldUid extends plugin {
         '请使用森空岛APP扫描二维码进行登陆，二维码有效时间约3分钟。\n⚠️ 请不要扫描他人的登录二维码！',
         segment.image(qrCodeBuffer)
       ]
-      await this.reply(msg)
+      const qrCodeSent = await this.reply(msg)
 
       const maxAttempts = 90
       let loginData = null
@@ -439,6 +418,10 @@ export class EndfieldUid extends plugin {
       }
 
       await this.saveUnifiedBackendBinding(loginData.framework_token, bindingRes, 'qr')
+      // 群聊时扫码成功后撤回二维码，私聊不管
+      if (this.e.isGroup && qrCodeSent?.message_id && this.e.group?.recallMsg) {
+        try { await this.e.group.recallMsg(qrCodeSent.message_id) } catch (e) { /* 撤回失败静默 */ }
+      }
       return true
     } catch (error) {
       logger.error(`[终末地插件][统一后端]扫码登陆出错: ${error}`)
@@ -451,41 +434,6 @@ export class EndfieldUid extends plugin {
     return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
-  async myCred() {
-    if (this.e.isGroup) {
-      await this.reply(getMessage('enduid.please_private_op'))
-      return true
-    }
-    const txt = await redis.get(`ENDFIELD:USER:${this.e.user_id}`)
-    if (!txt) {
-      await this.reply(getMessage('enduid.unbind_hint', { prefix: this.getCmdPrefix() }))
-      return true
-    }
-    try {
-      const data = JSON.parse(txt)
-      const accounts = Array.isArray(data) ? data : [data]
-      const activeAccount = accounts.find(acc => acc.is_active || acc.isActive) || accounts[0]
-      if (activeAccount?.framework_token) {
-        await this.reply(getMessage('enduid.token_show', { token: activeAccount.framework_token }))
-      } else {
-        await this.reply(getMessage('enduid.token_not_found'))
-      }
-    } catch (error) {
-      await this.reply(getMessage('enduid.read_bind_failed'))
-    }
-    return true
-  }
-
-  async delCred() {
-    if (this.e.isGroup) {
-      await this.reply(getMessage('enduid.please_private_op'))
-      return true
-    }
-    await redis.del(`ENDFIELD:USER:${this.e.user_id}`)
-    await this.reply(getMessage('enduid.delete_ok'))
-    return true
-  }
-
   async bindList() {
     const bindings = await hypergryphAPI.getUnifiedBackendBindings(String(this.e.user_id))
     
@@ -495,7 +443,7 @@ export class EndfieldUid extends plugin {
     }
 
     let accounts = []
-    const txt = await redis.get(`ENDFIELD:USER:${this.e.user_id}`)
+    const txt = await redis.get(REDIS_KEY(this.e.user_id))
     if (txt) {
       try {
         const parsed = JSON.parse(txt)
@@ -556,7 +504,7 @@ export class EndfieldUid extends plugin {
 
     const deletedBinding = bindings[index - 1]
     let accounts = []
-    const txt = await redis.get(`ENDFIELD:USER:${this.e.user_id}`)
+    const txt = await redis.get(REDIS_KEY(this.e.user_id))
     if (txt) {
       try {
         const parsed = JSON.parse(txt)
@@ -584,17 +532,12 @@ export class EndfieldUid extends plugin {
         return true
       }
       
-      // 删除本地 Redis 记录
-      const txt = await redis.get(`ENDFIELD:USER:${this.e.user_id}`)
+      const txt = await redis.get(REDIS_KEY(this.e.user_id))
       if (txt) {
         try {
           const accounts = JSON.parse(txt)
           const updatedAccounts = accounts.filter(acc => acc.binding_id !== bindingIdToDelete)
-          if (updatedAccounts.length === 0) {
-            await redis.del(`ENDFIELD:USER:${this.e.user_id}`)
-          } else {
-            await redis.set(`ENDFIELD:USER:${this.e.user_id}`, JSON.stringify(updatedAccounts))
-          }
+          await saveUserBindings(this.e.user_id, updatedAccounts)
         } catch (err) {}
       }
       
@@ -623,17 +566,12 @@ export class EndfieldUid extends plugin {
       if (status && status.is_active === false) {
         // 先调用服务端删除绑定 DELETE /api/v1/bindings/:id
         await hypergryphAPI.deleteUnifiedBackendBinding(bindingId, userId)
-        // 再清理本地 Redis 记录
-        const txt = await redis.get(`ENDFIELD:USER:${userId}`)
+        const txt = await redis.get(REDIS_KEY(userId))
         if (txt) {
           try {
             const accounts = JSON.parse(txt)
             const updated = accounts.filter(acc => acc.binding_id !== bindingId)
-            if (updated.length === 0) {
-              await redis.del(`ENDFIELD:USER:${userId}`)
-            } else {
-              await redis.set(`ENDFIELD:USER:${userId}`, JSON.stringify(updated))
-            }
+            await saveUserBindings(userId, updated)
           } catch (err) {
             logger.error(`[终末地插件][网页授权轮询]清理本地记录失败: ${err}`)
           }
@@ -674,15 +612,16 @@ export class EndfieldUid extends plugin {
     const success = await hypergryphAPI.setUnifiedBackendPrimaryBinding(targetBinding.id, String(this.e.user_id))
 
     if (success) {
-      const txt = await redis.get(`ENDFIELD:USER:${this.e.user_id}`)
+      const txt = await redis.get(REDIS_KEY(this.e.user_id))
       if (txt) {
         try {
           const accounts = JSON.parse(txt)
-          accounts.forEach(acc => {
-            acc.is_active = acc.binding_id === targetBinding.id
-            acc.is_primary = acc.binding_id === targetBinding.id
-          })
-          await redis.set(`ENDFIELD:USER:${this.e.user_id}`, JSON.stringify(accounts))
+          const updated = accounts.map(acc => ({
+            ...acc,
+            is_active: acc.binding_id === targetBinding.id,
+            is_primary: acc.binding_id === targetBinding.id
+          }))
+          await saveUserBindings(this.e.user_id, updated)
         } catch (err) {}
       }
       await this.reply(getMessage('enduid.switched', { nickname: targetBinding.nickname || '未知', role_id: targetBinding.role_id || '未知' }))

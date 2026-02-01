@@ -32,6 +32,19 @@
     <div class="overlay-gradient"></div>
 
     <div class="ui-layer">
+      <!-- 左上角用户卡片（参考 list 页） -->
+      <div class="operator-top-bar">
+        <div class="user-info">
+          {{if userAvatar}}
+          <img src="{{userAvatar}}" alt="用户头像" class="user-avatar">
+          {{/if}}
+          <div class="user-details">
+            <div class="user-name">{{userNickname}}</div>
+            <div class="user-level">Lv.{{userLevel}}</div>
+          </div>
+        </div>
+      </div>
+
       <div class="header">
         <!-- 左侧：身份信息卡 -->
         <div class="header-main-card">
@@ -60,11 +73,11 @@
           </div>
         </div>
 
-        <!-- 右侧：等级与潜能卡 -->
+        <!-- 右侧：等级与潜能卡（左上 Lv. + 数字，下方图标） -->
         <div class="header-level-card">
           <div class="level-display">
+            <span class="level-prefix">Lv.</span>
             <span class="level-num">{{level}}</span>
-            <span class="level-text">Level</span>
           </div>
           <div class="potential-display-row">
             {{each potentialStars}}
@@ -99,29 +112,30 @@
           </div>
 
           <div class="weapon-section">
-            <div class="section-title">武器 <span>WEAPON</span></div>
-            <div class="weapon-row">
-              {{if weapon}}
-              <div class="weapon-card">
-                <div class="weapon-info">
-                  <div class="weapon-level">{{weapon.level}}<small>LEVEL</small></div>
-                  <div class="potential-row-mini">
-                    {{each weapon.refineStars}}
-                    <img src="{{pluResPath}}meta/potential/P{{$index+1}}.png" alt="" class="potential-dot-mini {{if $value}}filled{{/if}}">
-                    {{/each}}
-                  </div>
-                  <div class="weapon-name-text">{{weapon.name}}</div>
+            <div class="section-title weapon-title"><span class="title-cn">武器</span><span class="title-sep">|</span><span class="title-en">WEAPON</span></div>
+            {{if weapon}}
+            <div class="weapon-content">
+              <div class="weapon-info">
+                <div class="weapon-level-row">
+                  <span class="weapon-level-num">{{weapon.level}}</span>
+                  <span class="weapon-level-label">LEVEL</span>
                 </div>
-                <div class="weapon-img-wrap">
-                  <img src="{{weapon.iconUrl}}" alt="{{weapon.name}}" class="weapon-img">
+                <div class="weapon-stars-row">
+                  {{each weapon.stars}}
+                  <img src="{{pluResPath}}meta/potential/star.png" alt="" class="weapon-star-icon">
+                  {{/each}}
                 </div>
+                <div class="weapon-name-text">{{weapon.name}}</div>
               </div>
-              {{else}}
-              <div class="weapon-card empty">
-                <div class="weapon-info"><div class="weapon-name-text">未装备武器</div></div>
+              <div class="weapon-img-wrap">
+                <img src="{{weapon.iconUrl}}" alt="{{weapon.name}}" class="weapon-img">
               </div>
-              {{/if}}
             </div>
+            {{else}}
+            <div class="weapon-content empty">
+              <div class="weapon-info"><div class="weapon-name-text">未装备武器</div></div>
+            </div>
+            {{/if}}
           </div>
         </div>
 
@@ -230,6 +244,10 @@
           </div>
         </div>
       </div>
+
+      <footer class="operator-footer">
+        Created By TRSS-Yunzai & endfield-plugin {{endfieldVersion || ''}}
+      </footer>
     </div>
   </div>
 </body>

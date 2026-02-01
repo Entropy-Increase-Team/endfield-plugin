@@ -19,6 +19,12 @@
 > [!TIP]
 > 终末地-协议终端交流群，欢迎加入 [160759479](https://qm.qq.com/q/zZXruW6V4Q) 交流反馈。
 
+## 使用须知
+
+这是一个**正在快速迭代**的项目，可能会有一些小 BUG 出没 🐛（我们会努力消灭它们的！）
+
+遇到问题？欢迎来提 [ISSUE](https://github.com/Entropy-Increase-Team/endfield-plugin/issues) 反馈，我们会第一时间处理！更多好玩的功能正在路上，敬请期待 ✨
+
 ## 安装插件
 
 ### 1. 克隆仓库
@@ -29,7 +35,7 @@
 git clone https://github.com/Entropy-Increase-Team/endfield-plugin ./plugins/endfield-plugin/
 ```
 
-### 2. 配置 - 必须要绑定 API_KEY !
+### 2. 配置 - 必须要绑定 API_KEY !!!
 
 > [!TIP]
 > **官网**：[终末地协议终端](https://end.shallow.ink)。授权登陆、绑定列表等接口需配置 `api_key`，请在官网注册并获取 API 密钥后，在 `config/common.yaml` 中填写。
@@ -125,11 +131,15 @@ git clone https://github.com/Entropy-Increase-Team/endfield-plugin ./plugins/end
 
 ## 其他框架
 
-- **云崽**：[delta-force-plugin](https://github.com/Entropy-Increase-Team/endfield-plugin)
+- **云崽**：[endfield-plugin](https://github.com/Entropy-Increase-Team/endfield-plugin)
 
-## 支持与贡献
+## 💖 感谢贡献者
+
+感谢所有为 endfield-plugin 添砖加瓦的开发者们！🎉 你们都是最棒的！
+
+[![贡献者](https://contrib.rocks/image?repo=Entropy-Increase-Team/endfield-plugin&max=1000)](https://github.com/Entropy-Increase-Team/endfield-plugin/graphs/contributors)
+
+有你们的贡献，endfield-plugin 才能变得越来越好~ ❤️
 
 如果你喜欢这个项目，请不妨点个 Star🌟，这是对开发者最大的动力。
-
-有意见或者建议也欢迎提交 [Issues](https://github.com/Entropy-Increase-Team/endfield-plugin/issues) 和 [Pull requests](https://github.com/Entropy-Increase-Team/endfield-plugin/pulls)。
 

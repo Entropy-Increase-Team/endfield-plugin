@@ -2,9 +2,14 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width={{helpLayoutMaxWidth}}, initial-scale=1.0">
   <title>{{helpCfg.title}}</title>
   <link rel="stylesheet" href="{{_res_path}}help/help.css">
+  <!-- 根宽度随配置动态设置，保证截图/视口与 help_layout 一致 -->
+  <style>
+    html { width: {{helpLayoutMaxWidth}}px; min-width: {{helpLayoutMaxWidth}}px; box-sizing: border-box; }
+    body { width: 100%; max-width: {{helpLayoutMaxWidth}}px; min-width: {{helpLayoutMaxWidth}}px; box-sizing: border-box; margin: 0 auto; }
+  </style>
 </head>
 <body>
   <main class="container" style="width:100%;max-width:{{helpLayoutMaxWidth}}px;box-sizing:border-box;">
@@ -18,7 +23,7 @@
     <div class="info-block">{{$value.group}}</div>
       {{else if $value.list}}
     <h2 class="section-title">{{$value.group}}</h2>
-    <div class="commands-grid" style="grid-template-columns:repeat({{helpLayoutColCount}},1fr);">
+    <div class="commands-grid" style="grid-template-columns:repeat({{helpLayoutColCount}}, {{helpLayoutColWidth}}px); gap: {{helpLayoutWidthGap}}px;">
         {{each $value.list}}
       <article class="command-item">
           {{if $value.iconUrl}}

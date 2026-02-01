@@ -102,6 +102,9 @@ note:
 stamina:
   subscribed: "✅ 已订阅理智推送"
   subscribe_ok: "✅ 订阅理智推送成功"
+  subscribe_ok_full: "✅ 订阅成功，理智回满时推送"
+  subscribe_ok_threshold: "✅ 订阅成功，理智达到 {threshold} 时推送"
+  push_msg: "诶诶诶，{name}你的理智到 {current} 了！快去清理智~"
   unsubscribe_ok: "已取消订阅理智推送"
   not_subscribed: "当前未订阅理智推送"
   loading: "正在获取理智信息..."

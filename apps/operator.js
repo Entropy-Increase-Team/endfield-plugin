@@ -2,6 +2,19 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { rulePrefix, getUnbindMessage, getMessage } from '../utils/common.js'
+
+let cachedVersion = null
+function getPluginVersion() {
+  if (cachedVersion) return cachedVersion
+  try {
+    const pkgPath = path.resolve(process.cwd(), './plugins/endfield-plugin/package.json')
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'))
+    cachedVersion = pkg?.version || ''
+  } catch {
+    cachedVersion = ''
+  }
+  return cachedVersion
+}
 import EndfieldUser from '../model/endfieldUser.js'
 import setting from '../utils/setting.js'
 
@@ -78,6 +91,7 @@ export class EndfieldOperator extends plugin {
       }
 
       const chars = res.data?.chars || []
+      const base = res.data?.base || {}
       if (!chars.length) {
         await this.reply(getMessage('operator.not_found_info'))
         return true
@@ -115,7 +129,14 @@ export class EndfieldOperator extends plugin {
         return true
       }
 
-      const tplData = this.buildPanelData(operator, charData, userSkills, container)
+      const panelData = this.buildPanelData(operator, charData, userSkills, container)
+      const tplData = {
+        ...panelData,
+        userAvatar: base?.avatarUrl || '',
+        userNickname: base?.name || '未知',
+        userLevel: base?.level ?? 0,
+        endfieldVersion: getPluginVersion()
+      }
       // 使用 runtime.render 对接新渲染器（renderers/puppeteer），模板与资源路径由 runtime 注入
       if (!this.e.runtime?.render) {
         await this.reply(getMessage('operator.panel_failed'))

@@ -88,13 +88,18 @@ export class help extends plugin {
       })
     })
 
-    const layout = help_setting?.help_layout || {}
-    const colCount = Number(layout.col_count) || 4
-    const colWidth = Number(layout.col_width) || 380
-    const widthGap = Number(layout.width_gap) || 50
-    const contentWidth = colCount * colWidth + widthGap
+    const defSetHelp = setting.getdefSet('help') || {}
+    const layout = { ...defSetHelp?.help_layout, ...help_setting?.help_layout }
+    const colCount = Math.max(1, Number(layout.col_count) || 4)
+    const colWidth = Math.max(100, Number(layout.col_width) || 380)
+    const widthGap = Math.max(0, Number(layout.width_gap) || 40)
+    const gridWidth = colCount * colWidth + Math.max(0, colCount - 1) * widthGap
+    const totalHorizontalPadding = 80
+    const contentWidth = gridWidth + totalHorizontalPadding
     const helpLayoutMaxWidth = Math.min(contentWidth, HELP_VIEWPORT_MAX)
     const helpLayoutColCount = colCount
+    const helpLayoutColWidth = colWidth
+    const helpLayoutWidthGap = widthGap
 
     try {
       return await e.runtime.render('endfield-plugin', 'help/help', {
@@ -103,6 +108,8 @@ export class help extends plugin {
         endfieldVersion,
         helpLayoutMaxWidth,
         helpLayoutColCount,
+        helpLayoutColWidth,
+        helpLayoutWidthGap,
         viewport: { width: helpLayoutMaxWidth }
       }, {
         scale: 1.6

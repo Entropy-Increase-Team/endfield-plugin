@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import setting from './utils/setting.js'
 
 // 兼容部分适配器未提前注入 segment 的场景
 if (!global.segment) {
@@ -19,6 +20,11 @@ let ret = []
 
 logger.info('-------------------')
 logger.info('endfield-plugin载入成功!')
+const commonConfig = setting.getConfig('common') || {}
+if (!commonConfig.api_key || String(commonConfig.api_key).trim() === '') {
+  logger.warn('[endfield-plugin] 未配置 api_key，部分功能将不可用')
+  logger.warn('请前往终末地协议终端 - https://end.shallow.ink 获取秘钥，并在 config/common.yaml 中填写')
+}
 logger.info('插件交流群：160759479')
 logger.info('-------------------')
 

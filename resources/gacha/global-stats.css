@@ -1,10 +1,17 @@
-/* Endfield Terminal 风格：深色、角标、等宽数字、琥珀色高亮 */
+/* Endfield Terminal 风格：深色、角标、琥珀色高亮；统一使用 resources/font */
+@font-face {
+  font-family: 'HarmonyOS Sans SC';
+  src: url('../font/HarmonyOS_SansSC_Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
-  font-family: 'JetBrains Mono', 'Consolas', 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-family: 'HarmonyOS Sans SC', -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif;
   background-color: #030305;
   color: #e0e0e0;
   margin: 0;

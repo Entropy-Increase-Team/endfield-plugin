@@ -1,5 +1,6 @@
 import { rulePrefix, getUnbindMessage, getMessage } from '../utils/common.js'
 import EndfieldUser from '../model/endfieldUser.js'
+import { REDIS_KEY } from '../model/endfieldUser.js'
 import setting from '../utils/setting.js'
 
 export class EndfieldStamina extends plugin {
@@ -9,10 +10,9 @@ export class EndfieldStamina extends plugin {
       dsc: '终末地理智与日常活跃度',
       event: 'message',
       priority: 50,
-      // 轮询检查：每 5 分钟执行一次，避免整点一小时的提醒延迟
       task: {
         name: '[endfield-plugin]理智订阅推送',
-        cron: '*/5 * * * *',
+        cron: '*/15 * * * *', // 每 15 分钟
         fnc: () => this.pushStamina()
       },
       rule: [
@@ -21,12 +21,16 @@ export class EndfieldStamina extends plugin {
           fnc: 'getStamina'
         },
         {
-          reg: `^${rulePrefix}订阅理智(?:\\s+(\\d+))?$`,
+          reg: `^${rulePrefix}(订阅理智|理智订阅)(?:\\s+(\\d+))?$`,
           fnc: 'subscribeStamina'
         },
         {
           reg: `^${rulePrefix}取消订阅理智$`,
           fnc: 'unsubscribeStamina'
+        },
+        {
+          reg: `^${rulePrefix}订阅推送设置\\s+(群聊|私信)(?:\\s+(\\d+))?$`,
+          fnc: 'subscribePushSetting'
         }
       ]
     })
@@ -36,13 +40,17 @@ export class EndfieldStamina extends plugin {
   async subscribeStamina() {
     const isGroup = !!this.e.isGroup
     const raw = (this.e.msg || '').trim()
-    const valueMatch = raw.match(/订阅理智\s*(\d+)/)
+    const valueMatch = raw.match(/(?:订阅理智|理智订阅)\s*(\d+)/)
     const threshold = valueMatch ? Math.max(0, parseInt(valueMatch[1], 10)) : undefined
+    const nickname = this.e.sender?.nickname || this.e.sender?.card || String(this.e.user_id)
     const sub = {
       bot_id: String(this.e.self_id),
       user_id: String(this.e.user_id),
       group_id: isGroup ? String(this.e.group_id) : '',
       is_group: isGroup,
+      push_type: isGroup ? 'group' : 'private',
+      push_target: isGroup ? String(this.e.group_id) : String(this.e.user_id),
+      nickname,
       threshold,
       last_current: undefined
     }
@@ -53,7 +61,7 @@ export class EndfieldStamina extends plugin {
       && item.group_id === sub.group_id
     ))
     if (idx >= 0) {
-      list[idx] = { ...list[idx], threshold, last_current: list[idx].last_current }
+      list[idx] = { ...list[idx], nickname, threshold, last_current: list[idx].last_current }
       await this.setStaminaSubList(list)
       const replyMsg = threshold != null
         ? getMessage('stamina.subscribe_ok_threshold', { threshold })
@@ -165,7 +173,7 @@ export class EndfieldStamina extends plugin {
         const last = sub.last_current ?? -1
         const shouldPush = target > 0 && current >= target && last < target
         if (shouldPush) {
-          await this.sendStaminaMsg(sub, msg)
+          await this.sendStaminaMsg(sub, current)
         }
         sub.last_current = current
         list[i] = sub
@@ -176,12 +184,31 @@ export class EndfieldStamina extends plugin {
     await this.setStaminaSubList(list)
   }
 
-  async sendStaminaMsg(sub, msg) {
-    if (sub.is_group && sub.group_id) {
-      await Bot.pickGroup(sub.group_id).sendMsg([segment.at(sub.user_id), '\n', msg])
+  /** 从 Redis 绑定数据取当前账号的游戏内名称 */
+  async getGameNickname(userId) {
+    const raw = await redis.get(REDIS_KEY(userId))
+    if (!raw) return ''
+    try {
+      const data = JSON.parse(raw)
+      const accounts = Array.isArray(data) ? data : [data]
+      const active = accounts.find((a) => a.is_active === true) || accounts[0]
+      return active?.nickname || ''
+    } catch {
+      return ''
+    }
+  }
+
+  async sendStaminaMsg(sub, current) {
+    const name = (await this.getGameNickname(sub.user_id)) || '你'
+    const pushMsg = getMessage('stamina.push_msg', { name, current })
+    const type = sub.push_type ?? (sub.is_group ? 'group' : 'private')
+    const target = sub.push_target ?? (sub.is_group ? sub.group_id : sub.user_id)
+    if (type === 'group' && target) {
+      await Bot.pickGroup(target).sendMsg([segment.at(sub.user_id), '\n', pushMsg])
       return
     }
-    await Bot.pickFriend(sub.user_id).sendMsg(msg)
+    const uid = type === 'private' && target ? target : sub.user_id
+    await Bot.pickFriend(uid).sendMsg(pushMsg)
   }
 
   async getStaminaSubList() {
@@ -195,6 +222,44 @@ export class EndfieldStamina extends plugin {
 
   async setStaminaSubList(list) {
     await redis.set('ENDFIELD:STAMINA_SUBSCRIBE', JSON.stringify(list || []))
+  }
+
+  /** 订阅推送设置：群聊 [群号] | 私信（不填则发本人） */
+  async subscribePushSetting() {
+    const isGroup = !!this.e.isGroup
+    const raw = (this.e.msg || '').trim()
+    const match = raw.match(/订阅推送设置\s+(群聊|私信)(?:\s+(\d+))?/)
+    if (!match) return true
+    const [, type, idStr] = match
+    const list = await this.getStaminaSubList()
+    const ctxGroupId = isGroup ? String(this.e.group_id) : ''
+    const idx = list.findIndex((item) => (
+      item.bot_id === String(this.e.self_id)
+      && item.user_id === String(this.e.user_id)
+      && item.group_id === ctxGroupId
+    ))
+    if (idx < 0) {
+      await this.reply(getMessage('stamina.not_subscribed'), false, { at: isGroup })
+      return true
+    }
+    const sub = list[idx]
+    if (type === '私信') {
+      sub.push_type = 'private'
+      sub.push_target = String(this.e.user_id)
+    } else {
+      const groupId = idStr && idStr.trim() ? idStr.trim() : (isGroup ? String(this.e.group_id) : '')
+      if (!groupId) {
+        await this.reply('请指定群号，例如：' + this.getCmdPrefix() + '订阅推送设置 群聊 123456789', false, { at: isGroup })
+        return true
+      }
+      sub.push_type = 'group'
+      sub.push_target = groupId
+    }
+    list[idx] = sub
+    await this.setStaminaSubList(list)
+    const tip = type === '私信' ? '已改为推送到私信（本人）' : `已改为推送到群聊 ${sub.push_target}`
+    await this.reply(tip, false, { at: isGroup })
+    return true
   }
 
   getCmdPrefix() {
