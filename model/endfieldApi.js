@@ -76,4 +76,43 @@ export default class EndfieldApi {
       }
     }
   }
+
+  /**
+   * Wiki 百科 API 地址映射（认证仅需 X-API-Key）
+   * 对应：/api/wiki/search、/api/wiki/items（列表）、/api/wiki/items/:id（详情）
+   */
+  getWikiUrlMap = (data = {}) => {
+    const baseUrl = this.unifiedBackendBaseUrl
+    const q = encodeURIComponent(data.q || data.keyword || '')
+    const mainTypeId = data.main_type_id || ''
+    const subTypeId = data.sub_type_id || ''
+    const page = data.page ?? 1
+    const pageSize = data.page_size ?? 20
+    const searchQuery = [
+      q ? `q=${q}` : '',
+      mainTypeId ? `main_type_id=${mainTypeId}` : '',
+      subTypeId ? `sub_type_id=${subTypeId}` : '',
+      `page=${page}`,
+      `page_size=${pageSize}`
+    ].filter(Boolean).join('&')
+    const itemsListQuery = [
+      mainTypeId ? `main_type_id=${mainTypeId}` : '',
+      subTypeId ? `sub_type_id=${subTypeId}` : '',
+      `page=${page}`,
+      `page_size=${pageSize}`
+    ].filter(Boolean).join('&')
+    return {
+      wiki_search: {
+        url: `${baseUrl}/api/wiki/search`,
+        query: searchQuery
+      },
+      wiki_items: {
+        url: `${baseUrl}/api/wiki/items`,
+        query: itemsListQuery
+      },
+      wiki_item_detail: {
+        url: `${baseUrl}/api/wiki/items/${data.id || ''}`
+      }
+    }
+  }
 }

@@ -1,6 +1,6 @@
 # Endfield-API 接口文档
 
-版本号：1.9.1
+版本号：1.9.5
 
 ## 概述
 
@@ -956,15 +956,125 @@ X-API-Key: your-api-key
     "sub_type_id": "1",
     "cover": "https://bbs.hycdn.cn/image/...",
     "caption": [
-      { "kind": "text", "text": { "text": ""火焰，照亮黄昏！"" } },
-      { "kind": "text", "text": { "text": "莱万汀来自罗德岛，以管理员直属干员的身份为终末地工业提供服务。" } }
+      { "kind": "text", "text": ""火焰，照亮黄昏！"" }
     ],
+    "content": {
+      "document_map": {
+        "doc_id_1": {
+          "id": "document-id",
+          "block_ids": ["block1", "block2"],
+          "block_map": {
+            "block1": {
+              "id": "block1",
+              "parent_id": "document-id",
+              "kind": "text",
+              "align": "left",
+              "text": {
+                "inline_elements": [
+                  { "kind": "text", "text": "代号：", "bold": true },
+                  { "kind": "text", "text": "莱万汀" }
+                ],
+                "kind": "body"
+              }
+            },
+            "block2": {
+              "id": "block2",
+              "parent_id": "document-id",
+              "kind": "table",
+              "table": {
+                "id": "block2",
+                "row_ids": ["r1", "r2"],
+                "column_ids": ["c1", "c2"],
+                "row_map": { "r1": {"id": "r1"}, "r2": {"id": "r2"} },
+                "column_map": { "c1": {"id": "c1", "width": 200}, "c2": {"id": "c2", "width": 200} },
+                "cell_map": { "r1_c1": {"id": "r1_c1", "child_ids": ["text_block"]} }
+              }
+            }
+          }
+        }
+      }
+    },
     "associate": {...},
     "sub_type_list": [...],
     "tag_ids": [...]
   }
 }
 ```
+
+**content 文档结构**：
+
+| 层级 | 字段 | 说明 |
+|------|------|------|
+| 根 | `document_map` | 文档映射，key 为文档 ID |
+| 根 | `chapter_group` | 章节组（攻略内容分章节） |
+| 根 | `widget_common_map` | 通用组件映射（攻略 tab 切换） |
+| 根 | `extra_info` | 额外信息（展示类型等） |
+| 文档 | `block_ids` | 顶级块 ID 列表（渲染顺序） |
+| 文档 | `block_map` | 所有块的映射 |
+
+**块类型 (kind)**：
+| kind | 说明 | 特有字段 |
+|------|------|----------|
+| `text` | 文本块 | `text.inline_elements[]`, `text.kind` (body/heading3) |
+| `table` | 表格 | `table.row_ids`, `table.column_ids`, `table.cell_map` |
+| `horizontalLine` | 分割线 | `horizontal_line.kind` (2/3/5) |
+| `list` | 列表 | `list.item_ids`, `list.item_map`, `list.kind` |
+| `image` | 图片 | `image.src`, `image.width`, `image.height` |
+| `video` | 视频 | `video.src`, `video.cover`, `video.duration` |
+
+**行内元素 (inline_elements)**：
+| kind | 说明 | 额外字段 |
+|------|------|----------|
+| `text` | 文本 | `text`, `bold`, `color` |
+| `entry` | 条目引用 | `entry.id`, `entry.show_type`, `entry.count` |
+| `link` | 链接 | `link.url`, `link.text` |
+
+**攻略数据特殊结构**（typeMainId=2，如干员攻略）：
+
+攻略条目包含多个作者的内容，通过 `widget_common_map` 中的 tab 切换展示：
+
+```json
+{
+  "content": {
+    "document_map": {
+      "doc_key_1": { "block_ids": [...], "block_map": {...} },
+      "doc_key_2": { "block_ids": [...], "block_map": {...} }
+    },
+    "chapter_group": [
+      {
+        "title": "攻略",
+        "widgets": [
+          { "id": "widget_id", "title": "", "size": "large" }
+        ]
+      }
+    ],
+    "widget_common_map": {
+      "widget_id": {
+        "type": "common",
+        "tab_list": [
+          { "tab_id": "tab_1", "title": "作者1", "icon": "" },
+          { "tab_id": "tab_2", "title": "作者2", "icon": "" }
+        ],
+        "tab_data_map": {
+          "tab_1": { "content": "doc_key_1", "audio_list": [] },
+          "tab_2": { "content": "doc_key_2", "audio_list": [] }
+        }
+      }
+    },
+    "extra_info": {
+      "show_type": "",
+      "illustration": "",
+      "composite": ""
+    }
+  }
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `chapter_group[].widgets[].id` | 引用 `widget_common_map` 中的组件 |
+| `widget_common_map.*.tab_list` | tab 列表，`title` 为作者名 |
+| `widget_common_map.*.tab_data_map.*.content` | 指向 `document_map` 中的 key |
 
 ---
 
@@ -1257,7 +1367,8 @@ X-API-Key: your-api-key
 - **同步方式**：全量同步（使用公共账号池，复用同一客户端保持时间戳同步）
 - **优雅关闭**：支持 context 取消信号，关闭时有 5 秒超时保护
 - **数据来源**：森空岛 Wiki 接口
-  - `/web/v1/wiki/item/catalog` - 百科目录和条目
+  - `/web/v1/wiki/item/catalog` - 百科目录和条目（基本信息）
+  - `/web/v1/wiki/item/info?id=` - 条目详情（完整内容，每条目单独请求）
   - `/web/v1/wiki/char-pool` - 角色卡池
   - `/web/v1/wiki/activity` - 活动列表
   - `/web/v1/sticker-categories` - 表情包列表
@@ -1891,6 +2002,381 @@ GET /api/endfield/gacha/global-stats
 | `beginner` | 新手池 |
 | `weapon` | 武器池 |
 | `character` | 角色池合计（限定+常驻） |
+
+---
+
+## 模拟抽卡 API
+
+> 公开接口，无需认证。用于模拟游戏中的抽卡逻辑，支持三种卡池类型。
+
+### 卡池规则说明
+
+| 卡池类型 | 6星保底 | 软保底起始 | 基础概率 | 硬保底 | UP概率 |
+|----------|---------|-----------|---------|--------|--------|
+| 限定角色池 | 80抽 | 65抽后+5%/抽 | 0.8% | 120抽必出UP | 50% |
+| 武器池 | 40抽 | 无软保底 | 4% | 80抽必出UP | 25% |
+| 常驻池 | 80抽 | 65抽后+5%/抽 | 0.8% | 无 | 无 |
+
+### 获取卡池规则
+
+```http
+GET /api/endfield/gacha/simulate/rules?pool_type=limited
+```
+
+**Query 参数**:
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| pool_type | string | 否 | limited | 卡池类型：`limited`/`weapon`/`standard` |
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "pool_type": "limited",
+    "rules": {
+      "six_star_pity": 80,
+      "six_star_base_probability": 0.008,
+      "six_star_soft_pity_start": 65,
+      "six_star_soft_pity_increase": 0.05,
+      "has_soft_pity": true,
+      "five_star_pity": 10,
+      "five_star_base_probability": 0.08,
+      "guaranteed_limited_pity": 120,
+      "up_probability": 0.5,
+      "gift_interval": 240,
+      "free_ten_pull_interval": 30,
+      "info_book_threshold": 60
+    },
+    "all_rules": {
+      "limited": { ... },
+      "weapon": { ... },
+      "standard": { ... }
+    }
+  }
+}
+```
+
+### 模拟单抽
+
+```http
+POST /api/endfield/gacha/simulate/single
+Content-Type: application/json
+
+{
+  "pool_type": "limited",
+  "state": {
+    "six_star_pity": 50,
+    "five_star_pity": 3,
+    "total_pulls": 100,
+    "guaranteed_limited_pity": 50,
+    "has_received_guaranteed_limited": false
+  }
+}
+```
+
+**请求参数**:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| pool_type | string | 否 | 卡池类型，默认 `limited` |
+| state | object | 否 | 模拟器状态，不传则从头开始 |
+
+**状态对象 (state)**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| six_star_pity | int | 当前6星保底计数 |
+| five_star_pity | int | 当前5星保底计数 |
+| total_pulls | int | 总抽数 |
+| guaranteed_limited_pity | int | 硬保底计数（120/80抽） |
+| has_received_guaranteed_limited | bool | 是否已触发硬保底 |
+| six_star_count | int | 已获得6星数量 |
+| five_star_count | int | 已获得5星数量 |
+| up_six_star_count | int | 已获得UP 6星数量 |
+| free_ten_pulls_received | int | 已使用免费十连次数 |
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "result": {
+      "pull_number": 101,
+      "rarity": 6,
+      "is_up": true,
+      "is_limited": true,
+      "pity_when_pulled": 51
+    },
+    "state": {
+      "pool_type": "limited",
+      "six_star_pity": 0,
+      "five_star_pity": 0,
+      "total_pulls": 101,
+      "guaranteed_limited_pity": 0,
+      "has_received_guaranteed_limited": false,
+      "six_star_count": 1,
+      "five_star_count": 0,
+      "four_star_count": 0,
+      "up_six_star_count": 1
+    },
+    "stats": {
+      "total_pulls": 101,
+      "six_star_count": 1,
+      "six_star_rate": 0.99,
+      "up_rate": 100,
+      "avg_pulls_per_six_star": 101,
+      "current_pity": 0,
+      "expected_pulls": 62
+    },
+    "gifts": {
+      "gift_count": 0,
+      "free_ten_count": 3,
+      "has_info_book": true,
+      "next_gift_at": 240,
+      "next_free_ten_at": 120
+    }
+  }
+}
+```
+
+### 模拟十连
+
+```http
+POST /api/endfield/gacha/simulate/ten
+Content-Type: application/json
+
+{
+  "pool_type": "limited",
+  "state": { ... }
+}
+```
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "results": [
+      { "pull_number": 101, "rarity": 4, "is_up": false },
+      { "pull_number": 102, "rarity": 4, "is_up": false },
+      { "pull_number": 103, "rarity": 5, "is_up": false },
+      { "pull_number": 104, "rarity": 4, "is_up": false },
+      { "pull_number": 105, "rarity": 4, "is_up": false },
+      { "pull_number": 106, "rarity": 4, "is_up": false },
+      { "pull_number": 107, "rarity": 4, "is_up": false },
+      { "pull_number": 108, "rarity": 6, "is_up": true, "is_limited": true, "pity_when_pulled": 58 },
+      { "pull_number": 109, "rarity": 4, "is_up": false },
+      { "pull_number": 110, "rarity": 4, "is_up": false }
+    ],
+    "state": { ... },
+    "stats": { ... },
+    "gifts": { ... }
+  }
+}
+```
+
+### 模拟免费十连
+
+> 仅限定角色池支持。免费十连**不计入保底**，抽完后保底状态恢复到抽之前。
+
+```http
+POST /api/endfield/gacha/simulate/free-ten
+Content-Type: application/json
+
+{
+  "pool_type": "limited",
+  "state": {
+    "total_pulls": 60,
+    "free_ten_pulls_received": 1
+  }
+}
+```
+
+**限制条件**:
+- 仅限定角色池（`limited`）可用
+- 必须先达到免费十连门槛（每30抽送1次）
+- `free_ten_pulls_received` 必须小于已获得的免费十连次数
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "results": [
+      { "pull_number": 61, "rarity": 4, "is_free_pull": true },
+      ...
+    ],
+    "state": {
+      "total_pulls": 60,
+      "free_ten_pulls_received": 2,
+      "six_star_pity": 60
+    },
+    "is_free": true,
+    "message": "免费十连不计入保底"
+  }
+}
+```
+
+### 批量模拟（统计分析）
+
+用于大规模模拟统计，分析出货概率分布。
+
+```http
+POST /api/endfield/gacha/simulate/batch
+Content-Type: application/json
+
+{
+  "pool_type": "limited",
+  "iterations": 1000,
+  "pulls_per_iteration": 80
+}
+```
+
+**请求参数**:
+| 参数 | 类型 | 必填 | 默认值 | 最大值 | 说明 |
+|------|------|------|--------|--------|------|
+| pool_type | string | 否 | limited | - | 卡池类型 |
+| iterations | int | 否 | 1000 | 10000 | 模拟次数 |
+| pulls_per_iteration | int | 否 | 80 | 1000 | 每次模拟抽数 |
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "config": {
+      "pool_type": "limited",
+      "iterations": 1000,
+      "pulls_per_iteration": 80
+    },
+    "results": {
+      "avg_six_star_count": 1.23,
+      "avg_five_star_count": 6.45,
+      "avg_six_star_pity": 62.5,
+      "min_six_star_pity": 1,
+      "max_six_star_pity": 80,
+      "total_six_stars": 1230,
+      "total_five_stars": 6450
+    },
+    "distribution": [
+      { "pity": 1, "count": 8, "percent": 0.65 },
+      { "pity": 2, "count": 7, "percent": 0.57 },
+      ...
+      { "pity": 65, "count": 45, "percent": 3.66 },
+      { "pity": 66, "count": 62, "percent": 5.04 },
+      { "pity": 67, "count": 85, "percent": 6.91 },
+      ...
+      { "pity": 80, "count": 12, "percent": 0.98 }
+    ]
+  }
+}
+```
+
+### 赠送机制说明
+
+**限定角色池**:
+| 抽数 | 赠送 |
+|------|------|
+| 每30抽 | 免费十连（不计入保底） |
+| 60抽 | 寻访情报书（下个池可用） |
+| 每240抽 | 限定角色信物 |
+
+**武器池**:
+| 抽数 | 赠送 |
+|------|------|
+| 100抽 | 补充武库箱（常驻自选） |
+| 180抽 | 限定UP武器 |
+| 之后每80抽 | 交替赠送常驻/限定 |
+
+**常驻池**:
+| 抽数 | 赠送 |
+|------|------|
+| 300抽 | 自选6星角色（仅1次） |
+
+### 获取卡池角色分布
+
+> 获取各卡池中可获得的角色/武器列表，用于模拟抽卡时显示具体角色。数据从玩家抽卡记录聚合，封面图来自 Wiki。
+
+```http
+GET /api/endfield/gacha/pool-chars
+```
+
+**Query 参数**:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| pool_id | string | 否 | 卡池ID，如 `special_1_0_1` |
+| pool_type | string | 否 | 卡池类型：`limited`/`standard`/`beginner`/`weapon` |
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "pools": [
+      {
+        "pool_id": "special_1_0_1",
+        "pool_name": "熔火灼痕",
+        "pool_type": "limited",
+        "star6_chars": [
+          {
+            "char_id": "caster_25",
+            "name": "安卡",
+            "cover": "http://localhost:15618/api/proxy/image?url=https%3A%2F%2Fbbs.hycdn.cn%2F...",
+            "rarity": 6,
+            "is_up": true
+          },
+          {
+            "char_id": "vanguard_1",
+            "name": "常驻角色",
+            "cover": "http://localhost:15618/api/proxy/image?url=...",
+            "rarity": 6,
+            "is_up": false
+          }
+        ],
+        "star5_chars": [...],
+        "star4_chars": [...],
+        "up_chars": [
+          {
+            "id": "caster_25",
+            "name": "安卡",
+            "pic": "http://localhost:15618/api/proxy/image?url=...",
+            "rarity": "rarity_6",
+            "dot_type": "label_type_up"
+          }
+        ]
+      }
+    ],
+    "total": 5
+  }
+}
+```
+
+**字段说明**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| pool_id | string | 卡池ID |
+| pool_name | string | 卡池名称 |
+| pool_type | string | 卡池类型 |
+| star6_chars | array | 6星角色/武器列表 |
+| star5_chars | array | 5星角色/武器列表 |
+| star4_chars | array | 4星角色/武器列表 |
+| up_chars | array | 原始UP角色信息（来自森空岛Wiki） |
+
+**角色信息 (PoolCharInfo)**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| char_id | string | 角色/武器ID |
+| name | string | 名称 |
+| cover | string | 封面图（代理URL） |
+| rarity | int | 稀有度 4/5/6 |
+| is_up | bool | 是否为UP角色 |
+
+> **注意**: 封面图 URL 已转换为代理地址，可直接使用。数据每 24 小时自动聚合更新。
 
 ---
 
@@ -3638,6 +4124,54 @@ const callWithAPIKey = async (apiKey, endpoint) => {
 ---
 
 ## 更新日志
+
+### v1.9.4 (2026-02-01)
+
+- ✅ **Wiki 攻略数据结构支持**
+  - 支持 typeMainId=2（游戏攻略辑）的完整数据结构
+  - 新增 `chapter_group` 字段：章节组定义
+  - 新增 `widget_common_map` 字段：攻略 tab 切换组件
+    - `tab_list`：多个作者的攻略列表
+    - `tab_data_map`：每个 tab 对应的文档内容（引用 `document_map`）
+  - 新增 `extra_info` 字段：额外展示信息
+  - 干员攻略（typeSubId=11）支持多作者内容切换
+
+### v1.9.5 (2026-02-01)
+
+- ✅ **新增卡池角色分布 API**
+  - `GET /api/endfield/gacha/pool-chars` - 获取卡池可获得角色列表
+  - 数据从玩家抽卡记录自动聚合（服务启动时 + 每 24 小时）
+  - 角色封面图从 Wiki 数据关联，自动转换为代理 URL
+  - 支持干员和武器两种类型
+  - 前端模拟抽卡可显示具体角色图片和名称
+
+- ✅ **数据模型扩展**
+  - `WikiCharPool` 新增 `pool_type`、`star6_chars`、`star5_chars`、`star4_chars` 字段
+  - 新增 `PoolCharInfo` 结构体（char_id、name、cover、rarity、is_up）
+
+### v1.9.4 (2026-02-01)
+
+- ✅ **API 文档版本号修复**
+
+### v1.9.3 (2026-02-01)
+
+- ✅ **新增模拟抽卡 API**
+  - `GET /api/endfield/gacha/simulate/rules` - 获取卡池规则
+  - `POST /api/endfield/gacha/simulate/single` - 模拟单抽
+  - `POST /api/endfield/gacha/simulate/ten` - 模拟十连
+  - `POST /api/endfield/gacha/simulate/free-ten` - 模拟免费十连（不计入保底）
+  - `POST /api/endfield/gacha/simulate/batch` - 批量模拟（统计分析）
+  - 支持三种卡池类型：限定角色池、武器池、常驻池
+  - 完整实现软保底、硬保底、50/50机制
+  - 支持赠送机制检测（信物、情报书、自选等）
+
+### v1.9.2 (2026-01-31)
+
+- ✅ **Wiki 条目详情同步**
+  - 新增 `/web/v1/wiki/item/info?id=` 接口调用
+  - 同步时获取每个条目的完整详情内容（content 字段）
+  - 支持图片、表格、视频、嵌套内容等富文本结构
+  - 速率限制：每个请求间隔 100ms，避免请求过快
 
 ### v1.9.1 (2026-01-31)
 

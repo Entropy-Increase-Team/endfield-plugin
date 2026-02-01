@@ -94,4 +94,43 @@ export default class EndfieldRequest {
     res.api = type
     return res
   }
+
+  /**
+   * Wiki 百科 API 请求（仅需 api_key，无需 framework_token）
+   * @param {string} type - wiki_search | wiki_item_detail
+   * @param {object} data - q/main_type_id/sub_type_id/page/page_size 或 id
+   */
+  async getWikiData(type, data = {}) {
+    const urlMap = this.endfieldApi.getWikiUrlMap(data)[type]
+    if (!urlMap) {
+      logger.error(`[终末地插件][Wiki] 未知类型: ${type}`)
+      return false
+    }
+    if (!this.commonConfig.api_key || String(this.commonConfig.api_key).trim() === '') {
+      logger.error(`[终末地插件][Wiki] 未配置 api_key`)
+      return false
+    }
+    let url = urlMap.url
+    if (urlMap.query) {
+      url += `?${urlMap.query}`
+    }
+    const headers = {
+      'X-API-Key': this.commonConfig.api_key,
+      'Content-Type': 'application/json'
+    }
+    try {
+      const response = await fetch(url, { headers, method: 'get', timeout: 25000 })
+      if (!response.ok) {
+        logger.error(`[终末地插件][Wiki][${type}] ${response.status} ${response.statusText}`)
+        return false
+      }
+      const res = await response.json()
+      if (!res) return false
+      res.api = type
+      return res
+    } catch (error) {
+      logger.error(`[终末地插件][Wiki][${type}] fetch error: ${error.toString()}`)
+      return false
+    }
+  }
 }
