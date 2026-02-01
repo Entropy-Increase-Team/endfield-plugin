@@ -9,7 +9,11 @@
   --content-bottom-gap: 40px;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+}
 
 body {
   width: 1000px;
@@ -22,14 +26,20 @@ body {
 
 .bg-layer {
   position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
+  top: 0; 
+  left: 0; 
+  width: 100%; 
+  height: 100%;
   z-index: 0;
   background: #f3f4f6;
 }
 
 .grid-deco {
   position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
+  top: 0; 
+  left: 0; 
+  width: 100%; 
+  height: 100%;
   background-image: 
     repeating-linear-gradient(45deg, rgba(0,0,0,0.02) 0px, rgba(0,0,0,0.02) 1px, transparent 1px, transparent 10px),
     linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
@@ -50,14 +60,20 @@ body {
 
 .overlay-gradient {
   position: absolute;
-  bottom: 0; left: 0; width: 100%; height: 65%;
+  bottom: 0; 
+  left: 0; 
+  width: 100%; 
+  height: 65%;
   background: linear-gradient(to top, #f1f5f9 15%, rgba(241, 245, 249, 0.92) 55%, transparent 100%);
   z-index: 3;
 }
 
 .ui-layer {
   position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
+  top: 0; 
+  left: 0; 
+  width: 100%; 
+  height: 100%;
   z-index: 10;
   padding: 50px;
   padding-bottom: 80px;
@@ -66,6 +82,7 @@ body {
   justify-content: flex-end;
 }
 
+/* 头部区域 */
 .header {
   position: relative;
   z-index: 20;
@@ -75,7 +92,6 @@ body {
   align-items: stretch;
 }
 
-/* 共有卡片样式 */
 .header-main-card,
 .header-level-card {
   background: rgba(0, 0, 0, 0.45);
@@ -101,7 +117,6 @@ body {
   align-items: flex-start;
 }
 
-/* 左侧卡片头部 */
 .header-top-info {
   display: flex;
   align-items: center;
@@ -166,7 +181,6 @@ body {
   margin-right: -2px;
 }
 
-/* 矩形大标签网格 */
 .header-tags-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -199,7 +213,6 @@ body {
   object-fit: contain;
 }
 
-/* 右侧卡片内容 */
 .level-display {
   display: flex;
   align-items: baseline;
@@ -242,6 +255,7 @@ body {
   filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
 }
 
+/* 内容面板 */
 .content-panel {
   position: relative;
   width: 900px;
@@ -251,7 +265,6 @@ body {
   z-index: 10;
 }
 
-/* 技能与武器同行布局 */
 .skills-weapon-row {
   display: flex;
   gap: 25px;
@@ -267,7 +280,6 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
-/* 武器区：与技能卡片一致的白底卡片 */
 .weapon-section {
   width: 380px;
   flex-shrink: 0;
@@ -278,8 +290,17 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
+.equip-section {
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #eee;
+  padding: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
 .skills-section .section-title,
-.weapon-section .section-title {
+.weapon-section .section-title,
+.equip-section .section-title {
   margin-top: 0;
 }
 
@@ -304,6 +325,7 @@ body {
   letter-spacing: 1px;
 }
 
+/* 技能区域 */
 .skills-row {
   display: flex;
   gap: 20px;
@@ -319,20 +341,18 @@ body {
   overflow: visible;
 }
 
-/* 技能区：浅色风格 */
-/* 技能图标：浅灰圆底提升对比度，图标更清晰 */
 .skill-icon {
   width: 85px;
   height: 85px;
   border-radius: 50%;
-  background: #e5e7eb !important;
-  border: 1px solid #d1d5db !important;
+  background: #e5e7eb;
+  border: 1px solid #d1d5db;
   padding: 6px;
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .skill-img {
@@ -342,158 +362,6 @@ body {
   filter: brightness(0.95) contrast(1.2) drop-shadow(0 1px 2px rgba(0,0,0,0.2));
 }
 
-.skill-rank {
-  position: absolute;
-  bottom: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #1a1a1a;
-  color: #fff;
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 700;
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 10px;
-  white-space: nowrap;
-  border: none;
-}
-
-.skill-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-top: 14px;
-  text-align: center;
-  max-width: 90px;
-  line-height: 1.3;
-}
-
-/* 武器与装备卡片：白底清晰版式 */
-.weapon-card, .equip-card {
-  background: #fff !important;
-  border-radius: 6px;
-  border: 1px solid #eee !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
-  padding: 20px !important;
-  display: flex !important;
-  flex-direction: row !important;
-  justify-content: space-between !important;
-  align-items: stretch !important;
-  overflow: visible;
-  position: relative;
-}
-
-/* 武器卡片单独：不固定高度，保证武器图完整展示 */
-.weapon-card {
-  min-height: 140px;
-  height: auto !important;
-  align-items: center !important;
-}
-
-.weapon-card .weapon-img-wrap {
-  flex: 1;
-  min-width: 180px;
-  max-width: 55%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  overflow: visible;
-}
-
-.weapon-card .weapon-img {
-  max-height: 160px;
-  max-width: 100%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  object-position: right center;
-}
-
-.weapon-info, .equip-info-wrap {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
-  z-index: 2;
-}
-
-.weapon-level, .equip-level {
-  font-family: 'Oswald', sans-serif;
-  font-size: 40px !important;
-  font-weight: 700 !important;
-  color: #1a1a1a !important;
-  line-height: 1;
-}
-
-.weapon-level small, .equip-level span {
-  font-size: 14px;
-  color: #999;
-  margin-left: 6px;
-  font-weight: 500;
-}
-
-.weapon-name-text, .equip-name {
-  font-size: 18px !important;
-  font-weight: 700 !important;
-  color: #1a1a1a !important;
-  border-left: 4px solid var(--c-accent);
-  padding-left: 10px;
-  margin-top: 10px;
-}
-
-.equip-img-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  z-index: 1;
-}
-
-.equip-icon {
-  max-height: 120px;
-  width: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 8px 15px rgba(0,0,0,0.15));
-}
-
-.potential-row-mini {
-  display: flex;
-  gap: 3px;
-  margin: 8px 0;
-}
-
-.potential-dot-mini {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-  opacity: 0.2;
-}
-
-.potential-dot-mini.filled {
-  opacity: 1;
-}
-
-/* 装备星级显示 */
-/* 装备星级：直接使用 star.png，不做 clip-path 或背景 */
-.equip-stars-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin: 6px 0;
-}
-
-.equip-star-tiny {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-  display: block;
-}
-
-.skill-icon .empty-label {
-  font-size: 28px;
-  color: #9ca3af;
-}
-
-/* RANK 标签：保证完整显示不裁切，字号与内边距适中 */
 .skill-rank {
   position: absolute;
   bottom: -12px;
@@ -512,7 +380,6 @@ body {
   box-shadow: 0 1px 4px rgba(0,0,0,0.2);
 }
 
-/* 技能名称：加大字号、加粗、锐化，提升可读性 */
 .skill-name {
   font-size: 18px;
   font-weight: 600;
@@ -524,14 +391,61 @@ body {
   line-height: 1.35;
 }
 
-.weapon-row { width: 100%; }
-
-.weapon-card.empty {
-  background: #f5f5f5 !important;
-  border: 1px dashed #ddd !important;
+.skill-icon .empty-label {
+  font-size: 28px;
+  color: #9ca3af;
 }
 
-.weapon-card.empty .weapon-info { color: #6b7280; }
+/* 武器区域 - 使用更具体的选择器避免冲突 */
+.weapon-section .weapon-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  min-height: 120px;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  overflow: visible;
+}
+
+.weapon-section .weapon-card .weapon-img-wrap {
+  flex: 1;
+  min-width: 180px;
+  max-width: 55%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: visible;
+  width: auto !important;
+  height: auto !important;
+  margin-left: 0 !important;
+}
+
+.weapon-section .weapon-card .weapon-img {
+  max-height: 160px;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: right center;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.12));
+}
+
+.weapon-row { 
+  width: 100%; 
+}
+
+.weapon-section .weapon-card.empty {
+  background: transparent;
+  border: none;
+}
+
+.weapon-section .weapon-card.empty .weapon-info { 
+  color: #6b7280; 
+}
 
 .weapon-info {
   display: flex;
@@ -539,6 +453,8 @@ body {
   z-index: 2;
   color: #1a1a1a;
   min-width: 0;
+  padding-right: 0 !important;
+  height: auto !important;
 }
 
 .weapon-level {
@@ -578,7 +494,126 @@ body {
   clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
 }
 
-/* 装备栅格布局调整 */
+/* ... 前面的CSS保持不变 ... */
+
+/* 武器区域 - 使用更具体的选择器避免冲突 */
+.weapon-section .weapon-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  min-height: 120px;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  overflow: visible;
+}
+
+.weapon-section .weapon-card .weapon-img-wrap {
+  flex: 1;
+  min-width: 180px;
+  max-width: 55%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: visible;
+  width: auto !important;
+  height: auto !important;
+  margin-left: 0 !important;
+}
+
+.weapon-section .weapon-card .weapon-img {
+  max-height: 160px;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: right center;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.12));
+}
+
+.weapon-row { 
+  width: 100%; 
+}
+
+.weapon-section .weapon-card.empty {
+  background: transparent;
+  border: none;
+}
+
+.weapon-section .weapon-card.empty .weapon-info { 
+  color: #6b7280; 
+}
+
+.weapon-info {
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+  color: #1a1a1a;
+  min-width: 0;
+  padding-right: 0 !important;
+  height: auto !important;
+}
+
+.weapon-level {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 36px;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.weapon-level small {
+  font-size: 20px;
+  margin-left: 5px;
+  font-weight: 500;
+  color: #555;
+  letter-spacing: 0;
+}
+
+.weapon-name-text {
+  font-family: 'Source Han Sans CN', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  margin-top: 2px;
+}
+
+/* 武器潜能点 - 添加更具体的选择器 */
+.weapon-section .potential-row-mini {
+  display: flex;
+  gap: 3px;
+  margin: 10px 0 !important;
+}
+
+.weapon-section .potential-dot-mini {
+  width: 20px !important;
+  height: 20px !important;
+  object-fit: contain;
+  opacity: 0.2;
+}
+
+.weapon-section .potential-dot-mini.filled {
+  opacity: 1;
+  filter: brightness(1.1);
+}
+
+.weapon-stars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.weapon-star {
+  width: 14px;
+  height: 14px;
+  background: #ccc;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+/* ============== 装备区域重新设计 ============== */
 .equip-grid {
   display: grid;
   grid-template-columns: 300px 1fr;
@@ -597,65 +632,216 @@ body {
   gap: 12px;
 }
 
+/* 装备卡片基础样式 */
 .equip-card {
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  position: relative;
+  overflow: hidden;
   min-height: 120px;
-  padding: 16px !important;
+  padding: 16px;
 }
 
+/* 大尺寸装备卡片（身体装备）保持不变 */
 .equip-card.big {
   height: 100%;
   min-height: 280px;
-  flex-direction: column !important;
-  justify-content: space-between !important;
-  align-items: flex-start !important;
-  padding: 20px !important;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 20px;
+  position: relative;
 }
 
-/* 战术道具：白底 */
+/* 小装备卡片名称行 */
+.equip-name-row {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+/* 小装备卡片内容行（等级/星级 + 图片） */
+.equip-content-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  width: 100%;
+  flex: 1;
+}
+
+/* 装备名称 */
+.equip-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.3;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+/* 大卡片的名称字号调整 */
+.equip-card.big .equip-name {
+  font-size: 20px;
+  margin-bottom: 10px;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* 小卡片装备信息区域 */
+.equip-card .equip-info-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+  padding-right: 10px;
+  height: auto;
+  z-index: 2;
+}
+
+/* 装备等级 */
+.equip-level {
+  font-family: 'Oswald', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1;
+  margin: 0 0 6px 0;
+}
+
+.equip-level span {
+  font-size: 12px;
+  color: #999;
+  margin-left: 4px;
+  font-weight: 500;
+}
+
+/* 大卡片的等级字号调整 */
+.equip-card.big .equip-level {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.equip-card.big .equip-level span {
+  font-size: 14px;
+}
+
+/* 装备星级显示 */
+.equip-stars-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  width: 100%;
+}
+
+.equip-star-tiny {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+  filter: brightness(0.9);
+}
+
+/* 大卡片的星级大小调整 */
+.equip-card.big .equip-star-tiny {
+  width: 24px;
+  height: 24px;
+}
+
+/* 装备图片区域 */
+.equip-card .equip-img-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  z-index: 1;
+  width: 100px;
+  flex-shrink: 0;
+  height: 70px;
+  margin-left: 10px;
+}
+
+.equip-card .equip-icon {
+  max-height: 70px;
+  max-width: 100px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+}
+
+/* 大卡片的图片区域 */
+.equip-card.big .equip-img-wrap {
+  justify-content: center;
+  width: 100%;
+  flex: 1;
+  margin: 10px 0;
+  position: relative;
+  min-height: 140px;
+  height: auto;
+}
+
+.equip-card.big .equip-icon {
+  max-height: 140px;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.12));
+}
+
+/* 战术道具卡片 */
 .equip-card.tactical {
-  background: #fff !important;
-  border: 1px solid #eee !important;
+  background: #fff;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.tactical-tag {
+/* 战术道具标签 */
+.equip-card.tactical .tactical-tag {
   font-size: 11px;
   color: #fff;
   background: var(--c-accent);
   padding: 2px 8px;
   border-radius: 3px;
-  margin-bottom: 6px;
+  margin: 0;
   display: inline-block;
   font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
-.equip-img-wrap {
-  width: 100%;
+/* 装备潜力点 - 仅用于装备卡片 */
+.equip-card .potential-row-mini {
   display: flex;
-  justify-content: flex-end;
+  gap: 3px;
+  margin: 10px 0;
 }
 
-.equip-card.big .equip-img-wrap {
-  justify-content: center;
-  flex: 1;
-  width: 100%;
-  position: relative;
+.equip-card .potential-dot-mini {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  opacity: 0.2;
 }
 
-.equip-card.big .equip-icon {
-  max-height: 180px;
-  max-width: 100%;
+.equip-card .potential-dot-mini.filled {
+  opacity: 1;
+  filter: brightness(1.1);
 }
 
-.equip-card.big .equip-stars-row {
-  position: absolute;
-  bottom: 50px;
-  left: 0;
-}
-
-.equip-card.big .equip-name {
-  margin-top: 0;
-}
-
+/* 空装备槽位 */
 .empty-slot {
   background: #f9fafb;
   border: 1px dashed #d1d5db;
@@ -665,13 +851,11 @@ body {
   justify-content: center;
   height: 100%;
   width: 100%;
+  min-height: 120px;
 }
 
-.empty-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #9ca3af;
-  letter-spacing: 2px;
+.equip-card.big.empty-slot {
+  min-height: 280px;
 }
 
 .empty-label {

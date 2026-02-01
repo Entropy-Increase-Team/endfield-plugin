@@ -4,12 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{name}} - 终末地干员</title>
-  <style>
-    body,#container{background:#f1f5f9;color:#1f2937;}
-    body{width:1000px;min-height:1750px;margin:0;padding:0;}
-    #container{position:relative;width:100%;min-height:1750px;overflow:visible;}
-  </style>
   <link rel="stylesheet" href="{{pluResPath}}operator/operator.css">
+  <style>
+    body, #container {
+      background: #f1f5f9;
+      color: #1f2937;
+    }
+    body {
+      width: 1000px;
+      min-height: 1750px;
+      margin: 0;
+      padding: 0;
+    }
+    #container {
+      position: relative;
+      width: 100%;
+      min-height: 1750px;
+      overflow: visible;
+    }
+  </style>
 </head>
 <body>
   <div id="container" class="container">
@@ -112,87 +125,106 @@
           </div>
         </div>
 
-        <div>
+        <div class="equip-section">
           <div class="section-title">装备 <span>EQUIPMENT</span></div>
           <div class="equip-grid">
             <div class="equip-left">
               {{if bodyEquip}}
               <div class="equip-card big">
+                <div class="equip-name">{{bodyEquip.name}}</div>
                 <div class="equip-level">{{bodyEquip.level}}<span>LEVEL</span></div>
-                <div class="equip-img-wrap">
-                  <img src="{{bodyEquip.iconUrl}}" alt="{{bodyEquip.name}}" class="equip-icon">
-                </div>
                 <div class="equip-stars-row">
                   {{each bodyEquip.stars}}<img src="{{pluResPath}}meta/potential/star.png" alt="" class="equip-star-tiny">{{/each}}
                 </div>
-                <div class="equip-name">{{bodyEquip.name}}</div>
+                <div class="equip-img-wrap">
+                  <img src="{{bodyEquip.iconUrl}}" alt="{{bodyEquip.name}}" class="equip-icon">
+                </div>
               </div>
               {{else}}
-              <div class="empty-slot"><div class="empty-label">EMPTY</div></div>
+              <div class="empty-slot equip-card big"><div class="empty-label">EMPTY</div></div>
               {{/if}}
             </div>
 
             <div class="equip-right">
               {{if armEquip}}
               <div class="equip-card">
-                <div class="equip-info-wrap">
-                  <div class="equip-level">{{armEquip.level}}<span>LEVEL</span></div>
-                  <div class="equip-stars-row">
-                    {{each armEquip.stars}}<img src="{{pluResPath}}meta/potential/star.png" alt="" class="equip-star-tiny">{{/each}}
-                  </div>
+                <div class="equip-name-row">
                   <div class="equip-name">{{armEquip.name}}</div>
                 </div>
-                <div class="equip-img-wrap">
-                  <img src="{{armEquip.iconUrl}}" alt="{{armEquip.name}}" class="equip-icon">
+                <div class="equip-content-row">
+                  <div class="equip-info-wrap">
+                    <div class="equip-level">{{armEquip.level}}<span>LEVEL</span></div>
+                    <div class="equip-stars-row">
+                      {{each armEquip.stars}}<img src="{{pluResPath}}meta/potential/star.png" alt="" class="equip-star-tiny">{{/each}}
+                    </div>
+                  </div>
+                  <div class="equip-img-wrap">
+                    <img src="{{armEquip.iconUrl}}" alt="{{armEquip.name}}" class="equip-icon">
+                  </div>
                 </div>
               </div>
               {{else}}
-              <div class="equip-card"><div class="empty-label">EMPTY</div></div>
+              <div class="equip-card empty-slot"><div class="empty-label">EMPTY</div></div>
               {{/if}}
+              
               {{if firstAccessory}}
               <div class="equip-card">
-                <div class="equip-info-wrap">
-                  <div class="equip-level">{{firstAccessory.level}}<span>LEVEL</span></div>
-                  <div class="equip-stars-row">
-                    {{each firstAccessory.stars}}<img src="{{pluResPath}}meta/potential/star.png" alt="" class="equip-star-tiny">{{/each}}
-                  </div>
+                <div class="equip-name-row">
                   <div class="equip-name">{{firstAccessory.name}}</div>
                 </div>
-                <div class="equip-img-wrap">
-                  <img src="{{firstAccessory.iconUrl}}" alt="{{firstAccessory.name}}" class="equip-icon">
+                <div class="equip-content-row">
+                  <div class="equip-info-wrap">
+                    <div class="equip-level">{{firstAccessory.level}}<span>LEVEL</span></div>
+                    <div class="equip-stars-row">
+                      {{each firstAccessory.stars}}<img src="{{pluResPath}}meta/potential/star.png" alt="" class="equip-star-tiny">{{/each}}
+                    </div>
+                  </div>
+                  <div class="equip-img-wrap">
+                    <img src="{{firstAccessory.iconUrl}}" alt="{{firstAccessory.name}}" class="equip-icon">
+                  </div>
                 </div>
               </div>
               {{else}}
-              <div class="equip-card"><div class="empty-label">EMPTY</div></div>
+              <div class="equip-card empty-slot"><div class="empty-label">EMPTY</div></div>
               {{/if}}
+              
               {{if secondAccessory}}
               <div class="equip-card">
-                <div class="equip-info-wrap">
-                  <div class="equip-level">{{secondAccessory.level}}<span>LEVEL</span></div>
-                  <div class="equip-stars-row">
-                    {{each secondAccessory.stars}}<img src="{{pluResPath}}meta/potential/star.png" alt="" class="equip-star-tiny">{{/each}}
-                  </div>
+                <div class="equip-name-row">
                   <div class="equip-name">{{secondAccessory.name}}</div>
                 </div>
-                <div class="equip-img-wrap">
-                  <img src="{{secondAccessory.iconUrl}}" alt="{{secondAccessory.name}}" class="equip-icon">
+                <div class="equip-content-row">
+                  <div class="equip-info-wrap">
+                    <div class="equip-level">{{secondAccessory.level}}<span>LEVEL</span></div>
+                    <div class="equip-stars-row">
+                      {{each secondAccessory.stars}}<img src="{{pluResPath}}meta/potential/star.png" alt="" class="equip-star-tiny">{{/each}}
+                    </div>
+                  </div>
+                  <div class="equip-img-wrap">
+                    <img src="{{secondAccessory.iconUrl}}" alt="{{secondAccessory.name}}" class="equip-icon">
+                  </div>
                 </div>
               </div>
               {{else}}
-              <div class="equip-card"><div class="empty-label">EMPTY</div></div>
+              <div class="equip-card empty-slot"><div class="empty-label">EMPTY</div></div>
               {{/if}}
+              
               {{if tacticalItem}}
               <div class="equip-card tactical">
-                <div class="equip-info-wrap">
-                  <span class="tactical-tag">战术物品</span>
+                <div class="equip-name-row">
                   <div class="equip-name">{{tacticalItem.name}}</div>
                 </div>
-                <div class="equip-img-wrap">
-                  <img src="{{tacticalItem.iconUrl}}" alt="{{tacticalItem.name}}" class="equip-icon">
+                <div class="equip-content-row">
+                  <div class="equip-info-wrap">
+                    <span class="tactical-tag">战术物品</span>
+                  </div>
+                  <div class="equip-img-wrap">
+                    <img src="{{tacticalItem.iconUrl}}" alt="{{tacticalItem.name}}" class="equip-icon">
+                  </div>
                 </div>
               </div>
               {{else}}
-              <div class="equip-card"><div class="empty-label">EMPTY</div></div>
+              <div class="equip-card empty-slot"><div class="empty-label">EMPTY</div></div>
               {{/if}}
             </div>
           </div>
