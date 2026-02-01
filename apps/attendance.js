@@ -72,40 +72,46 @@ export class EndfieldAttendance extends plugin {
 
   /**
    * 向 sign.yaml 中 notify_list 配置的目标推送消息
-   * 仅支持 friend:QQ号（私聊）、group:群号（群聊）
+   * notify_list: { friend: [QQ号], group: [群号] }
    * @param {string} msg 要发送的文本
    */
   async sendNotifyList(msg) {
-    const list = this.setting?.notify_list
-    if (!Array.isArray(list) || list.length === 0) return
-    for (const raw of list) {
-      try {
+    const cfg = this.setting?.notify_list
+    if (!cfg) return
+    // 兼容旧版数组格式
+    let friendIds = []
+    let groupIds = []
+    if (Array.isArray(cfg)) {
+      for (const raw of cfg) {
         const str = String(raw).trim()
-        if (!str) continue
         const lower = str.toLowerCase()
-        let type = null
-        let id = ''
-        if (lower.startsWith('group:')) {
-          type = 'group'
-          id = str.slice(6).trim()
-        } else if (lower.startsWith('friend:')) {
-          type = 'friend'
-          id = str.slice(7).trim()
-        }
-        if (!type || !id) continue
-        if (type === 'group') {
-          if (Bot?.pickGroup) {
-            await Bot.pickGroup(id).sendMsg(msg)
-          }
-        } else {
-          if (Bot?.pickUser) {
-            await Bot.pickUser(id).sendMsg(msg)
-          } else if (Bot?.sendPrivateMsg) {
-            await Bot.sendPrivateMsg(id, msg)
-          }
+        if (lower.startsWith('group:')) groupIds.push(str.slice(6).trim())
+        else if (lower.startsWith('friend:')) friendIds.push(str.slice(7).trim())
+      }
+    } else {
+      friendIds = Array.isArray(cfg.friend) ? cfg.friend : []
+      groupIds = Array.isArray(cfg.group) ? cfg.group : []
+    }
+    for (const id of friendIds) {
+      if (!id) continue
+      try {
+        if (Bot?.pickUser) {
+          await Bot.pickUser(id).sendMsg(msg)
+        } else if (Bot?.sendPrivateMsg) {
+          await Bot.sendPrivateMsg(id, msg)
         }
       } catch (e) {
-        logger.error(`[终末地插件][签到任务]通知 ${raw} 失败: ${e?.message || e}`)
+        logger.error(`[终末地插件][签到任务]通知好友 ${id} 失败: ${e?.message || e}`)
+      }
+    }
+    for (const id of groupIds) {
+      if (!id) continue
+      try {
+        if (Bot?.pickGroup) {
+          await Bot.pickGroup(id).sendMsg(msg)
+        }
+      } catch (e) {
+        logger.error(`[终末地插件][签到任务]通知群 ${id} 失败: ${e?.message || e}`)
       }
     }
   }

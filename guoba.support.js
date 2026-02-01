@@ -11,6 +11,19 @@ const __dirname = path.dirname(__filename)
 const pluginRoot = path.join(_path, 'plugins', 'endfield-plugin')
 
 export function supportGuoba() {
+  // 群列表供签到通知群聊选择
+  const groupList = (() => {
+    try {
+      if (global.Bot?.gl) {
+        return Array.from(Bot.gl.values()).map((item) => ({
+          label: `${item.group_name || item.group_id}-${item.group_id}`,
+          value: String(item.group_id)
+        }))
+      }
+    } catch (e) {}
+    return []
+  })()
+
   return {
     pluginInfo: {
       name: 'endfield-plugin',
@@ -162,12 +175,25 @@ export function supportGuoba() {
           component: 'EasyCron',
         },
         {
-          field: 'sign.notify_list',
-          label: '签到通知推送列表',
-          bottomHelpMessage: '签到任务开始/完成消息推送目标。每行一个：friend:QQ号（私聊）、group:群号（群聊）',
+          field: 'sign.notify_list.friend',
+          label: '好友通知列表',
+          bottomHelpMessage: '签到任务开始/完成时，向以下QQ号发送私聊通知',
           component: 'GTags',
           componentProps: {
-            placeholder: 'friend:QQ号 或 group:群号，回车添加',
+            placeholder: '请输入QQ号后回车添加',
+          },
+        },
+        {
+          field: 'sign.notify_list.group',
+          label: '群聊通知列表',
+          bottomHelpMessage: '签到任务开始/完成消息推送至这些群；也可在群里使用 #终末地全部签到 触发任务',
+          component: 'Select',
+          componentProps: {
+            allowAdd: true,
+            allowDel: true,
+            mode: 'multiple',
+            options: groupList,
+            placeholder: '选择要推送的群',
           },
         },
         {
@@ -1168,10 +1194,24 @@ export function supportGuoba() {
           {
             auto_sign: true,
             auto_sign_cron: '0 0 1 * * ?',
-            notify_list: [],
+            notify_list: { friend: [], group: [] },
           },
           signConfig
         )
+        // 兼容旧版 notify_list 为数组格式
+        if (Array.isArray(sign.notify_list)) {
+          const friend = []
+          const group = []
+          for (const raw of sign.notify_list) {
+            const str = String(raw).trim()
+            const lower = str.toLowerCase()
+            if (lower.startsWith('group:')) group.push(str.slice(6).trim())
+            else if (lower.startsWith('friend:')) friend.push(str.slice(7).trim())
+          }
+          sign.notify_list = { friend, group }
+        }
+        if (!sign.notify_list?.friend) sign.notify_list = { ...sign.notify_list, friend: [] }
+        if (!sign.notify_list?.group) sign.notify_list = { ...sign.notify_list, group: [] }
         
         // 将嵌套对象展开为扁平字段名，以匹配 schemas 中的字段名格式
         const result = { ...common }
@@ -1181,9 +1221,14 @@ export function supportGuoba() {
           result[`ai.${key}`] = ai[key]
         }
         
-        // 展开 sign 配置
+        // 展开 sign 配置（notify_list 单独展开 friend/group）
         for (const key in sign) {
-          result[`sign.${key}`] = sign[key]
+          if (key === 'notify_list') {
+            result['sign.notify_list.friend'] = sign.notify_list.friend || []
+            result['sign.notify_list.group'] = sign.notify_list.group || []
+          } else {
+            result[`sign.${key}`] = sign[key]
+          }
         }
         
         // 将 message 配置的嵌套结构展开为扁平字段名（如 wiki.provide_operator）
@@ -1251,7 +1296,8 @@ export function supportGuoba() {
             } else if (key.startsWith('ai.')) {
               aiData[key.replace('ai.', '')] = data[key]
             } else if (key.startsWith('sign.')) {
-              signData[key.replace('sign.', '')] = data[key]
+              // 使用 lodash.set 支持嵌套键（如 sign.notify_list.friend）
+              lodash.set(signData, key.replace('sign.', ''), data[key])
             } else if (messageFields.has(key)) {
               messageData[key] = data[key]
             }
@@ -1277,10 +1323,13 @@ export function supportGuoba() {
             }
           }
           
-          // 保存 sign 配置
+          // 保存 sign 配置（notify_list 整体替换，避免 lodash.merge 按索引合并数组导致删除项仍存在）
           if (Object.keys(signData).length > 0) {
             const currentSignConfig = setting.getConfig('sign') || {}
             const mergedSignConfig = lodash.merge({}, currentSignConfig, signData)
+            if (signData.notify_list && typeof signData.notify_list === 'object') {
+              mergedSignConfig.notify_list = signData.notify_list
+            }
             const result = setting.setConfig('sign', mergedSignConfig)
             if (result === false) {
               return Result.error('sign 配置保存失败，请检查文件权限')
