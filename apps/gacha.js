@@ -7,6 +7,23 @@ import common from '../../../lib/common/common.js'
 const GACHA_PENDING_KEY = (userId) => `ENDFIELD:GACHA_PENDING:${userId}`
 const POLL_INTERVAL_MS = 1500
 const POLL_TIMEOUT_MS = 120000
+
+/** 卡池唯一配置：抽卡记录分类与全服统计共用；用户输入按 label 模糊匹配（含“常驻”“新手池”等） */
+const GACHA_POOLS = [
+  { key: 'standard', label: '常驻角色' },
+  { key: 'beginner', label: '新手池' },
+  { key: 'weapon', label: '武器池' },
+  { key: 'limited', label: '限定角色' }
+]
+const GACHA_POOL_BY_INPUT = (str) => {
+  if (!str || typeof str !== 'string') return null
+  const s = str.trim()
+  if (s.length < 2) return null
+  const exact = GACHA_POOLS.find((p) => p.label === s)
+  if (exact) return { key: exact.key, label: exact.label }
+  const prefix = GACHA_POOLS.find((p) => p.label.startsWith(s) || s.startsWith(p.label))
+  return prefix ? { key: prefix.key, label: prefix.label } : null
+}
 export class EndfieldGacha extends plugin {
   constructor() {
     super({
@@ -20,7 +37,7 @@ export class EndfieldGacha extends plugin {
           fnc: 'syncGacha'
         },
         {
-          reg: `^${rulePrefix}抽卡记录(?:\\s+(\\d+))?$`,
+          reg: `^${rulePrefix}抽卡记录(?:\\s+(.+))?$`,
           fnc: 'viewGachaRecords'
         },
         {
@@ -35,18 +52,36 @@ export class EndfieldGacha extends plugin {
     })
   }
 
-  /** 查看抽卡记录：统计 + 最近 N 条记录，可选页码（群聊/私聊均可） */
+  /** 查看抽卡记录：支持分类（常驻/新手/武器/限定）与页码，如 :抽卡记录 常驻、:抽卡记录 限定 2 */
   async viewGachaRecords() {
     const sklUser = new EndfieldUser(this.e.user_id)
     if (!(await sklUser.getUser())) {
       await this.reply(getUnbindMessage())
       return true
     }
-    const pageStr = (this.e.msg || '').replace(/.*抽卡记录\s*/, '').trim()
-    const page = (pageStr && parseInt(pageStr, 10)) ? parseInt(pageStr, 10) : 1
+    const argStr = (this.e.msg || '').replace(/.*抽卡记录\s*/, '').trim()
+    const parts = argStr ? argStr.split(/\s+/).filter(Boolean) : []
+    let page = 1
+    let pool = null
+    for (const p of parts) {
+      const num = parseInt(p, 10)
+      if (Number.isFinite(num) && String(num) === p) {
+        page = num
+        break
+      }
+      pool = GACHA_POOL_BY_INPUT(p)
+      if (pool) break
+    }
+    if (parts.length >= 2 && pool && Number.isFinite(parseInt(parts[1], 10))) {
+      page = parseInt(parts[1], 10)
+    } else if (parts.length === 1 && Number.isFinite(parseInt(parts[0], 10))) {
+      page = parseInt(parts[0], 10)
+    }
     const limit = 15
+    const params = { page, limit }
+    if (pool) params.pools = pool.key
     const statsData = await hypergryphAPI.getGachaStats(sklUser.framework_token)
-    const recordsData = await hypergryphAPI.getGachaRecords(sklUser.framework_token, { page, limit })
+    const recordsData = await hypergryphAPI.getGachaRecords(sklUser.framework_token, params)
     if (!statsData && !recordsData) {
       await this.reply(getMessage('gacha.no_records'))
       return true
@@ -56,11 +91,13 @@ export class EndfieldGacha extends plugin {
     const total = recordsData?.total ?? 0
     const pages = recordsData?.pages ?? 1
     const userInfo = statsData?.user_info || recordsData?.user_info || {}
+    const poolLabel = pool ? pool.label : ''
     let msg = '【抽卡记录】\n'
     msg += `角色：${userInfo.nickname || userInfo.game_uid || '未知'} | ${userInfo.channel_name || ''}\n`
     msg += `总抽数：${stats.total_count ?? 0} | 六星：${stats.star6_count ?? 0} | 五星：${stats.star5_count ?? 0} | 四星：${stats.star4_count ?? 0}\n`
     if (total > 0) {
-      msg += `\n最近记录（第 ${page}/${pages} 页）：\n`
+      const subTitle = poolLabel ? ` · ${poolLabel}` : ''
+      msg += `\n最近记录${subTitle}（第 ${page}/${pages} 页）：\n`
       records.forEach((r, i) => {
         const star = (r.rarity === 6 ? '★6' : r.rarity === 5 ? '★5' : '★4') || ''
         const name = r.char_name || r.item_name || '未知'
@@ -68,7 +105,8 @@ export class EndfieldGacha extends plugin {
         msg += `${(page - 1) * limit + i + 1}. ${star} ${name}${pool}\n`
       })
       if (pages > 1) {
-        msg += `\n查看其他页：${this.getCmdPrefix()}抽卡记录 2`
+        const pageHint = poolLabel ? `${this.getCmdPrefix()}抽卡记录 ${poolLabel} 2` : `${this.getCmdPrefix()}抽卡记录 2`
+        msg += `\n查看其他页：${pageHint}`
       }
     } else {
       msg += `\n暂无记录，请先使用「${this.getCmdPrefix()}抽卡记录同步」从官方拉取。`
@@ -80,6 +118,14 @@ export class EndfieldGacha extends plugin {
   getCmdPrefix() {
     const commonConfig = setting.getConfig('common') || {}
     return Number(commonConfig.prefix_mode) === 2 ? '#zmd' : ':'
+  }
+
+  /** 将后端返回的 {qqname}、{qq号} 替换为当前用户昵称与 QQ 号，用于控制台日志 */
+  formatProgressMsg(msg, userId, qqName) {
+    if (!msg || typeof msg !== 'string') return msg
+    const uid = userId != null ? String(userId) : ''
+    const name = qqName != null && qqName !== '' ? String(qqName) : uid || '用户'
+    return msg.replace(/\{qq号\}/g, uid).replace(/\{qqname\}/g, name)
   }
 
   /** 全服抽卡统计：4 张图合并转发，失败则回退文字 */
@@ -117,12 +163,6 @@ export class EndfieldGacha extends plugin {
       star6_total: bilibiliRaw.star6_total ?? 0,
       avg_pity: fmt(bilibiliRaw.avg_pity)
     } : null
-    const poolKeys = [
-      { key: 'standard', label: '常驻角色' },
-      { key: 'beginner', label: '新手池' },
-      { key: 'weapon', label: '武器池' },
-      { key: 'limited', label: '限定角色' }
-    ]
     const rankingLimited = s.ranking?.limited?.six_star || []
     const upEntry = rankingLimited.find((r) => r.char_id === upCharId) ?? rankingLimited.find((r) => r.char_name === upName)
     const upWinRatePercent = (upEntry?.percent != null ? Number(upEntry.percent).toFixed(1) : '--.-')
@@ -152,7 +192,7 @@ export class EndfieldGacha extends plugin {
       try {
         const baseOpt = { scale: 1.6, retType: 'base64' }
         const forwardMessages = []
-        for (const { key, label } of poolKeys) {
+        for (const { key, label } of GACHA_POOLS) {
           const poolData = byType[key] || {}
           const poolTotal = poolData.total ?? 0
           const poolStar6 = poolData.star6 ?? 0
@@ -267,10 +307,11 @@ export class EndfieldGacha extends plugin {
     const statusData = await hypergryphAPI.getGachaSyncStatus(token)
     if (statusData?.status === 'syncing') {
       const { message, progress, stage, current_pool, records_found, completed_pools, total_pools, elapsed_seconds } = statusData
-      const progressMsg = message || (current_pool ? `正在查询${current_pool}...` : '')
+      const rawMsg = message || (current_pool ? `正在查询${current_pool}...` : '')
+      const progressMsg = this.formatProgressMsg(rawMsg, this.e.user_id, this.e.sender?.nickname || this.e.sender?.card)
+      if (progressMsg) logger.mark(`[终末地插件][抽卡同步] ${progressMsg}`)
       const stageLabel = { grant: '验证 Token', bindings: '获取绑定账号', u8token: '获取访问凭证', records: '获取抽卡记录', saving: '保存数据' }[stage] || stage || ''
       let msg = getMessage('gacha.sync_in_progress') + '\n'
-      if (progressMsg) msg += `${progressMsg}\n`
       msg += `进度：${progress ?? 0}%`
       if (total_pools != null && completed_pools != null) msg += ` | 卡池 ${completed_pools}/${total_pools}`
       if (records_found != null) msg += ` | 已获取 ${records_found} 条`
@@ -303,8 +344,10 @@ export class EndfieldGacha extends plugin {
     }
 
     const selectedUid = accounts[0]?.uid || null
+    const roleId = sklUser.endfield_uid ? String(sklUser.endfield_uid) : null
+    const qqName = this.e.sender?.nickname || this.e.sender?.card || String(this.e.user_id)
     await this.replyWebAuthSyncHint(token)
-    await this.startFetchAndPoll(token, selectedUid)
+    await this.startFetchAndPoll(token, selectedUid, roleId, this.e.user_id, qqName)
     return true
   }
 
@@ -337,18 +380,27 @@ export class EndfieldGacha extends plugin {
     await redis.del(GACHA_PENDING_KEY(this.e.user_id))
     const account = data.accounts[index - 1]
     const selectedUid = account?.uid || null
+    const sklUser = new EndfieldUser(this.e.user_id)
+    const roleId = (await sklUser.getUser()) && sklUser.endfield_uid ? String(sklUser.endfield_uid) : null
+    const qqName = this.e.sender?.nickname || this.e.sender?.card || String(this.e.user_id)
     await this.replyWebAuthSyncHint(data.token)
-    await this.startFetchAndPoll(data.token, selectedUid)
+    await this.startFetchAndPoll(data.token, selectedUid, roleId, this.e.user_id, qqName)
     return true
   }
 
   /**
    * 启动同步任务并轮询直到 completed / failed
+   * 后端根据 body.role_id 判断：数据库已有相同 roleId 则增量，否则全量
    * @param {string} token 用户 framework_token
    * @param {string|null} accountUid 多账号时选中的 uid
+   * @param {string|null} roleId 当前角色 ID，供后端判断增量/全量
+   * @param {string|number} [userId] 当前 QQ 号，用于日志占位符 {qq号}
+   * @param {string} [qqName] 当前 QQ 昵称，用于日志占位符 {qqname}
    */
-  async startFetchAndPoll(token, accountUid) {
-    const body = accountUid ? { account_uid: accountUid } : {}
+  async startFetchAndPoll(token, accountUid, roleId, userId, qqName) {
+    const body = {}
+    if (accountUid) body.account_uid = accountUid
+    if (roleId) body.role_id = roleId
     const fetchRes = await hypergryphAPI.postGachaFetch(token, body)
     if (fetchRes && fetchRes.status === 'conflict') {
       await this.reply(getMessage('gacha.sync_busy'))
@@ -367,12 +419,11 @@ export class EndfieldGacha extends plugin {
       if (!statusData) continue
       const { status, message, records_found, new_records, error, current_pool } = statusData
       if (status === 'syncing' && (message || current_pool)) {
-        const progressMsg = message || (current_pool ? `正在查询${current_pool}...` : '')
+        const rawMsg = message || (current_pool ? `正在查询${current_pool}...` : '')
+        const progressMsg = this.formatProgressMsg(rawMsg, userId, qqName)
         if (progressMsg && progressMsg !== lastProgressMessage) {
           lastProgressMessage = progressMsg
-          if (!progressMsg.includes('访问凭证')) {
-            await this.reply(progressMsg)
-          }
+          logger.mark(`[终末地插件][抽卡同步] ${progressMsg}`)
         }
       }
       if (status === 'completed') {

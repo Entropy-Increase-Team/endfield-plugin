@@ -1,10 +1,9 @@
 # 帮助内容（不自动复制到 config；需自定义时请手动复制 defSet/help.yaml 到 config/help.yaml 后修改）
 
-# 帮助页布局（主题模式下宽度与列数）
 help_layout:
-  col_count: 4
-  col_width: 380
-  width_gap: 40
+  col_count: 4    # 每行卡片列数
+  col_width: 400  # 每列宽度（px）
+  width_gap: 20   # 列间距（px）
 
 help_group:
   - group: "支持多账号绑定，请使用'{prefix}扫码绑定'或'{prefix}手机绑定'完成绑定"
@@ -18,7 +17,7 @@ help_group:
         desc: "打开帮助菜单"
       - icon: 2
         title: "{prefix}绑定"
-        desc: "私聊发送 cred 绑定"
+        desc: "查看绑定方式说明"
       - icon: 3
         title: "{prefix}授权登陆"
         desc: "网页授权登陆（需先去网站绑定）"
@@ -33,22 +32,18 @@ help_group:
         desc: "查看绑定方式说明"
       - icon: 4
         title: "{prefix}绑定列表"
-        desc: "查看已绑定账号（当前激活账号高亮）"
+        desc: "查看已绑定账号（含绑定类型、当前）"
       - icon: 5
-        title: "{prefix}切换登陆 <序号>"
+        title: "{prefix}切换绑定 <序号>"
         desc: "切换当前激活账号"
       - icon: 5
-        title: "{prefix}删除登陆 <序号>"
-        desc: "删除指定绑定"
-      - icon: 18
-        title: "{prefix}我的cred"
-        desc: "查询当前激活账号的 cred"
-      - icon: 19
-        title: "{prefix}删除cred"
-        desc: "删除所有绑定"
+        title: "{prefix}删除绑定 <序号>"
+        desc: "删除指定绑定（网页授权需前往官网解除）"
       - icon: 20
         title: "{prefix}蓝图"
-        desc: "查看蓝图文档"
+        desc: "查看蓝图文档链接"
+  - group: "攻略查询"
+    list:
       - icon: 21
         title: "{prefix}<攻略名>攻略"
         desc: "查询攻略（如 黎风攻略）"
@@ -57,27 +52,30 @@ help_group:
       - icon: 6
         title: "{prefix}便签"
         desc: "查询角色便签"
-      - icon: 6
-        title: "{prefix}签到"
-        desc: "森空岛签到"
-      - icon: 7
-        title: "{prefix}<干员名>面板"
-        desc: "干员面板（如 黎风面板）"
       - icon: 8
         title: "{prefix}干员列表"
         desc: "查询干员列表"
+      - icon: 7
+        title: "{prefix}<干员名>面板"
+        desc: "干员面板（如 黎风面板）"
       - icon: 9
         title: "{prefix}帝江号建设"
-        desc: "查询帝江号建设"
+        desc: "查询帝江号建设信息"
       - icon: 10
         title: "{prefix}地区建设"
-        desc: "查询地区建设"
+        desc: "查询地区建设信息"
       - icon: 11
         title: "{prefix}理智"
         desc: "查询理智与日常活跃"
       - icon: 11
         title: "{prefix}订阅理智 [值]"
-        desc: "订阅理智推送，不设值则满时推送，设值则到该值推送"
+        desc: "订阅理智与日常活跃推送，不设值则满时推送，设值则到该值推送"
+      - icon: 11
+        title: "{prefix}订阅推送设置 [群聊/私信] [群号]"
+        desc: "设置理智推送目标（不填则发本人）"
+      - icon: 6
+        title: "{prefix}签到"
+        desc: "森空岛签到"
       - icon: 11
         title: "{prefix}取消订阅理智"
         desc: "取消理智推送订阅"
@@ -85,8 +83,8 @@ help_group:
         title: "{prefix}抽卡记录同步"
         desc: "从官方同步抽卡记录"
       - icon: 12
-        title: "{prefix}抽卡记录 [页码]"
-        desc: "查看抽卡记录与统计"
+        title: "{prefix}抽卡记录 [常驻/新手/武器/限定] [页码]"
+        desc: "查看抽卡记录，支持分类与分页"
       - icon: 12
         title: "{prefix}全服抽卡统计"
         desc: "查看全服抽卡统计（合并转发多图）"

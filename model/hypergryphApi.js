@@ -233,6 +233,26 @@ let hypergryphAPI = {
     }
   },
 
+  /**
+   * 健康检测 GET /health
+   * 用于授权轮询前判断后端是否可用，避免 502 时误删绑定
+   * @returns {boolean} true=健康可用，false=不可用
+   */
+  async getUnifiedBackendHealth() {
+    const config = getUnifiedBackendConfig()
+    try {
+      const response = await fetch(`${config.baseUrl}/health`, {
+        timeout: 10000,
+        method: 'get'
+      })
+      if (!response.ok) return false
+      const res = await response.json()
+      return res?.code === 0 && res?.data?.status === 'healthy'
+    } catch (error) {
+      return false
+    }
+  },
+
   async getUnifiedBackendBindings(userIdentifier) {
     const config = getUnifiedBackendConfig()
     const headers = config.apiKey ? { 'X-API-Key': config.apiKey } : {}
@@ -246,19 +266,20 @@ let hypergryphAPI = {
 
       if (!response.ok) {
         logger.error(`[终末地插件][统一后端][获取绑定列表]${response.status} ${response.statusText}`)
-        return []
+        // 502/500 等服务器错误时返回 null，与「确认无绑定」区分，避免轮询误删
+        return null
       }
 
       const res = await response.json()
       if (res?.code !== 0) {
         logger.error(`[终末地插件][统一后端][获取绑定列表]${JSON.stringify(res)}`)
-        return []
+        return null
       }
 
       return res.data?.bindings || []
     } catch (error) {
       logger.error(`[终末地插件][统一后端][获取绑定列表]${error.toString()}`)
-      return []
+      return null
     }
   },
 
@@ -468,8 +489,9 @@ let hypergryphAPI = {
   /**
    * 抽卡记录：启动同步任务（异步）
    * POST /api/endfield/gacha/fetch
+   * 后端根据 body.role_id 判断：数据库已有相同 roleId 则增量同步，否则全量
    * @param {string} frameworkToken 用户凭证
-   * @param {{ server_id?: string, account_uid?: string }} body
+   * @param {{ account_uid?: string, role_id?: string }} body
    * @returns {{ status: string, message?: string } | null} 成功返回 data，409 表示正在同步中
    */
   async postGachaFetch(frameworkToken, body = {}) {

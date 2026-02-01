@@ -1,11 +1,22 @@
 import path from 'node:path'
 import fs from 'node:fs'
-import { pathToFileURL, fileURLToPath } from 'node:url'
+import { fileURLToPath } from 'node:url'
 import { rulePrefix, getUnbindMessage, getMessage } from '../utils/common.js'
-import common from '../../../lib/common/common.js'
+
+let cachedVersion = null
+function getPluginVersion() {
+  if (cachedVersion) return cachedVersion
+  try {
+    const pkgPath = path.resolve(process.cwd(), './plugins/endfield-plugin/package.json')
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'))
+    cachedVersion = pkg?.version || ''
+  } catch {
+    cachedVersion = ''
+  }
+  return cachedVersion
+}
 import EndfieldUser from '../model/endfieldUser.js'
 import setting from '../utils/setting.js'
-import puppeteer from '../../../lib/puppeteer/puppeteer.js'
 
 const _dir = path.dirname(fileURLToPath(import.meta.url))
 const _res = path.join(_dir, '..', 'resources')
@@ -15,15 +26,7 @@ const _meta = path.join(_res, 'meta')
 const OPERATOR_DIR = _operator
 const META_CLASS_DIR = path.join(_meta, 'class')
 const META_ATTRPANLE_DIR = path.join(_meta, 'attrpanle')
-const OPERATOR_TPL = path.join(_operator, 'operator.html')
-const OPERATOR_CSS = path.join(_operator, 'operator.css')
-const LIST_TPL = path.join(_operator, 'list.html')
-const LIST_CSS = path.join(_operator, 'list.css')
-const LIST_BG_DIR = path.join(_operator, 'img')
 const LIST_BG_FILES = ['bg1.png', 'bg2.png']
-
-const SCREENSHOT = { name: 'endfield-operator', saveId: 'index' }
-const LIST_SCREENSHOT = { name: 'endfield-operator-list', saveId: 'index' }
 
 function iconToDataUrl(dir, chineseName) {
   if (!chineseName || typeof chineseName !== 'string') return ''
@@ -88,6 +91,7 @@ export class EndfieldOperator extends plugin {
       }
 
       const chars = res.data?.chars || []
+      const base = res.data?.base || {}
       if (!chars.length) {
         await this.reply(getMessage('operator.not_found_info'))
         return true
@@ -125,15 +129,20 @@ export class EndfieldOperator extends plugin {
         return true
       }
 
-      const tplData = this.buildPanelData(operator, charData, userSkills, container)
-      const screenshotData = {
-        tplFile: OPERATOR_TPL,
-        saveId: SCREENSHOT.saveId,
-        operatorCssHref: pathToFileURL(OPERATOR_CSS).href,
-        ...tplData,
-        viewport: { width: 720, height: 1750 }
+      const panelData = this.buildPanelData(operator, charData, userSkills, container)
+      const tplData = {
+        ...panelData,
+        userAvatar: base?.avatarUrl || '',
+        userNickname: base?.name || '未知',
+        userLevel: base?.level ?? 0,
+        endfieldVersion: getPluginVersion()
       }
-      const img = await puppeteer.screenshot(SCREENSHOT.name, screenshotData)
+      // 使用 runtime.render 对接新渲染器（renderers/puppeteer），模板与资源路径由 runtime 注入
+      if (!this.e.runtime?.render) {
+        await this.reply(getMessage('operator.panel_failed'))
+        return true
+      }
+      const img = await this.e.runtime.render('endfield-plugin', 'operator/operator', tplData, { retType: 'base64' })
       if (img) {
         await this.e.reply(img)
       } else {
@@ -150,6 +159,10 @@ export class EndfieldOperator extends plugin {
   buildPanelData(operator, charData, userSkills, container) {
     const rarity = parseInt(charData.rarity?.value || '1', 10) || 1
     const stars = Array.from({ length: Math.min(6, Math.max(1, rarity)) }, (_, i) => i + 1)
+    const profession = charData.profession?.value || ''
+    const property = charData.property?.value || ''
+    const potentialLevel = Math.min(5, Math.max(0, operator.potentialLevel ?? 0))
+    const potentialStars = Array.from({ length: 5 }, (_, i) => i < potentialLevel)
     const tags = charData.tags || []
     const tagsList = tags.filter(Boolean)
     const tagsLength = tagsList.length
@@ -177,10 +190,12 @@ export class EndfieldOperator extends plugin {
       weapon = {
         name: w.name || '未知',
         level: weaponRaw.level ?? 0,
+        refineLevel: weaponRaw.potential ?? weaponRaw.refine ?? weaponRaw.potentialLevel ?? 1,
         iconUrl: w.iconUrl || '',
         stars: Array.from({ length: Math.min(6, Math.max(1, wr)) }, (_, i) => i + 1),
         gem
       }
+      weapon.refineStars = Array.from({ length: 5 }, (_, i) => i < weapon.refineLevel)
     }
 
     const parseRarity = (r) => {
@@ -195,7 +210,9 @@ export class EndfieldOperator extends plugin {
       if (!raw?.name) return null
       const lv = raw.level?.value ?? raw.level ?? ''
       const { rarity, rarityClass } = parseRarity(raw.rarity)
-      return { name: raw.name, iconUrl: raw.iconUrl || '', level: lv, rarity, rarityClass }
+      // 生成星级数组用于模板显示
+      const equipStars = Array.from({ length: Math.min(6, Math.max(1, rarity)) }, (_, i) => i + 1)
+      return { name: raw.name, iconUrl: raw.iconUrl || '', level: lv, rarity, rarityClass, stars: equipStars }
     }
     const bodyEquip = pickEquip(operator.bodyEquip || container?.bodyEquip)
     const armEquip = pickEquip(operator.armEquip || container?.armEquip)
@@ -211,11 +228,21 @@ export class EndfieldOperator extends plugin {
 
     const displaySkills = skills.slice(0, 4)
     while (displaySkills.length < 4) displaySkills.push({ empty: true })
+    const evolvePhase = container?.evolvePhase ?? operator?.evolvePhase ?? 1
+    const weaponType = charData.weaponType?.value || ''
     return {
       name: charData.name || '未知',
       illustrationUrl: charData.illustrationUrl || charData.avatarRtUrl || 'https://bbs.hycdn.cn/image/2025/11/12/9d96cc859f508f7add6668fd9280df7b.png',
       level: operator.level ?? 0,
       stars,
+      profession,
+      property,
+      professionIconUrl: iconToDataUrl(META_CLASS_DIR, profession),
+      propertyIconUrl: iconToDataUrl(META_ATTRPANLE_DIR, property),
+      potentialLevel,
+      potentialStars,
+      evolvePhase,
+      weaponType,
       tagsList,
       tagsLength,
       skills,
@@ -291,9 +318,6 @@ export class EndfieldOperator extends plugin {
       const userNickname = base?.name || '未知'
       const userLevel = base?.level ?? 0
 
-      const logoPath = path.join(process.cwd(), 'plugins/endfield-plugin/resources/img/logo.png')
-      const logoUrl = pathToFileURL(logoPath).href
-
       const operators = chars.map((char) => {
         const c = char.charData || char
         const imageUrl = c.avatarRtUrl || ''
@@ -331,8 +355,11 @@ export class EndfieldOperator extends plugin {
       })
 
       const listBgFile = LIST_BG_FILES[Math.floor(Math.random() * LIST_BG_FILES.length)]
-      const listBgPath = path.join(LIST_BG_DIR, listBgFile)
-      const listBgUrl = fs.existsSync(listBgPath) ? pathToFileURL(listBgPath).href : ''
+      const listPageWidth = 1600
+      const listColumnCount = 6
+      const listCardWidth = (listPageWidth - 48 - (listColumnCount - 1) * 12) / listColumnCount
+      const listCardHeight = listCardWidth * (4 / 3)
+      const listCardScale = Math.min(listCardWidth / 800, listCardHeight / 1200)
 
       const tplData = {
         totalCount: operators.length,
@@ -340,19 +367,17 @@ export class EndfieldOperator extends plugin {
         userAvatar,
         userNickname,
         userLevel,
-        logoUrl,
-        listBgUrl
+        listBgFile,
+        listCardScale,
+        listColumnCount,
+        listPageWidth
       }
 
-      const screenshotData = {
-        tplFile: LIST_TPL,
-        saveId: LIST_SCREENSHOT.saveId,
-        listCssHref: pathToFileURL(LIST_CSS).href,
-        ...tplData,
-        viewport: { width: 1600, height: Math.ceil(operators.length / 8) * 220 + 250 }
+      if (!this.e.runtime?.render) {
+        await this.reply(getMessage('operator.list_failed'))
+        return true
       }
-
-      const img = await puppeteer.screenshot(LIST_SCREENSHOT.name, screenshotData)
+      const img = await this.e.runtime.render('endfield-plugin', 'operator/list', tplData, { retType: 'base64' })
       if (img) {
         await this.e.reply(img)
       } else {

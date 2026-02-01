@@ -9,6 +9,7 @@
   box-sizing: border-box;
 }
 
+/* 宽度由模板内联 style 控制，此处仅保留与宽度无关的样式 */
 body {
   font-family: 'HarmonyOS Sans SC', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   background-image: url('{{_res_path}}help/bg.png');
@@ -22,12 +23,12 @@ body {
   display: flex;
   justify-content: center;
   min-height: 100vh;
+  box-sizing: border-box;
 }
 
-/* 容器：宽度 100% 且不超过 max-width，避免截图时右侧被裁切 */
+/* 容器：max-width 由模板注入 helpLayoutMaxWidth，避免截图时右侧被裁切 */
 .container {
   width: 100%;
-  max-width: 1200px;
   background-color: #282828;
   padding: 20px;
   border-radius: 8px;
@@ -49,7 +50,7 @@ body {
 }
 
 .header p {
-  font-size: 0.9em;
+  font-size: 1em;
   color: #b0b0b0;
   margin: 0;
 }
@@ -64,17 +65,8 @@ body {
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-.info-block a {
-  color: #90b0ff;
-  text-decoration: none;
-}
-
-.info-block a:hover {
-  text-decoration: underline;
-}
-
 .section-title {
-  font-size: 1.4em;
+  font-size: 2.5em;
   color: #ffffff;
   margin-top: 35px;
   margin-bottom: 18px;
@@ -83,10 +75,9 @@ body {
   letter-spacing: 0.5px;
 }
 
+/* 列数、列宽、间距由模板注入（help_layout），此处仅保留 display */
 .commands-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 15px;
 }
 
 .command-item {
@@ -122,18 +113,18 @@ body {
   font-weight: bold;
   color: #ffffff;
   margin-bottom: 4px;
-  font-size: 1em;
+  font-size: 1.5em;
 }
 
 .command-description {
-  font-size: 0.85em;
+  font-size: 1em;
   color: #b0b0b0;
   line-height: 1.4;
 }
 
 .footer {
   text-align: center;
-  font-size: 0.8em;
+  font-size: 2em;
   color: #888888;
   margin-top: 40px;
   padding-top: 20px;
