@@ -286,6 +286,11 @@ bluemap:
   not_configured: "未配置蓝图文档链接，请在config/message.yaml中设置bluemap_help_doc"
   doc_url: "📚 蓝图文档：{url}"
 
+# 插件更新（仅管理员）
+update:
+  done: "✅ 插件更新完成\n{output}"
+  failed: "❌ 插件更新失败：{error}"
+
 # AI 问答
 ai:
   provide_content_new: "请指定提问内容。示例：{prefix}ai 新会话 终末地讲了什么故事"

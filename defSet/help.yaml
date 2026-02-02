@@ -122,3 +122,9 @@ help_group:
       - icon: 6
         title: "{prefix}全部签到"
         desc: "为所有已绑定账号执行签到"
+  - group: "插件（管理员）"
+    auth: master
+    list:
+      - icon: 5
+        title: "{prefix}更新"
+        desc: "更新终末地插件（git pull）"
