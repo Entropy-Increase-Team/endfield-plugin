@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}} - {{subtitle}}</title>
+  <link rel="stylesheet" href="{{_res_path}}gacha/gacha-analysis.css">
+</head>
+<body>
+  <div class="gacha-analysis-container">
+    <div class="list-top-bar">
+      <div class="user-info">
+        {{if userAvatar}}
+        <img src="{{userAvatar}}" alt="用户头像" class="user-avatar">
+        {{/if}}
+        <div class="user-details">
+          <div class="user-name">{{userNickname}}</div>
+          <div class="user-uid">UID {{userUid}}</div>
+        </div>
+      </div>
+      <div class="list-header-middle">
+        <h1 class="list-title">{{title}}</h1>
+        <p class="list-count">{{subtitle}}</p>
+      </div>
+      {{if pluResPath}}
+      <div class="logo-container list-top-bar-logo">
+        <img src="{{pluResPath}}img/logo.png" alt="Logo" class="logo-image">
+      </div>
+      {{/if}}
+    </div>
+
+    <div class="card-wrap pools-card">
+      <div class="section-head">
+        <span class="title">按池统计</span>
+      </div>
+      <div class="section-sub">POOL STATISTICS</div>
+
+      {{each poolList}}
+      <div class="pool-row-wrap">
+        <div class="pool-row-header">{{$value.label}}{{if $value.poolName}} · {{$value.poolName}}{{/if}}</div>
+        <div class="pool-row-metrics">
+          <span class="metric-total">{{$value.total}} 抽数</span>
+          <span class="metric-a">{{$value.metric1Label}} {{$value.metric1}}</span>
+          <span class="metric-b">{{$value.metric2Label}} {{$value.metric2}}</span>
+        </div>
+        {{if $value.images && $value.images.length > 0}}
+        <div class="pool-images-row">
+          {{each $value.images}}
+          <div class="pool-img-slot">
+            <img class="pool-img" src="{{$value.url}}" alt="{{$value.name}}" onerror="this.style.display='none'">
+            <span class="pool-img-name">{{$value.name}}</span>
+            {{if $value.pullCount}}
+            <span class="pool-img-pull">{{$value.pullCount}}抽</span>
+            {{/if}}
+          </div>
+          {{/each}}
+        </div>
+        {{/if}}
+        {{if $value.images5 && $value.images5.length > 0}}
+        <div class="pool-images-row pool-images-row-star5">
+          {{each $value.images5}}
+          <div class="pool-img-slot pool-img-slot-star5">
+            <img class="pool-img pool-img-star5" src="{{$value.url}}" alt="{{$value.name}}" onerror="this.style.display='none'">
+            <span class="pool-img-name pool-img-name-star5">{{$value.name}}</span>
+          </div>
+          {{/each}}
+        </div>
+        {{/if}}
+      </div>
+      {{/each}}
+    </div>
+  </div>
+</body>
+</html>

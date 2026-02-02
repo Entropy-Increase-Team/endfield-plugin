@@ -117,6 +117,7 @@ export class EndfieldAttendance extends plugin {
   }
 
   async attendance_task() {
+    if (this.e?.msg && !this.e?.isMaster) return false
     const is_manual = !!this?.e?.msg
     const keys = await redis.keys('ENDFIELD:USER:*')
     let success_count = 0

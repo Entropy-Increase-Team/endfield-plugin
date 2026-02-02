@@ -31,10 +31,10 @@ export class EndfieldStrategy extends plugin {
           reg: `^${rulePrefix}(.+?)攻略$`,
           fnc: 'queryStrategy'
         },
-        // :上传攻略 [干员/队伍名] [作者] [图片/链接]
         {
           reg: `^${rulePrefix}上传攻略\\s+(\\S+)\\s+(\\S+)(?:\\s+(图片|https?://\\S+))?$`,
-          fnc: 'uploadStrategyImage'
+          fnc: 'uploadStrategyImage',
+          permission: 'master'
         }
       ]
     })
@@ -122,6 +122,7 @@ export class EndfieldStrategy extends plugin {
    * 存储：data/strategy-img/名称/作者_时间戳.扩展名
    */
   async uploadStrategyImage() {
+    if (!this.e?.isMaster) return false
     const msg = (this.e.msg || '').trim()
     const mode = Number(this.common_setting?.prefix_mode) || 1
     const prefix = mode === 2 ? /^#(终末地|zmd)?\s*/ : /^[:：]\s*/
@@ -218,14 +219,14 @@ export class EndfieldStrategy extends plugin {
       try {
         return fs.readFileSync(path.isAbsolute(p) ? p : path.join(process.cwd(), p))
       } catch (e) {
-        return null
-      }
+      return null
     }
+  }
     try {
       return fs.readFileSync(file)
     } catch (e) {
-      return null
-    }
+    return null
+  }
   }
 
   /** 从文件名解析作者：格式 作者_时间戳.ext，返回作者名或空串 */
@@ -271,15 +272,15 @@ export class EndfieldStrategy extends plugin {
   async queryStrategy() {
     const name = this.getStrategyName()
     if (!name) {
-      const prefix = this.getCmdPrefix()
+    const prefix = this.getCmdPrefix()
       await this.reply(getMessage('strategy.provide_name', { prefix }))
       return true
     }
-
+    
     const commonConfig = setting.getConfig('common') || {}
     if (!commonConfig.api_key || String(commonConfig.api_key).trim() === '') {
       await this.reply(getMessage('strategy.need_api_key'))
-      return true
+        return true
     }
 
     const req = new EndfieldRequest(0, '', '')
@@ -294,8 +295,8 @@ export class EndfieldStrategy extends plugin {
     if (!listRes || listRes.code !== 0) {
       logger.error(`[终末地攻略]列表失败: ${JSON.stringify(listRes)}`)
       await this.reply(getMessage('strategy.query_failed', { error: '接口异常' }))
-      return true
-    }
+        return true
+      }
 
     const allItems = listRes.data?.items || []
     const items = this.filterItemsByName(allItems, name)
@@ -314,16 +315,16 @@ export class EndfieldStrategy extends plugin {
       } else {
         await this.reply(getMessage('strategy.not_found', { name }) + '\n' + getMessage('strategy.not_found_suffix'))
       }
-      return true
-    }
+        return true
+      }
 
     // 取第一个匹配条目的 item_id，查详情：GET /api/wiki/items/{item_id}
     const item = items[0]
     const detailRes = await req.getWikiData('wiki_item_detail', { id: item.item_id })
     if (!detailRes || detailRes.code !== 0 || !detailRes.data) {
       await this.reply(getMessage('strategy.detail_failed', { name: item.name || item.item_id }))
-      return true
-    }
+        return true
+      }
 
     // 兼容 data 直接为条目 或 data.item 为条目；兼容 snake_case / camelCase
     const data = detailRes.data?.item || detailRes.data
@@ -377,7 +378,7 @@ export class EndfieldStrategy extends plugin {
       const forwardMsg = common.makeForwardMsg(this.e, forwardMessages, `${itemName}攻略`)
       await this.e.reply(forwardMsg)
     }
-    return true
+        return true
   }
 
   /**

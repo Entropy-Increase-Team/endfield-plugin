@@ -140,6 +140,7 @@ gacha:
   global_stats_failed: "获取全服抽卡统计失败"
   no_accounts: "未找到可用账号，请确认已绑定角色"
   no_records: "暂无抽卡记录，请先使用「{prefix}抽卡记录同步」从官方服务器拉取数据"
+  analysis_auto_sync_hint: "检测到未进行过同步，已为你自动开启同步请稍后"
   select_account: "请选择要同步的账号："
   reply_index: "请回复序号，示例：'{prefix}1'"
   invalid_index: "序号无效，请回复列表中的数字"
@@ -288,7 +289,9 @@ bluemap:
 
 # 插件更新（仅管理员）
 update:
+  starting: "已经开始更新咯~"
   done: "✅ 插件更新完成\n{output}"
+  already_latest: "✅ 插件已是最新了诶"
   failed: "❌ 插件更新失败：{error}"
 
 # AI 问答

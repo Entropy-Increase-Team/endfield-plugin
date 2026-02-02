@@ -50,9 +50,6 @@ help_group:
       - icon: 21
         title: "{prefix}<攻略名>攻略"
         desc: "查询攻略（干员名或队伍名，如 莱万汀攻略、火队攻略）"
-      - icon: 22
-        title: "{prefix}上传攻略 [干员/队伍名] [作者] [图片/链接]"
-        desc: "上传攻略图片"
   - group: "终末地信息查询（需绑定）"
     list:
       - icon: 6
@@ -92,6 +89,9 @@ help_group:
         title: "{prefix}抽卡记录 [常驻/新手/武器/限定] [页码]"
         desc: "查看抽卡记录，支持分类与分页"
       - icon: 12
+        title: "{prefix}抽卡分析"
+        desc: "查看抽卡分析（数据概览页）"
+      - icon: 12
         title: "{prefix}全服抽卡统计"
         desc: "查看全服抽卡统计（合并转发多图）"
   - group: "Wiki 查询（需绑定）"
@@ -108,23 +108,15 @@ help_group:
       - icon: 15
         title: "{prefix}wiki 武器 <武器名称>"
         desc: "武器百科"
-  - group: "AI 对话（需绑定）"
-    list:
-      - icon: 16
-        title: "{prefix}ai [消息内容]"
-        desc: "AI 对话"
-      - icon: 17
-        title: "{prefix}ai 新会话 [消息内容]"
-        desc: "创建新会话"
-  - group: "签到（管理员）"
+  - group: "管理员功能"
     auth: master
     list:
       - icon: 6
         title: "{prefix}全部签到"
         desc: "为所有已绑定账号执行签到"
-  - group: "插件（管理员）"
-    auth: master
-    list:
+      - icon: 22
+        title: "{prefix}上传攻略 [干员/队伍名] [作者] [图片/链接]"
+        desc: "上传攻略图片"
       - icon: 5
         title: "{prefix}更新"
         desc: "更新终末地插件（git pull）"

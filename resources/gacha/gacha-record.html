@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width={{maxWidth}}, initial-scale=1">
+  <title>{{title}} - {{subtitle}}</title>
+  <link rel="stylesheet" href="{{_res_path}}gacha/gacha-record.css">
+</head>
+<body>
+  <div class="gacha-record-container" style="min-width: {{maxWidth}}px; max-width: {{maxWidth}}px;">
+    <div class="list-top-bar">
+      <div class="list-header-middle">
+        <h1 class="list-title">{{title}}</h1>
+        <p class="list-count">{{subtitle}}</p>
+      </div>
+      {{if pluResPath}}
+      <div class="logo-container list-top-bar-logo">
+        <img src="{{pluResPath}}img/logo.png" alt="Logo" class="logo-image">
+      </div>
+      {{/if}}
+    </div>
+
+    <div class="overview-grid">
+      <div class="card-wrap overview-item">
+        <div class="label">总抽数</div>
+        <div class="value">{{totalCount}}</div>
+      </div>
+      <div class="card-wrap overview-item">
+        <div class="label">6星</div>
+        <div class="value star6">{{star6}}</div>
+      </div>
+      <div class="card-wrap overview-item">
+        <div class="label">5星</div>
+        <div class="value star5">{{star5}}</div>
+      </div>
+      <div class="card-wrap overview-item">
+        <div class="label">4星</div>
+        <div class="value star4">{{star4}}</div>
+      </div>
+    </div>
+
+    <div class="card-wrap record-card">
+      <div class="section-head">
+        <span class="title">最近记录{{if poolLabel}} · {{poolLabel}}{{/if}}</span>
+        <span class="num">{{page}}/{{pages}}</span>
+      </div>
+      <div class="section-sub">RECENT RECORDS</div>
+      {{if hasRecords}}
+      <ul class="record-list">
+        {{each recordList}}
+        <li class="record-item">
+          <span class="record-index">{{$value.index}}</span>
+          <span class="record-star {{$value.starClass}}">{{$value.star}}</span>
+          <span class="record-name">{{$value.name}}</span>
+          {{if $value.poolName}}
+          <span class="record-pool">[{{$value.poolName}}]</span>
+          {{/if}}
+        </li>
+        {{/each}}
+      </ul>
+      {{if pageHint}}
+      <p class="page-hint">查看其他页：{{pageHint}}</p>
+      {{/if}}
+      {{else}}
+      <p class="empty-hint">暂无记录，请先使用「{{syncHint}}」从官方拉取。</p>
+      {{/if}}
+    </div>
+  </div>
+</body>
+</html>

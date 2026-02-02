@@ -116,49 +116,6 @@ export function supportGuoba() {
           },
         },
         {
-          label: 'AI 配置',
-          component: 'SOFT_GROUP_BEGIN'
-        },
-        {
-          field: 'ai.app_id',
-          label: '应用 ID',
-          bottomHelpMessage: '从 endfield.prts.chat 获取',
-          component: 'Input',
-          componentProps: {
-            placeholder: '请输入应用 ID',
-          },
-        },
-        {
-          field: 'ai.bearer_token',
-          label: '认证令牌',
-          bottomHelpMessage: 'Bearer Token，需要替换为实际的 token',
-          component: 'Input',
-          componentProps: {
-            placeholder: '请输入 Bearer Token',
-            type: 'password',
-          },
-        },
-        {
-          field: 'ai.api_base',
-          label: 'API 基础地址',
-          bottomHelpMessage: 'API 基础地址',
-          component: 'Input',
-          componentProps: {
-            placeholder: 'https://endfield.prts.chat/api',
-          },
-        },
-        {
-          field: 'ai.stream_timeout',
-          label: '流式响应超时时间（秒）',
-          bottomHelpMessage: '流式响应超时时间',
-          component: 'InputNumber',
-          componentProps: {
-            min: 10,
-            max: 300,
-            placeholder: '60',
-          },
-        },
-        {
           label: '签到配置',
           component: 'SOFT_GROUP_BEGIN'
         },

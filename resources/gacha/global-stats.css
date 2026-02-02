@@ -1,4 +1,4 @@
-/* Endfield Terminal 风格：深色、角标、琥珀色高亮；统一使用 resources/font */
+/* 全服抽卡统计 - 风格对齐 operator/list：浅色、HarmonyOS Sans SC、圆角卡片 */
 @font-face {
   font-family: 'HarmonyOS Sans SC';
   src: url('../font/HarmonyOS_SansSC_Bold.ttf') format('truetype');
@@ -7,159 +7,142 @@
 }
 
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
 body {
+  background: #f5f5f5;
   font-family: 'HarmonyOS Sans SC', -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif;
-  background-color: #030305;
-  color: #e0e0e0;
-  margin: 0;
-  padding: 24px;
   min-height: 100vh;
+  padding: 20px;
+  color: #1f2937;
 }
 
-.container {
-  width: 100%;
-  max-width: 920px;
+.gacha-stats-container {
   margin: 0 auto;
+  padding: 24px;
+  max-width: 920px;
+  position: relative;
 }
 
-/* 标题：全服寻访统计 GLOBAL */
-.page-header {
+/* 顶栏：标题居中、Logo 靠右 */
+.list-top-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: #f9fafb;
+  border-radius: 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.list-top-bar .list-header-middle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.list-top-bar .list-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.list-top-bar .list-count {
+  font-size: 1.3rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.list-top-bar-logo {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.logo-container {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 6px;
+  max-width: 140px;
+  overflow: hidden;
 }
 
-.page-header h1 {
-  font-size: 1.75em;
-  font-weight: bold;
-  color: #fff;
-  margin: 0;
-  letter-spacing: 0.02em;
+.logo-container .logo-image {
+  height: 55px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
 }
 
-.page-header .badge {
-  font-size: 0.65em;
-  font-family: inherit;
-  padding: 2px 8px;
-  border-radius: 2px;
-  background: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  letter-spacing: 0.1em;
-}
-
-.page-sub {
-  font-size: 0.75em;
-  color: #71717a;
-  font-family: inherit;
-  margin-bottom: 20px;
-}
-
-/* 卡片：角标 + 半透明边框 */
+/* 卡片通用：白底、圆角、阴影（对齐 operator） */
 .card-wrap {
   position: relative;
-  padding: 16px;
-  margin-bottom: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.card-wrap::before,
-.card-wrap::after {
-  content: '';
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border-color: rgba(245, 158, 11, 0.25);
-  border-style: solid;
-  border-width: 0;
-}
-
-.card-wrap::before {
-  top: 0;
-  left: 0;
-  border-top-width: 2px;
-  border-left-width: 2px;
-}
-
-.card-wrap::after {
-  top: 0;
-  right: 0;
-  border-top-width: 2px;
-  border-right-width: 2px;
-}
-
-.card-wrap .corner-b {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border-color: rgba(245, 158, 11, 0.25);
-  border-style: solid;
-  border-width: 0;
-  bottom: 0;
-}
-
-.card-wrap .corner-b.left {
-  left: 0;
-  border-bottom-width: 2px;
-  border-left-width: 2px;
-}
-
-.card-wrap .corner-b.right {
-  right: 0;
-  border-bottom-width: 2px;
-  border-right-width: 2px;
+  padding: 20px;
+  margin-bottom: 16px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
 /* 四宫格总览 */
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 16px;
 }
 
 .overview-item {
-  position: relative;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .overview-item .label {
-  font-size: 0.65em;
-  color: #71717a;
+  font-size: 0.75rem;
+  color: #6b7280;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
-  margin-bottom: 4px;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
 }
 
 .overview-item .value {
-  font-size: 1.35em;
+  font-size: 1.5rem;
   font-weight: bold;
-  font-family: inherit;
-  color: #fff;
+  color: #1f2937;
 }
 
+/* 六星-红色 */
 .overview-item .value.amber {
-  color: #f59e0b;
+  color: #dc2626;
 }
 
-/* 当前UP 区块（参考图片二：左文案 + 右大数字与竖条） */
+/* 当前 UP 区块（六星-红色） */
 .up-block {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  background: rgba(245, 158, 11, 0.06);
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
   padding: 16px 20px;
   margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08);
 }
 
 .up-block-left {
@@ -168,32 +151,32 @@ body {
 }
 
 .up-block .up-tag {
-  font-size: 0.6em;
+  font-size: 0.7rem;
   font-weight: bold;
-  background: #f59e0b;
-  color: #000;
-  padding: 2px 6px;
-  margin-right: 6px;
-  text-transform: uppercase;
+  background: #dc2626;
+  color: #fff;
+  padding: 2px 8px;
+  margin-right: 8px;
+  border-radius: 4px;
   letter-spacing: 0.05em;
 }
 
 .up-block .up-name {
-  font-size: 1.1em;
+  font-size: 1.2rem;
   font-weight: bold;
-  color: #f59e0b;
+  color: #b91c1c;
 }
 
 .up-block .up-title {
-  font-size: 1.1em;
+  font-size: 1rem;
   font-weight: bold;
-  color: #fff;
+  color: #1f2937;
   margin: 10px 0 4px 0;
 }
 
 .up-block .up-desc {
-  font-size: 0.75em;
-  color: #71717a;
+  font-size: 0.85rem;
+  color: #6b7280;
   margin: 0;
 }
 
@@ -202,48 +185,24 @@ body {
   align-items: center;
   gap: 14px;
   flex-shrink: 0;
-  position: relative;
-}
-
-.up-block-right .up-rate-circle {
-  position: absolute;
-  right: 72px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 64px;
-  height: 64px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 50%;
-  box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.03), 0 0 0 16px rgba(255, 255, 255, 0.02);
-  pointer-events: none;
 }
 
 .up-block-right .up-rate-text {
   text-align: right;
-  position: relative;
-  z-index: 1;
 }
 
 .up-block .up-rate-value {
-  font-size: 2.2em;
+  font-size: 2rem;
   font-weight: bold;
-  font-family: inherit;
-  color: #f59e0b;
+  color: #dc2626;
   line-height: 1.1;
-}
-
-.up-block .theoretical {
-  font-size: 0.65em;
-  color: #71717a;
-  font-family: inherit;
-  margin-top: 4px;
 }
 
 .up-rate-vertical-wrap {
   width: 10px;
   height: 56px;
-  background: rgba(245, 158, 11, 0.2);
-  border-radius: 2px;
+  background: #fee2e2;
+  border-radius: 4px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -251,20 +210,11 @@ body {
   flex-shrink: 0;
 }
 
-.up-rate-vertical-bar {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
-
 .up-rate-vertical-fill {
   width: 100%;
   min-height: 2px;
-  background: #f59e0b;
-  border-radius: 2px;
-  transition: height 0.3s;
+  background: #dc2626;
+  border-radius: 4px;
 }
 
 /* 官服/B服 两列 */
@@ -275,92 +225,86 @@ body {
 }
 
 .channel-card {
-  position: relative;
   padding: 0;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
 }
 
 .channel-card .card-head {
-  padding: 12px 14px 0 14px;
-  font-size: 0.75em;
+  padding: 14px 16px 0 16px;
+  font-size: 0.95rem;
   font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.9);
+  color: #1f2937;
 }
 
 .channel-card .card-sub {
-  padding: 4px 14px 10px 14px;
-  font-size: 0.6em;
-  color: #71717a;
-  letter-spacing: 0.08em;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 4px 16px 10px 16px;
+  font-size: 0.7rem;
+  color: #9ca3af;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .channel-card .card-body {
-  padding: 14px;
+  padding: 16px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px 16px;
 }
 
 .channel-card .item-label {
-  font-size: 0.75em;
-  color: #71717a;
+  font-size: 0.85rem;
+  color: #6b7280;
 }
 
 .channel-card .item-value {
-  font-size: 1em;
+  font-size: 1rem;
   font-weight: bold;
-  font-family: inherit;
-  color: #fff;
+  color: #1f2937;
 }
 
 .channel-card .item-value.amber {
-  color: #f59e0b;
+  color: #dc2626;
 }
 
-/* 卡池选择页：4 个池子列表 */
+/* 区块标题：对齐 operator section-title */
 .section-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .section-head .title {
-  font-size: 0.8em;
+  font-size: 1.1rem;
   font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.9);
+  color: #1f2937;
+  border-left: 6px solid #1f2937;
+  padding-left: 12px;
 }
 
 .section-head .num {
-  font-size: 0.65em;
-  color: #71717a;
-  font-family: inherit;
-  letter-spacing: 0.1em;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  letter-spacing: 0.05em;
 }
 
 .section-sub {
-  padding: 0 14px 10px 14px;
-  margin-bottom: 10px;
-  font-size: 0.6em;
-  color: #71717a;
-  letter-spacing: 0.1em;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.7rem;
+  color: #9ca3af;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
 }
 
-/* 两列布局：左 卡池+数据概览，右 分布图+排名 */
+/* 两列布局：强制左右等高 */
 .two-col-layout {
   display: grid;
   grid-template-columns: 1fr 1.2fr;
+  grid-template-rows: minmax(300px, auto);
   gap: 16px;
   margin-top: 4px;
+  align-items: stretch;
 }
 
 .col-left,
@@ -368,9 +312,122 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+  align-self: stretch;
 }
 
-/* 6星出货分布柱状图：仅正向显示，柱从基线向上 */
+/* 左右两列内的卡片等高：拉伸填满列高 */
+.col-left > .card-wrap,
+.col-right > .card-wrap {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* 卡池列表 */
+.pool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pool-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+
+.pool-row.primary {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #1f2937;
+}
+
+.pool-row .pool-name {
+  font-weight: 600;
+  color: #374151;
+}
+
+.pool-row .pool-count {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* 数据概览：进度条 */
+.stats-overview .stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.stats-overview .stat-row .label {
+  color: #6b7280;
+}
+
+.stats-overview .stat-row .value {
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.stats-overview .bar-wrap {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.stats-overview .bar-fill {
+  height: 100%;
+  background: #6366f1;
+  border-radius: 4px;
+}
+
+.stats-overview .bar-fill.primary {
+  background: #dc2626;
+}
+
+.stats-overview .two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.stats-overview .two-col .label {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.stats-overview .two-col .label.block {
+  display: block;
+}
+
+.stats-overview .two-col .value {
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+/* 五星-黄色 */
+.stats-overview .two-col .value.purple {
+  color: #ca8a04;
+}
+
+/* 四星-紫色 */
+.stats-overview .two-col .value.blue {
+  color: #7c3aed;
+}
+
+/* 6星出货分布柱状图 */
 .dist-chart {
   display: flex;
   align-items: flex-end;
@@ -399,177 +456,101 @@ body {
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
+  gap: 2px;
+}
+
+.dist-count {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #374151;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .dist-bar {
   width: 100%;
   min-height: 4px;
   max-height: 100%;
-  background: rgba(249, 115, 22, 0.85);
-  border-radius: 2px;
-  transition: height 0.2s;
+  background: #f97316;
+  border-radius: 4px;
 }
 
 .dist-bar-row:nth-child(n+7) .dist-bar {
-  background: rgba(234, 179, 8, 0.85);
+  background: #eab308;
 }
 
+/* 柱状图区间标签：横排显示，不旋转 */
 .dist-label {
-  font-size: 0.6em;
-  color: #71717a;
-  font-family: inherit;
-  transform: rotate(-45deg);
-  transform-origin: center top;
+  font-size: 0.65rem;
+  color: #6b7280;
   white-space: nowrap;
+  text-align: center;
 }
 
 .dist-legend {
   display: flex;
   gap: 16px;
   padding: 0 14px 14px 14px;
-  font-size: 0.7em;
-  color: #71717a;
+  font-size: 0.75rem;
+  color: #6b7280;
 }
 
 .dist-legend .dot {
   display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
   margin-right: 6px;
   vertical-align: middle;
 }
 
 .dist-legend .dot.normal {
-  background: rgba(249, 115, 22, 0.85);
+  background: #f97316;
 }
 
 .dist-legend .dot.high {
-  background: rgba(234, 179, 8, 0.85);
+  background: #eab308;
 }
 
-/* 出货排名 Tab */
-.ranking-tabs {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 14px 10px 14px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+/* 出货排名：整行全宽，左列六星、右列五星，各前 10 */
+.ranking-card-full {
+  width: 100%;
+  margin-top: 16px;
 }
 
-.ranking-tabs .tab {
-  font-size: 0.85em;
-  font-weight: bold;
-  color: #71717a;
-  cursor: default;
+.ranking-two-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 8px;
+  width: 100%;
+  min-width: 0;
 }
 
-.ranking-tabs .tab.active {
-  color: #f59e0b;
-}
-
-.pool-list {
+.ranking-col {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
-.pool-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  font-size: 0.9em;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid transparent;
-}
-
-.pool-row.primary {
-  background: rgba(245, 158, 11, 0.1);
-  border-color: rgba(245, 158, 11, 0.2);
-  color: #fff;
-}
-
-.pool-row .pool-name {
-  color: inherit;
-  font-weight: 500;
-}
-
-.pool-row .pool-count {
-  font-family: inherit;
-  font-size: 0.85em;
-  opacity: 0.8;
-}
-
-/* 数据概览：进度条 + 5星4星 */
-.stats-overview .stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.85em;
-  margin-bottom: 6px;
-}
-
-.stats-overview .stat-row .label {
-  color: #71717a;
-}
-
-.stats-overview .stat-row .value {
+.ranking-col-title {
+  font-size: 0.95rem;
   font-weight: bold;
-  font-family: inherit;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #e5e7eb;
 }
 
-.stats-overview .bar-wrap {
-  height: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 14px;
+.ranking-col-title.star6 {
+  color: #dc2626;
+  border-bottom-color: rgba(220, 38, 38, 0.3);
 }
 
-.stats-overview .bar-fill {
-  height: 100%;
-  background: #f59e0b;
-  border-radius: 2px;
+.ranking-col-title.star5 {
+  color: #ca8a04;
+  border-bottom-color: rgba(202, 138, 4, 0.3);
 }
 
-.stats-overview .bar-fill.primary {
-  background: #6366f1;
-}
-
-.stats-overview .two-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.stats-overview .two-col .label {
-  font-size: 0.75em;
-  color: #71717a;
-}
-
-.stats-overview .two-col .label.block {
-  display: block;
-}
-
-.stats-overview .two-col .value {
-  font-size: 1.1em;
-  font-weight: bold;
-  font-family: inherit;
-}
-
-.stats-overview .two-col .value.purple {
-  color: #a78bfa;
-}
-
-.stats-overview .two-col .value.blue {
-  color: #60a5fa;
-}
-
-/* 出货排名 */
 .ranking-list {
   display: flex;
   flex-direction: column;
@@ -580,75 +561,87 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
-  font-size: 0.9em;
-  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #f3f4f6;
 }
 
 .ranking-item .rank {
-  width: 22px;
+  width: 24px;
   text-align: center;
   font-weight: bold;
-  font-family: inherit;
-  color: #71717a;
+  color: #6b7280;
   flex-shrink: 0;
 }
 
 .ranking-item .name {
   flex: 1;
   min-width: 0;
-  font-weight: 500;
-  color: #fff;
+  font-weight: 600;
+  color: #1f2937;
 }
 
 .ranking-item .name .up-tag {
-  font-size: 0.65em;
-  background: #f59e0b;
-  color: #000;
-  padding: 1px 4px;
+  font-size: 0.65rem;
+  background: #dc2626;
+  color: #fff;
+  padding: 2px 6px;
   margin-left: 6px;
+  border-radius: 4px;
   font-weight: bold;
 }
 
 .ranking-item .count {
-  font-family: inherit;
-  font-size: 0.9em;
+  font-size: 0.9rem;
+  color: #374151;
 }
 
 .ranking-item .count .percent {
-  font-size: 0.85em;
-  color: #71717a;
+  font-size: 0.85rem;
+  color: #6b7280;
   margin-left: 2px;
 }
 
 .ranking-item .bar-wrap {
   width: 80px;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
   overflow: hidden;
   flex-shrink: 0;
 }
 
 .ranking-item .bar-fill {
   height: 100%;
-  background: #f59e0b;
-  border-radius: 2px;
+  background: #dc2626;
+  border-radius: 3px;
 }
 
+.ranking-item .bar-fill.star6 {
+  background: #dc2626;
+}
+
+.ranking-item .bar-fill.star5 {
+  background: #ca8a04;
+}
+
+/* 页脚说明 */
 .footer-note {
   margin-top: 16px;
-  padding: 12px 14px;
-  font-size: 0.8em;
-  color: #71717a;
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  padding: 14px 16px;
+  font-size: 0.85rem;
+  color: #6b7280;
+  background: #f0f9ff;
+  border: 1px solid #e0f2fe;
+  border-radius: 8px;
   display: flex;
   align-items: flex-start;
   gap: 10px;
 }
 
 .footer-note .footer-icon {
-  color: #6366f1;
+  color: #0284c7;
   flex-shrink: 0;
 }

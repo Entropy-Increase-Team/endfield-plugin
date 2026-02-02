@@ -18,22 +18,28 @@ export class EndfieldUpdate extends plugin {
         {
           reg: `^${rulePrefix}更新$`,
           fnc: 'updatePlugin',
-          auth: 'master'
+          permission: 'master'
         }
       ]
     })
   }
 
-  /** 执行插件更新：在插件目录下执行 git pull */
+  /** 执行插件更新：在插件目录下执行 git pull，仅主人可用 */
   async updatePlugin() {
+    if (!this.e?.isMaster) return false
+    await this.reply(getMessage('update.starting'))
     try {
       const output = execSync('git pull', {
         cwd: PLUGIN_ROOT,
         encoding: 'utf8',
         timeout: 60000
       })
-      const msg = (output || '').trim() || '已是最新'
-      await this.reply(getMessage('update.done', { output: msg }))
+      const msg = (output || '').trim() || ''
+      if (/already up to date\.?/i.test(msg)) {
+        await this.reply(getMessage('update.already_latest'))
+      } else {
+        await this.reply(getMessage('update.done', { output: msg }))
+      }
     } catch (err) {
       const stderr = err.stderr?.toString?.()?.trim() || err.message || String(err)
       logger.error('[终末地插件] 更新失败:', err)

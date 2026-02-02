@@ -1,0 +1,240 @@
+/* 抽卡记录 - 最近记录列表页，风格对齐 global-stats，宽度 500px */
+@font-face {
+  font-family: 'HarmonyOS Sans SC';
+  src: url('../font/HarmonyOS_SansSC_Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #f5f5f5;
+  font-family: 'HarmonyOS Sans SC', -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif;
+  min-height: 100vh;
+  padding: 16px;
+  color: #1f2937;
+}
+
+.gacha-record-container {
+  margin: 0 auto;
+  padding: 20px;
+  max-width: 500px;
+  position: relative;
+}
+
+.list-top-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 14px 18px;
+  background: #f9fafb;
+  border-radius: 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.list-top-bar .list-header-middle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.list-top-bar .list-title {
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.list-top-bar .list-count {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.list-top-bar-logo {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  max-width: 110px;
+  overflow: hidden;
+}
+
+.logo-container .logo-image {
+  height: 44px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.card-wrap {
+  position: relative;
+  padding: 18px;
+  margin-bottom: 14px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.overview-item {
+  padding: 12px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.overview-item .label {
+  font-size: 0.65rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.overview-item .value {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.overview-item .value.star6 {
+  color: #dc2626;
+}
+
+.overview-item .value.star5 {
+  color: #ca8a04;
+}
+
+.overview-item .value.star4 {
+  color: #7c3aed;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.section-head .title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #1f2937;
+  border-left: 6px solid #1f2937;
+  padding-left: 10px;
+}
+
+.section-head .num {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  letter-spacing: 0.05em;
+}
+
+.section-sub {
+  font-size: 0.65rem;
+  color: #9ca3af;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+
+.record-card {
+  padding: 14px 18px;
+}
+
+.record-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.record-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #f3f4f6;
+}
+
+.record-index {
+  width: 22px;
+  text-align: right;
+  font-weight: 600;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.record-star {
+  font-weight: bold;
+  flex-shrink: 0;
+  min-width: 26px;
+}
+
+.record-star.star6 {
+  color: #dc2626;
+}
+
+.record-star.star5 {
+  color: #ca8a04;
+}
+
+.record-star.star4 {
+  color: #7c3aed;
+}
+
+.record-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.record-pool {
+  font-size: 0.75rem;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.page-hint {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.empty-hint {
+  font-size: 0.85rem;
+  color: #6b7280;
+  padding: 10px 0;
+}
