@@ -1,6 +1,6 @@
 // 官方wiki数据不全 懒的搞了 后续优化吧
 
-import { rulePrefix } from '../utils/common.js'
+import { rulePrefix, getMessage } from '../utils/common.js'
 import common from '../../../lib/common/common.js'
 import EndfieldRequest from '../model/endfieldReq.js'
 import setting from '../utils/setting.js'
@@ -61,13 +61,13 @@ export class EndfieldWiki extends plugin {
     const { subTypeId, name } = this.getWikiQuery()
     const typeLabel = WIKI.SUB_LABEL[subTypeId] || '百科'
     if (!name) {
-      await this.reply(`请输入查询内容，例：:wiki 莱万汀 / :wiki 干员 莱万汀 / :wiki 武器 xxx`)
+      await this.reply(getMessage('wiki.provide_content'))
       return true
     }
 
     const commonConfig = setting.getConfig('common') || {}
     if (!commonConfig.api_key || String(commonConfig.api_key).trim() === '') {
-      await this.reply('Wiki 查询需要配置 api_key，请在 config/common.yaml 中填写（终末地协议终端获取）')
+      await this.reply(getMessage('wiki.need_api_key'))
       return true
     }
 
@@ -81,20 +81,20 @@ export class EndfieldWiki extends plugin {
 
     if (!listRes || listRes.code !== 0) {
       logger.error(`[终末地Wiki] ${typeLabel}列表失败: ${JSON.stringify(listRes)}`)
-      await this.reply(`查询「${name}」失败，请稍后重试`)
+      await this.reply(getMessage('wiki.query_failed', { name }))
       return true
     }
 
     const items = listRes.data?.items || []
     const item = this.findByName(items, name)
     if (!item) {
-      await this.reply(`未找到与「${name}」相关的${typeLabel}条目`)
+      await this.reply(getMessage('wiki.not_found', { name, type_label: typeLabel }))
       return true
     }
 
     const detailRes = await req.getWikiData('wiki_item_detail', { id: item.item_id })
     if (!detailRes || detailRes.code !== 0 || !detailRes.data) {
-      await this.reply(`未获取到「${item.name || item.item_id}」的百科详情`)
+      await this.reply(getMessage('wiki.detail_failed', { name: item.name || item.item_id }))
       return true
     }
 

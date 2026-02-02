@@ -1,4 +1,4 @@
 node_modules/
 config/*
 !config/.gitkeep
-API文档.md
+data/strategy-img/

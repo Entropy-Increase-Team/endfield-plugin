@@ -1,11 +1,19 @@
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { rulePrefix, getMessage } from '../utils/common.js'
 import setting from '../utils/setting.js'
 import common from '../../../lib/common/common.js'
 import EndfieldRequest from '../model/endfieldReq.js'
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
 /** Wiki 干员攻略：main_type_id=2 游戏攻略辑，sub_type_id=11 干员攻略 */
 const WIKI_STRATEGY_MAIN_TYPE_ID = '2'
 const WIKI_STRATEGY_SUB_TYPE_ID = '11'
+
+/** 攻略图片本地存储目录：data/strategy-img/名称/ 名称可为干员名（莱万汀）或队伍名（火队、x队） */
+const STRATEGY_IMG_DIR = path.join(__dirname, '..', 'data', 'strategy-img')
 
 export class EndfieldStrategy extends plugin {
   constructor() {
@@ -16,8 +24,17 @@ export class EndfieldStrategy extends plugin {
       priority: 50,
       rule: [
         {
+          reg: `^${rulePrefix}攻略列表$`,
+          fnc: 'listStrategy'
+        },
+        {
           reg: `^${rulePrefix}(.+?)攻略$`,
           fnc: 'queryStrategy'
+        },
+        // :上传攻略 [干员/队伍名] [作者] [图片/链接]
+        {
+          reg: `^${rulePrefix}上传攻略\\s+(\\S+)\\s+(\\S+)(?:\\s+(图片|https?://\\S+))?$`,
+          fnc: 'uploadStrategyImage'
         }
       ]
     })
@@ -43,6 +60,201 @@ export class EndfieldStrategy extends plugin {
     return mode === 2 ? '#zmd' : ':'
   }
 
+  /** 攻略列表：本地 data/strategy-img 子目录 + Wiki 干员攻略名称 */
+  async listStrategy() {
+    const prefix = this.getCmdPrefix()
+    const localNames = []
+    try {
+      if (fs.existsSync(STRATEGY_IMG_DIR) && fs.statSync(STRATEGY_IMG_DIR).isDirectory()) {
+        const dirs = fs.readdirSync(STRATEGY_IMG_DIR)
+        for (const d of dirs) {
+          const full = path.join(STRATEGY_IMG_DIR, d)
+          if (fs.statSync(full).isDirectory()) localNames.push(d)
+        }
+        localNames.sort((a, b) => a.localeCompare(b))
+      }
+    } catch (e) {
+      logger.error('[终末地攻略] 读取本地攻略目录失败', e)
+    }
+    let wikiNames = []
+    const commonConfig = setting.getConfig('common') || {}
+    if (commonConfig.api_key && String(commonConfig.api_key).trim()) {
+      try {
+        const req = new EndfieldRequest(0, '', '')
+        const listRes = await req.getWikiData('wiki_items', {
+          main_type_id: WIKI_STRATEGY_MAIN_TYPE_ID,
+          sub_type_id: WIKI_STRATEGY_SUB_TYPE_ID,
+          page: 1,
+          page_size: 200
+        })
+        if (listRes?.code === 0 && Array.isArray(listRes.data?.items)) {
+          wikiNames = (listRes.data.items || [])
+            .map((item) => (item.name || '').replace(/^【玩家攻略】/, '').trim())
+            .filter(Boolean)
+        }
+      } catch (e) {
+        logger.error('[终末地攻略] 获取 Wiki 攻略列表失败', e)
+      }
+    }
+    const lines = []
+    if (localNames.length > 0) {
+      lines.push('【本地攻略】\n' + localNames.join('、'))
+    }
+    if (wikiNames.length > 0) {
+      lines.push('【Wiki 干员攻略】\n' + wikiNames.join('、'))
+    }
+    if (lines.length === 0) {
+      await this.reply(getMessage('strategy.list_empty'))
+      return true
+    }
+    await this.reply(getMessage('strategy.list_header') + '\n\n' + lines.join('\n\n'))
+    return true
+  }
+
+  /** 路径/文件名安全：替换非法字符为下划线 */
+  sanitizeName(name) {
+    if (!name || typeof name !== 'string') return 'unknown'
+    return name.replace(/[/\\:*?"<>|]/g, '_').trim() || 'unknown'
+  }
+
+  /**
+   * 上传攻略图片：:上传攻略 [干员/队伍名] [作者] [图片/链接]
+   * 存储：data/strategy-img/名称/作者_时间戳.扩展名
+   */
+  async uploadStrategyImage() {
+    const msg = (this.e.msg || '').trim()
+    const mode = Number(this.common_setting?.prefix_mode) || 1
+    const prefix = mode === 2 ? /^#(终末地|zmd)?\s*/ : /^[:：]\s*/
+    const after = msg
+      .replace(prefix, '')
+      .replace(/^上传队伍攻略\s+/i, '')
+      .replace(/^上传攻略\s+/i, '')
+      .trim()
+    const match = after.match(/^(\S+)\s+(\S+)(?:\s+(图片|https?:\/\/\S+))?$/)
+    if (!match) {
+      await this.reply(getMessage('strategy.upload_format'))
+      return true
+    }
+    const [, nameOrTeam, author, third] = match
+    let imageUrl = null
+    let imageBuf = null
+    if (third && third.startsWith('http')) {
+      imageUrl = third
+    } else {
+      const imgSeg = this.getFirstImageFromMessage()
+      if (imgSeg?.url) {
+        imageUrl = imgSeg.url
+      } else if (imgSeg?.file) {
+        imageBuf = this.readImageFromSegment(imgSeg)
+      }
+    }
+    if (!imageUrl && !imageBuf) {
+      await this.reply(getMessage('strategy.upload_need_image'))
+      return true
+    }
+    const dirName = this.sanitizeName(nameOrTeam)
+    const authorName = this.sanitizeName(author)
+    const dir = path.join(STRATEGY_IMG_DIR, dirName)
+    try {
+      fs.mkdirSync(dir, { recursive: true })
+    } catch (err) {
+      logger.error(`[终末地攻略] 创建目录失败: ${dir}`, err)
+      await this.reply(getMessage('strategy.upload_mkdir_failed'))
+      return true
+    }
+    let safeExt = '.png'
+    if (imageUrl) {
+      try {
+        const ext = path.extname(new URL(imageUrl).pathname) || '.png'
+        safeExt = /^\.(png|jpe?g|gif|webp)$/i.test(ext) ? ext : '.png'
+      } catch (e) {}
+    }
+    const filename = `${authorName}_${Date.now()}${safeExt}`
+    const filepath = path.join(dir, filename)
+    try {
+      if (imageBuf) {
+        fs.writeFileSync(filepath, imageBuf)
+      } else {
+        const res = await fetch(imageUrl, { method: 'GET' })
+        if (!res.ok) {
+          await this.reply(getMessage('strategy.upload_download_failed', { status: res.status }))
+          return true
+        }
+        const buf = Buffer.from(await res.arrayBuffer())
+        fs.writeFileSync(filepath, buf)
+      }
+      await this.reply(getMessage('strategy.upload_saved', { path: `${dirName}/${filename}` }))
+    } catch (err) {
+      logger.error(`[终末地攻略] 下载/保存图片失败`, err)
+      await this.reply(getMessage('strategy.upload_save_failed'))
+    }
+    return true
+  }
+
+  /** 从 this.e.message 中取第一张图片 segment（支持 icqq/oicq 消息数组） */
+  getFirstImageFromMessage() {
+    const msg = this.e.message || this.e.msg
+    if (!msg) return null
+    const arr = Array.isArray(msg) ? msg : (msg && msg.data ? [msg] : [])
+    for (const seg of arr) {
+      if (seg?.type === 'image' || seg?.type === 2) {
+        const url = seg.url ?? seg.data?.url
+        const file = seg.file ?? seg.data?.file
+        if (url || file) return { url, file }
+      }
+    }
+    return null
+  }
+
+  /** 从 segment 的 file（base64 或 path）读取为 Buffer */
+  readImageFromSegment(imgSeg) {
+    const file = imgSeg?.file ?? imgSeg?.data?.file
+    if (!file || typeof file !== 'string') return null
+    if (file.startsWith('base64://')) {
+      return Buffer.from(file.slice(9), 'base64')
+    }
+    if (file.startsWith('file://')) {
+      const p = file.slice(7)
+      try {
+        return fs.readFileSync(path.isAbsolute(p) ? p : path.join(process.cwd(), p))
+      } catch (e) {
+        return null
+      }
+    }
+    try {
+      return fs.readFileSync(file)
+    } catch (e) {
+      return null
+    }
+  }
+
+  /** 从文件名解析作者：格式 作者_时间戳.ext，返回作者名或空串 */
+  getAuthorFromStrategyFilename(filename) {
+    const base = path.basename(filename, path.extname(filename))
+    const m = base.match(/^(.+)_(\d+)$/)
+    return m ? m[1] : base
+  }
+
+  /** 获取本地用户上传的攻略图片：data/strategy-img/名称/ 下的图片（名称可为干员名或队伍名如火队），返回 { path, author }[] */
+  getLocalStrategyImages(nameOrTeam) {
+    const dirName = this.sanitizeName(nameOrTeam)
+    const dir = path.join(STRATEGY_IMG_DIR, dirName)
+    try {
+      if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return []
+      const files = fs.readdirSync(dir)
+      const imageExt = /\.(png|jpe?g|gif|webp)$/i
+      return files
+        .filter((f) => imageExt.test(f))
+        .map((f) => {
+          const fullPath = path.join(dir, f)
+          return { path: fullPath, author: this.getAuthorFromStrategyFilename(f) }
+        })
+        .sort((a, b) => fs.statSync(a.path).mtimeMs - fs.statSync(b.path).mtimeMs)
+    } catch (e) {
+      return []
+    }
+  }
+
   /** 在条目列表中按名称匹配（精确优先，再模糊） */
   filterItemsByName(items, name) {
     if (!Array.isArray(items) || !name) return []
@@ -66,7 +278,7 @@ export class EndfieldStrategy extends plugin {
 
     const commonConfig = setting.getConfig('common') || {}
     if (!commonConfig.api_key || String(commonConfig.api_key).trim() === '') {
-      await this.reply('攻略查询需要配置 api_key，请在 config/common.yaml 中填写（终末地协议终端获取）')
+      await this.reply(getMessage('strategy.need_api_key'))
       return true
     }
 
@@ -87,9 +299,21 @@ export class EndfieldStrategy extends plugin {
 
     const allItems = listRes.data?.items || []
     const items = this.filterItemsByName(allItems, name)
+    const localImages = this.getLocalStrategyImages(name)
+    const seg = global.segment || (await import('oicq')).segment
 
     if (items.length === 0) {
-      await this.reply(`${getMessage('strategy.not_found', { name })}\n（当前仅支持 Wiki 干员攻略，可尝试其他干员名）`)
+      if (localImages.length > 0) {
+        const parts = []
+        for (const img of localImages) {
+          parts.push(`【作者】${img.author}\n`)
+          if (seg?.image) parts.push(seg.image(`file://${img.path}`))
+        }
+        const forwardMsg = common.makeForwardMsg(this.e, [parts], `${name}攻略`)
+        await this.e.reply(forwardMsg)
+      } else {
+        await this.reply(getMessage('strategy.not_found', { name }) + '\n' + getMessage('strategy.not_found_suffix'))
+      }
       return true
     }
 
@@ -97,7 +321,7 @@ export class EndfieldStrategy extends plugin {
     const item = items[0]
     const detailRes = await req.getWikiData('wiki_item_detail', { id: item.item_id })
     if (!detailRes || detailRes.code !== 0 || !detailRes.data) {
-      await this.reply(`未获取到「${item.name || item.item_id}」的攻略详情`)
+      await this.reply(getMessage('strategy.detail_failed', { name: item.name || item.item_id }))
       return true
     }
 
@@ -108,8 +332,7 @@ export class EndfieldStrategy extends plugin {
     const documentMap = rawContent.document_map || rawContent.documentMap || data.document?.documentMap || {}
     const widgetCommonMap = rawContent.widget_common_map || rawContent.widgetCommonMap || data.widgetCommonMap || {}
 
-    const seg = global.segment || (await import('oicq')).segment
-    const forwardMessages = []
+    const wikiParts = []
 
     // 有 widget_common_map 时按作者分条；若该作者是「文字+图片」则单独发一次合并转发
     const authorMessages = this.buildMessagesByAuthors(widgetCommonMap, documentMap, seg)
@@ -120,7 +343,7 @@ export class EndfieldStrategy extends plugin {
           const singleForward = common.makeForwardMsg(this.e, [parts], itemName)
           await this.e.reply(singleForward)
         } else {
-          forwardMessages.push(parts)
+          wikiParts.push(parts)
         }
       }
     } else {
@@ -132,17 +355,26 @@ export class EndfieldStrategy extends plugin {
         for (const url of imageUrls) {
           parts.push(seg.image(url))
         }
-        forwardMessages.push(parts)
+        wikiParts.push(parts)
       } else {
-        forwardMessages.push([text + (data.cover ? '（暂无正文图片）' : '暂无内容')])
+        wikiParts.push([text + (data.cover ? '（暂无正文图片）' : '暂无内容')])
         if (data.cover && seg?.image) {
-          forwardMessages.push([seg.image(data.cover)])
+          wikiParts.push([seg.image(data.cover)])
         }
       }
     }
 
+    const userParts = []
+    if (localImages.length > 0) {
+      for (const img of localImages) {
+        userParts.push(`【作者】${img.author}\n`)
+        if (seg?.image) userParts.push(seg.image(`file://${img.path}`))
+      }
+    }
+    const forwardMessages = userParts.length > 0 ? [userParts, ...wikiParts] : wikiParts
+
     if (forwardMessages.length > 0) {
-      const forwardMsg = common.makeForwardMsg(this.e, forwardMessages, itemName)
+      const forwardMsg = common.makeForwardMsg(this.e, forwardMessages, `${itemName}攻略`)
       await this.e.reply(forwardMsg)
     }
     return true

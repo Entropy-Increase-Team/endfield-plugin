@@ -249,7 +249,7 @@ export class EndfieldStamina extends plugin {
     } else {
       const groupId = idStr && idStr.trim() ? idStr.trim() : (isGroup ? String(this.e.group_id) : '')
       if (!groupId) {
-        await this.reply('请指定群号，例如：' + this.getCmdPrefix() + '订阅推送设置 群聊 123456789', false, { at: isGroup })
+        await this.reply(getMessage('stamina.push_setting_example', { prefix: this.getCmdPrefix() }), false, { at: isGroup })
         return true
       }
       sub.push_type = 'group'

@@ -45,8 +45,14 @@ help_group:
   - group: "攻略查询"
     list:
       - icon: 21
+        title: "{prefix}攻略列表"
+        desc: "查看可查询的攻略名（本地+Wiki）"
+      - icon: 21
         title: "{prefix}<攻略名>攻略"
-        desc: "查询攻略（如 黎风攻略）"
+        desc: "查询攻略（干员名或队伍名，如 莱万汀攻略、火队攻略）"
+      - icon: 22
+        title: "{prefix}上传攻略 [干员/队伍名] [作者] [图片/链接]"
+        desc: "上传攻略图片"
   - group: "终末地信息查询（需绑定）"
     list:
       - icon: 6
@@ -110,27 +116,6 @@ help_group:
       - icon: 17
         title: "{prefix}ai 新会话 [消息内容]"
         desc: "创建新会话"
-  - group: "攻略资源（管理员）"
-    auth: master
-    list:
-      - icon: 22
-        title: "{prefix}攻略资源下载"
-        desc: "下载所有攻略资源"
-      - icon: 23
-        title: "{prefix}攻略资源更新"
-        desc: "增量更新新攻略"
-      - icon: 24
-        title: "{prefix}攻略资源强制更新"
-        desc: "强制更新所有攻略"
-      - icon: 25
-        title: "{prefix}攻略上传 [内容]"
-        desc: "上传攻略（需附带图片或链接）"
-      - icon: 25
-        title: "{prefix}攻略上传干员 <干员名>"
-        desc: "指定干员后上传攻略"
-      - icon: 26
-        title: "{prefix}攻略删除 <链接>"
-        desc: "按链接删除攻略"
   - group: "签到（管理员）"
     auth: master
     list:
