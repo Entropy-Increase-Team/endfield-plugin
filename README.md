@@ -4,7 +4,7 @@
 
 # endfield-plugin
 
-基于森空岛 API 的 Yunzai-Bot **终末地**插件 · 绑定 / 便签 / 干员面板 / Wiki / 攻略 / AI 对话
+基于森空岛 API 的 Yunzai-Bot **终末地**插件 · 绑定 / 便签 / 干员面板 / Wiki / 攻略
 
 [安装](#安装插件) · [功能](#当前功能) · [说明](#说明)
 
@@ -88,13 +88,6 @@ git clone https://github.com/Entropy-Increase-Team/endfield-plugin ./plugins/end
 | `:wiki 装备 <装备名称>` | 装备百科 |
 | `:wiki 战术物品 <物品名称>` | 战术物品百科 |
 | `:wiki 武器 <武器名称>` | 武器百科 |
-
-### AI 对话
-
-| 命令 | 说明 |
-|------|------|
-| `:ai [消息内容]` | AI 对话 |
-| `:ai 新会话 [消息内容]` | 创建新会话 |
 
 ### 攻略查询（Wiki 干员攻略）
 

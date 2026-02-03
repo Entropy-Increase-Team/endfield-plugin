@@ -140,23 +140,24 @@ gacha:
   global_stats_failed: "获取全服抽卡统计失败"
   no_accounts: "未找到可用账号，请确认已绑定角色"
   no_records: "暂无抽卡记录，请先使用「{prefix}抽卡记录同步」从官方服务器拉取数据"
-  analysis_auto_sync_hint: "检测到未进行过同步，已为你自动开启同步请稍后"
+  analysis_auto_sync_hint: "检测到未进行过同步，米糕已为你自动开启同步，请稍候～"
+  analysis_incremental_hint: "正在拉取最新记录，请稍候…"
   select_account: "请选择要同步的账号："
   reply_index: "请回复序号，示例：'{prefix}1'"
   invalid_index: "序号无效，请回复列表中的数字"
-  sync_start: "开始同步抽卡记录..."
+  sync_start: "开始同步抽卡记录…"
   sync_busy: "同步任务进行中，请稍后再试"
   sync_start_failed: "启动同步失败"
   sync_done: |
     ✅ 抽卡记录同步完成
     ──────────────
-    发现记录：{records_found} 条  
+    发现记录：{records_found} 条
     本次新增：{new_records} 条
     {pool_detail}
   sync_done_pools: "📊 涉及卡池：{pools}"
   sync_in_progress: "同步进行中，当前进度："
-  auth_incremental_sync: "检测到已有记录，执行增量同步..."
-  auth_full_sync: "首次同步，从零开始拉取记录..."
+  auth_incremental_sync: "检测到已有记录，执行增量同步…"
+  auth_full_sync: "首次同步，从零开始拉取记录…"
   sync_failed: "同步失败：{error}"
   sync_timeout: "同步超时，请稍后重试"
 

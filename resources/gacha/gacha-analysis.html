@@ -30,42 +30,54 @@
     </div>
 
     <div class="card-wrap pools-card">
-      <div class="section-head">
-        <span class="title">按池统计</span>
+      <div class="section-head section-head-time">
+        <span class="analysis-time">{{analysisTime}}</span>
       </div>
-      <div class="section-sub">POOL STATISTICS</div>
 
-      {{each poolList}}
-      <div class="pool-row-wrap">
-        <div class="pool-row-header">{{$value.label}}{{if $value.poolName}} · {{$value.poolName}}{{/if}}</div>
-        <div class="pool-row-metrics">
-          <span class="metric-total">{{$value.total}} 抽数</span>
-          <span class="metric-a">{{$value.metric1Label}} {{$value.metric1}}</span>
-          <span class="metric-b">{{$value.metric2Label}} {{$value.metric2}}</span>
-        </div>
-        {{if $value.images && $value.images.length > 0}}
-        <div class="pool-images-row">
-          {{each $value.images}}
-          <div class="pool-img-slot">
-            <img class="pool-img" src="{{$value.url}}" alt="{{$value.name}}" onerror="this.style.display='none'">
-            <span class="pool-img-name">{{$value.name}}</span>
-            {{if $value.pullCount}}
-            <span class="pool-img-pull">{{$value.pullCount}}抽</span>
+      {{each poolGroups}}
+      <div class="pool-group-wrap">
+        <div class="pool-group-title">{{$value.label}}</div>
+        {{each $value.pools}}
+        <div class="pool-row-wrap">
+          {{if $value.poolName != '免费'}}
+          <div class="pool-row-header">
+            <span class="pool-row-pool-name">{{$value.poolName}}</span>
+          </div>
+          {{/if}}
+          {{if $value.poolName != '免费'}}
+          <div class="pool-row-metrics">
+            <span class="metric-total">{{$value.total}} 抽数</span>
+            <span class="metric-a">{{$value.metric1Label}} {{$value.metric1}}</span>
+            <span class="metric-b">{{$value.metric2Label}} {{$value.metric2}}</span>
+          </div>
+          {{/if}}
+          {{if ($value.images && $value.images.length > 0) || $value.pitySinceLast6 != null}}
+          <div class="pool-star6-list">
+            {{if $value.pitySinceLast6 != null && $value.poolName != '免费'}}
+            <div class="pool-star6-entry pool-pity-row">
+              <div class="pool-star6-icon pool-star6-icon-pity">?</div>
+              <div class="pool-star6-bar-wrap">
+                <div class="pool-star6-bar-inner pool-star6-badge-pity pool-star6-bar-inner-not-full" style="width: {{$value.pityBarPercent || 0}}%;">
+                  <span class="pool-star6-bar-text">已垫 {{$value.pitySinceLast6}}</span>
+                </div>
+              </div>
+            </div>
+            {{/if}}
+            {{if $value.images && $value.images.length > 0}}
+            {{each $value.images}}
+            <div class="pool-star6-entry">{{if $value.url}}<img class="pool-star6-icon" src="{{$value.url}}" alt="{{$value.name}}" onerror="this.style.display='none'">{{else}}<div class="pool-star6-icon pool-star6-icon-placeholder pool-star6-icon-free">×</div>{{/if}}
+              <div class="pool-star6-bar-wrap">{{if $value.refLinePercent != null}}<div class="pool-star6-bar-ref" style="left: {{$value.refLinePercent}}%;"></div>{{/if}}
+                <div class="pool-star6-bar-inner pool-star6-badge-{{$value.badgeColor || 'normal'}}{{if $value.barPercent < 100}} pool-star6-bar-inner-not-full{{/if}}" style="width: {{$value.barPercent || 50}}%;">
+                  <span class="pool-star6-bar-text">{{if $value.isFreeRow}}免费 - {{$value.pullCount}}抽{{else}}{{$value.pullCount}}抽{{/if}}</span>
+                </div>
+              </div>{{if $value.tag && !$value.isFreeRow}}<span class="pool-star6-tag pool-star6-tag-{{$value.badgeColor}}">{{$value.tag}}</span>{{/if}}
+            </div>
+            {{/each}}
             {{/if}}
           </div>
-          {{/each}}
+          {{/if}}
         </div>
-        {{/if}}
-        {{if $value.images5 && $value.images5.length > 0}}
-        <div class="pool-images-row pool-images-row-star5">
-          {{each $value.images5}}
-          <div class="pool-img-slot pool-img-slot-star5">
-            <img class="pool-img pool-img-star5" src="{{$value.url}}" alt="{{$value.name}}" onerror="this.style.display='none'">
-            <span class="pool-img-name pool-img-name-star5">{{$value.name}}</span>
-          </div>
-          {{/each}}
-        </div>
-        {{/if}}
+        {{/each}}
       </div>
       {{/each}}
     </div>

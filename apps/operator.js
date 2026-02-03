@@ -28,6 +28,119 @@ const META_CLASS_DIR = path.join(_meta, 'class')
 const META_ATTRPANLE_DIR = path.join(_meta, 'attrpanle')
 const LIST_BG_FILES = ['bg1.png', 'bg2.png']
 
+/**
+ * 获取并发送干员列表（可被 enduid 绑定成功后调用）
+ * @param {object} e 消息事件对象
+ * @param {string} [userId] 用户ID，不传则用 e.at || e.user_id
+ * @param {{ skipLoadingReply?: boolean }} [options] skipLoadingReply 为 true 时不发送「正在获取干员列表」
+ * @returns {Promise<boolean>}
+ */
+export async function sendOperatorList(e, userId, options = {}) {
+  const uid = userId !== undefined && userId !== null ? userId : (e.at || e.user_id)
+  const sklUser = new EndfieldUser(uid)
+
+  if (!(await sklUser.getUser())) {
+    await e.reply(getUnbindMessage())
+    return true
+  }
+
+  if (!options.skipLoadingReply) {
+    await e.reply(getMessage('operator.loading_list'))
+  }
+
+  try {
+    const res = await sklUser.sklReq.getData('endfield_card_detail')
+    if (!res || res.code !== 0) {
+      logger.error(`[终末地干员列表]card/detail 失败: ${JSON.stringify(res)}`)
+      await e.reply(getMessage('operator.get_role_failed'))
+      return true
+    }
+    const detail = res.data?.detail || {}
+    const base = detail.base || {}
+    const chars = detail.chars || []
+
+    if (!chars.length) {
+      await e.reply(getMessage('operator.not_found_info'))
+      return true
+    }
+
+    const userAvatar = base?.avatarUrl || ''
+    const userNickname = base?.name || '未知'
+    const userLevel = base?.level ?? 0
+
+    const operators = chars.map((char) => {
+      const c = char.charData || char
+      const imageUrl = c.avatarRtUrl || ''
+      const rarity = parseInt(c.rarity?.value || '1', 10) || 1
+      const rarityClass = `rarity_${rarity}`
+      const level = char.level ?? c.level ?? 0
+      const profession = c.profession?.value || ''
+      const property = c.property?.value || ''
+      const professionIcon = iconToDataUrl(META_CLASS_DIR, profession)
+      const propertyIcon = iconToDataUrl(META_ATTRPANLE_DIR, property)
+      const colorCodeMap = {
+        char_property_physical: 'PHY',
+        char_property_fire: 'FIRE',
+        char_property_electric: 'ELEC',
+        char_property_pulse: 'ELEC',
+        char_property_ice: 'ICE',
+        char_property_cryst: 'ICE',
+        char_property_nature: 'NATURE'
+      }
+      const colorCode = (colorCodeMap[c.property?.key] || c.colorCode || 'PHY').toUpperCase()
+      const name = String(c.name ?? '').trim() || '未知'
+      return {
+        name,
+        nameChars: Array.from(name),
+        imageUrl: imageUrl || 'https://assets.skland.com/ui-component/endfield/assets/evolve-phases/phase-1.png',
+        rarityClass,
+        rarity,
+        level,
+        profession,
+        professionIcon,
+        property,
+        propertyIcon,
+        colorCode
+      }
+    })
+
+    const listBgFile = LIST_BG_FILES[Math.floor(Math.random() * LIST_BG_FILES.length)]
+    const listPageWidth = 1600
+    const listColumnCount = 6
+    const listCardWidth = (listPageWidth - 48 - (listColumnCount - 1) * 12) / listColumnCount
+    const listCardHeight = listCardWidth * (4 / 3)
+    const listCardScale = Math.min(listCardWidth / 800, listCardHeight / 1200)
+
+    const tplData = {
+      totalCount: operators.length,
+      operators,
+      userAvatar,
+      userNickname,
+      userLevel,
+      listBgFile,
+      listCardScale,
+      listColumnCount,
+      listPageWidth
+    }
+
+    if (!e.runtime?.render) {
+      await e.reply(getMessage('operator.list_failed'))
+      return true
+    }
+    const img = await e.runtime.render('endfield-plugin', 'operator/list', tplData, { retType: 'base64' })
+    if (img) {
+      await e.reply(img)
+    } else {
+      await e.reply(getMessage('operator.list_failed'))
+    }
+    return true
+  } catch (error) {
+    logger.error(`[终末地干员列表]查询失败: ${error}`)
+    await e.reply(getMessage('operator.query_failed', { error: error.message }))
+    return true
+  }
+}
+
 function iconToDataUrl(dir, chineseName) {
   if (!chineseName || typeof chineseName !== 'string') return ''
   const exts = ['.jpg', '.jpeg', '.png']
@@ -291,104 +404,7 @@ export class EndfieldOperator extends plugin {
   }
 
   async getOperatorList() {
-    const userId = this.e.at || this.e.user_id
-    const sklUser = new EndfieldUser(userId)
-
-    if (!await sklUser.getUser()) {
-      await this.reply(getUnbindMessage())
-      return true
-    }
-
-    await this.reply(getMessage('operator.loading_list'))
-
-    try {
-      const detailData = await this.fetchCharacterDetailForList(sklUser)
-      if (!detailData) {
-        await this.reply(getMessage('operator.get_role_failed'))
-        return true
-      }
-
-      const { chars, base } = detailData
-      if (!chars.length) {
-        await this.reply(getMessage('operator.not_found_info'))
-        return true
-      }
-
-      const userAvatar = base?.avatarUrl || ''
-      const userNickname = base?.name || '未知'
-      const userLevel = base?.level ?? 0
-
-      const operators = chars.map((char) => {
-        const c = char.charData || char
-        const imageUrl = c.avatarRtUrl || ''
-        const rarity = parseInt(c.rarity?.value || '1', 10) || 1
-        const rarityClass = `rarity_${rarity}`
-        const level = char.level ?? c.level ?? 0
-        const profession = c.profession?.value || ''
-        const property = c.property?.value || ''
-        const professionIcon = iconToDataUrl(META_CLASS_DIR, profession)
-        const propertyIcon = iconToDataUrl(META_ATTRPANLE_DIR, property)
-        const colorCodeMap = {
-          char_property_physical: 'PHY',
-          char_property_fire: 'FIRE',
-          char_property_electric: 'ELEC',
-          char_property_pulse: 'ELEC',
-          char_property_ice: 'ICE',
-          char_property_cryst: 'ICE',
-          char_property_nature: 'NATURE'
-        }
-        const colorCode = (colorCodeMap[c.property?.key] || c.colorCode || 'PHY').toUpperCase()
-        const name = String(c.name ?? '').trim() || '未知'
-        return {
-          name,
-          nameChars: Array.from(name),
-          imageUrl: imageUrl || 'https://assets.skland.com/ui-component/endfield/assets/evolve-phases/phase-1.png',
-          rarityClass,
-          rarity,
-          level,
-          profession,
-          professionIcon,
-          property,
-          propertyIcon,
-          colorCode
-        }
-      })
-
-      const listBgFile = LIST_BG_FILES[Math.floor(Math.random() * LIST_BG_FILES.length)]
-      const listPageWidth = 1600
-      const listColumnCount = 6
-      const listCardWidth = (listPageWidth - 48 - (listColumnCount - 1) * 12) / listColumnCount
-      const listCardHeight = listCardWidth * (4 / 3)
-      const listCardScale = Math.min(listCardWidth / 800, listCardHeight / 1200)
-
-      const tplData = {
-        totalCount: operators.length,
-        operators,
-        userAvatar,
-        userNickname,
-        userLevel,
-        listBgFile,
-        listCardScale,
-        listColumnCount,
-        listPageWidth
-      }
-
-      if (!this.e.runtime?.render) {
-        await this.reply(getMessage('operator.list_failed'))
-        return true
-      }
-      const img = await this.e.runtime.render('endfield-plugin', 'operator/list', tplData, { retType: 'base64' })
-      if (img) {
-        await this.e.reply(img)
-      } else {
-        await this.reply(getMessage('operator.list_failed'))
-      }
-      return true
-    } catch (error) {
-      logger.error(`[终末地干员列表]查询失败: ${error}`)
-      await this.reply(getMessage('operator.query_failed', { error: error.message }))
-      return true
-    }
+    return sendOperatorList(this.e, this.e.at || this.e.user_id)
   }
 
   splitContent(content, maxLength = 2000) {

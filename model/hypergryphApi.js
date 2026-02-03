@@ -581,6 +581,26 @@ let hypergryphAPI = {
   },
 
   /**
+   * 抽卡记录：分页拉取全部记录（用于抽卡分析等需要全量数据的场景）
+   * @param {string} frameworkToken 用户凭证
+   * @param {{ pools?: string, limit?: number }} params 卡池与每页条数（默认 500）
+   * @returns {{ records: Array, total: number, stats?: object, user_info?: object } | null}
+   */
+  async getGachaRecordsAllPages(frameworkToken, params = {}) {
+    const limit = params.limit ?? 500
+    const first = await this.getGachaRecords(frameworkToken, { ...params, page: 1, limit })
+    if (!first) return null
+    const records = [...(first.records || [])]
+    const pages = first.pages ?? 1
+    if (pages <= 1) return { ...first, records }
+    for (let page = 2; page <= pages; page++) {
+      const next = await this.getGachaRecords(frameworkToken, { ...params, page, limit })
+      if (next?.records?.length) records.push(...next.records)
+    }
+    return { ...first, records }
+  },
+
+  /**
    * 抽卡记录：获取统计信息
    * GET /api/endfield/gacha/stats
    * @param {string} frameworkToken 用户凭证

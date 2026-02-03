@@ -171,24 +171,59 @@ body {
   margin-bottom: 10px;
 }
 
+/* 顶部改为时间显示（替代「按池统计」） */
+.section-head-time {
+  border-bottom: none;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+.analysis-time {
+  font-size: 1rem;
+  color: #6b7280;
+  letter-spacing: 0.02em;
+}
+
 .pools-card {
   padding: 12px 14px;
 }
 
+/* 角色池 / 武器池 分组 */
+.pool-group-wrap {
+  margin-bottom: 12px;
+}
+
+.pool-group-wrap:last-child {
+  margin-bottom: 0;
+}
+
+.pool-group-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 6px;
+  padding-left: 4px;
+  border-left: 4px solid #6366f1;
+}
+
 .pool-row-wrap {
   padding: 10px 0;
+  padding-left: 8px;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.pool-row-wrap:last-child {
+.pool-group-wrap .pool-row-wrap:last-child {
   border-bottom: none;
 }
 
 .pool-row-header {
-  font-size: 1.3rem;
-  font-weight: bold;
-  color: #1f2937;
   margin-bottom: 6px;
+}
+
+.pool-row-pool-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
 }
 
 .pool-row-metrics {
@@ -209,69 +244,210 @@ body {
   color: #6b7280;
 }
 
-.pool-images-row {
+/* 六星条目展示：一行一个，左侧方形头像 + 右侧绿色徽章（抽数） */
+.pool-star6-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  gap: 8px;
   margin-top: 8px;
 }
 
-.pool-img-slot {
+.pool-star6-entry {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  width: 52px;
+  gap: 10px;
+  width: 100%;
 }
 
-.pool-img {
-  width: 50px;
-  height: 50px;
+.pool-star6-icon {
+  width: 48px;
+  height: 48px;
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
-.pool-img-name {
-  font-size: 1.2rem;
+/* 第一行：方块内部问号（已垫进度条用） */
+.pool-star6-icon-pity {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: bold;
   color: #6b7280;
-  max-width: 80px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: center;
+  flex-shrink: 0;
 }
 
-.pool-img-pull {
+/* 第三行：方块内部叉（10抽免费进度条用） */
+.pool-star6-icon-placeholder,
+.pool-star6-icon-free {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fef3c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #92400e;
+  flex-shrink: 0;
+}
+
+/* 进度条宽度：占满剩余横向空间；分段式色块 + 背景参考线 */
+.pool-star6-bar-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 120px;
+  max-width: none;
+  height: 32px;
+  min-height: 32px;
+  background: #e5e7eb;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* 背景参考线：角色池 80 抽处 / 武器池 40 抽处，一眼看出吃满保底或提前出货 */
+.pool-star6-bar-ref {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  border-left: 2px dashed rgba(229, 62, 62, 0.9);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.pool-star6-bar-inner {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  min-width: 48px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  transition: width 0.2s ease;
+}
+
+/* 未满时右侧为直线，不圆角 */
+.pool-star6-bar-inner-not-full {
+  border-radius: 16px 0 0 16px;
+}
+
+.pool-star6-bar-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.pool-star6-bar-inner.pool-star6-badge-up .pool-star6-bar-text {
+  color: #1f2937;
+}
+
+/* 横向柱状图颜色定义（分段式色块）：UP=金色 #FFD700，歪/常驻=深灰 #708090，保底=青蓝 #00BFFF，垫的抽数=绿色 */
+/* UP出货 RGB(255,215,0)；常驻/歪 RGB(112,128,144)；必定保底 RGB(0,191,255) */
+.pool-star6-badge,
+.pool-star6-bar-inner.pool-star6-badge-normal {
+  background: #22c55e;
+}
+
+.pool-star6-bar-inner.pool-star6-badge-up {
+  background: #FFD700;
+}
+
+.pool-star6-bar-inner.pool-star6-badge-wai {
+  background: #708090;
+}
+
+.pool-star6-bar-inner.pool-star6-badge-baodi {
+  background: #00BFFF;
+}
+
+.pool-star6-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  padding: 6px 12px;
   font-size: 1rem;
-  color: #dc2626;
+  font-weight: 600;
+  color: #fff;
+  background: #22c55e;
+  border-radius: 8px;
+}
+
+.pool-star6-badge-up {
+  background: #FFD700;
+  color: #1f2937;
+}
+
+.pool-star6-badge-wai {
+  background: #708090;
+  color: #fff;
+}
+
+.pool-star6-badge-baodi {
+  background: #00BFFF;
+  color: #fff;
+}
+
+.pool-star6-badge-normal {
+  background: #22c55e;
+  color: #fff;
+}
+
+.pool-star6-badge-pity {
+  background: #22c55e;
+  color: #fff;
+}
+
+.pool-star6-tag {
+  margin-left: 6px;
+  font-size: 0.85rem;
   font-weight: 600;
 }
 
-.pool-images-row-star5 {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  margin-top: 0;
+.pool-star6-tag-wai {
+  color: #708090;
 }
 
-.pool-img-slot-star5 {
-  width: 40px;
-  gap: 1px;
+.pool-star6-tag-baodi {
+  color: #00BFFF;
 }
 
-.pool-img-star5 {
-  width: 45px;
-  height: 45px;
-  border-radius: 6px;
+.pool-star6-tag-up {
+  color: #b8860b;
 }
 
-.pool-img-name-star5 {
-  font-size: 0.8rem;
-  max-width: 80px;
+.pool-pity-row {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed #e5e7eb;
 }
 
-.pool-img-pull-star5 {
-  font-size: 0.8rem;
-  color: #b45309;
+.pool-pity-label {
+  font-size: 0.9rem;
+  color: #6b7280;
+  min-width: 4em;
+}
+
+.pool-pity-row .pool-star6-badge-pity {
+  min-width: 36px;
+  padding: 4px 10px;
+  font-size: 0.95rem;
 }
