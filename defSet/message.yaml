@@ -20,6 +20,12 @@ unbind_message: |
   • {prefix}扫码绑定 - App扫码登录
   • {prefix}手机绑定 [手机号] - 需私聊使用
 
+# 活动日历（:日历）
+activity:
+  need_api_key: "活动日历需要配置 api_key，请在 config/common.yaml 中填写（终末地协议终端获取）"
+  query_failed: "查询「{name}」失败，请稍后重试"
+  no_records: "暂无活动记录。"
+
 # Wiki 查询提示
 wiki:
   # 请提供名称的提示

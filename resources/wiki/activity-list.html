@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}} - {{subtitle}}</title>
+  <link rel="stylesheet" href="{{_res_path}}wiki/activity-list.css">
+</head>
+<body>
+  <div class="activity-list-container">
+    <!-- 头部：标题 + 正方形图 -->
+    <div class="list-top-bar">
+      <div class="list-header-middle">
+        <h1 class="list-title">{{title}}</h1>
+        <p class="list-count">{{subtitle}}</p>
+      </div>
+      {{if pluResPath}}
+      <div class="logo-container list-top-bar-logo">
+        <img src="{{pluResPath}}img/logo.png" alt="Logo" class="logo-image">
+      </div>
+      {{/if}}
+    </div>
+    <!-- 日历区：20 天时间轴 + 在范围内的活动条（与时间轴对应） -->
+    <div class="card-wrap calendar-wrap">
+      <div class="calendar-header" style="grid-template-columns: repeat({{dayCount}}, 1fr);">
+        {{each days day idx}}
+        <div class="calendar-day-cell {{day.isToday ? 'calendar-day-today' : ''}}">
+          <span class="calendar-date">{{day.date}}</span>
+          <span class="calendar-weekday">{{day.weekday}}</span>
+        </div>
+        {{/each}}
+      </div>
+      {{each activitiesInRange}}
+      <div class="activity-row" style="grid-template-columns: repeat({{dayCount}}, 1fr);">
+        <div class="activity-bar-wrap" style="display: grid; grid-template-columns: repeat({{dayCount}}, 1fr);">
+          <div class="activity-bar" style="grid-column: {{$value.startCol + 1}} / span {{$value.span}};">
+            <div class="activity-bar-info">
+              <span class="activity-info-icon">❗</span>
+              <div class="activity-bar-text">
+                <div class="activity-title-row">
+                  <span class="activity-name">{{$value.name}}</span>
+                  <span class="activity-remaining">{{if $value.opensInText}}{{$value.opensInText}}{{else}}{{$value.remainingText}}{{/if}}</span>
+                </div>
+                <span class="activity-time-line">{{$value.startLabel}}</span>
+                <span class="activity-time-line">{{$value.endLabel}}</span>
+              </div>
+            </div>
+            {{if $value.cover}}
+            <img src="{{$value.cover}}" alt="" class="activity-bar-pic" onerror="this.style.display='none'">
+            {{/if}}
+          </div>
+        </div>
+      </div>
+      {{/each}}
+      <div class="calendar-footer">当前时间: {{currentTimeStr}}</div>
+    </div>
+
+    <!-- 不在时间范围内的活动：底部卡片显示 -->
+    {{if activitiesOutOfRange && activitiesOutOfRange.length > 0}}
+    <div class="card-wrap out-of-range-wrap">
+      <div class="out-of-range-title">不在时间范围内</div>
+      {{each activitiesOutOfRange}}
+      <div class="activity-card-out">
+        <div class="activity-card-out-content">
+          <div class="activity-card-out-header">
+            <span class="activity-name">{{$value.name}}</span>
+            <span class="activity-remaining">{{if $value.opensInText}}{{$value.opensInText}}{{else}}{{$value.remainingText}}{{/if}}</span>
+          </div>
+          <div class="activity-card-out-body">
+            <span class="activity-time-line">{{$value.startLabel}}</span>
+            <span class="activity-time-line">{{$value.endLabel}}</span>
+          </div>
+        </div>
+        {{if $value.cover}}
+        <div class="activity-card-out-pic">
+          <img src="{{$value.cover}}" alt="" onerror="this.style.display='none'">
+        </div>
+        {{/if}}
+      </div>
+      {{/each}}
+    </div>
+    {{/if}}
+  </div>
+</body>
+</html>

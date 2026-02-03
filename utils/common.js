@@ -51,22 +51,26 @@ export function getUnbindMessage() {
   return replacePlaceholders(message)
 }
 
+/** 从配置对象中按 path 取消息文案 */
+function lookupMessage(config, path) {
+  const keys = path.split('.')
+  let value = config
+  for (const key of keys) {
+    if (value && typeof value === 'object') value = value[key]
+    else return undefined
+  }
+  return typeof value === 'string' ? value : undefined
+}
+
 export function getMessage(path, params = {}) {
   const messageConfig = setting.getConfig('message') || {}
-  const keys = path.split('.')
-  let message = messageConfig
-  for (const key of keys) {
-    if (message && typeof message === 'object') {
-      message = message[key]
-    } else {
-      message = undefined
-      break
-    }
+  let message = lookupMessage(messageConfig, path)
+  // config/message 未合并 defSet，缺键时回退到 defSet
+  if (!message) {
+    const defMessage = setting.getdefSet?.('message') || {}
+    message = lookupMessage(defMessage, path)
   }
-  if (!message || typeof message !== 'string') {
-    return `[消息未配置: ${path}]`
-  }
-  
+  if (!message) return `[消息未配置: ${path}]`
   return replacePlaceholders(message, params)
 }
 

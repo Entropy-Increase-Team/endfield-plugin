@@ -206,6 +206,14 @@ body {
   border-left: 4px solid #6366f1;
 }
 
+/* 该池无数据时显示「暂无记录」 */
+.pool-group-empty {
+  padding: 12px 8px 10px 12px;
+  font-size: 0.95rem;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+
 .pool-row-wrap {
   padding: 10px 0;
   padding-left: 8px;

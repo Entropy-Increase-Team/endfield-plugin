@@ -20,8 +20,9 @@ export class EndfieldStamina extends plugin {
           reg: `^${rulePrefix}理智$`,
           fnc: 'getStamina'
         },
+        // 适配 :订阅理智xxx 、：订阅理智 xxx 、：理智订阅xxx 、：理智订阅 xxx 等
         {
-          reg: `^${rulePrefix}(订阅理智|理智订阅)(?:\\s+(\\d+))?$`,
+          reg: `^${rulePrefix}(订阅理智|理智订阅)(?:\\s*(\\d+))?.*$`,
           fnc: 'subscribeStamina'
         },
         {

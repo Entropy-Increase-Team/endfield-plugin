@@ -97,7 +97,7 @@ export default class EndfieldRequest {
 
   /**
    * Wiki 百科 API 请求（仅需 api_key，无需 framework_token）
-   * @param {string} type - wiki_search | wiki_item_detail
+   * @param {string} type - wiki_search | wiki_items | wiki_item_detail | wiki_activities
    * @param {object} data - q/main_type_id/sub_type_id/page/page_size 或 id
    */
   async getWikiData(type, data = {}) {

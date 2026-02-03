@@ -1,0 +1,347 @@
+/* 活动列表 - 头部方形图 + 日历式活动条 */
+@font-face {
+  font-family: 'HarmonyOS Sans SC';
+  src: url('../font/HarmonyOS_SansSC_Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  width: 100%;
+  min-width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  width: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  background: #f5f5f5;
+  font-family: 'HarmonyOS Sans SC', -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif;
+  color: #1f2937;
+}
+
+.activity-list-container {
+  width: 100%;
+  min-width: 100%;
+  max-width: 100vw;
+  padding: 10px 10px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.list-top-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 12px 10px;
+  background: #f9fafb;
+  border-radius: 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.list-top-bar .list-header-middle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.list-top-bar .list-title {
+  font-size: 1.45rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin: 0 0 2px 0;
+}
+
+.list-top-bar .list-count {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.list-top-bar-logo {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  max-width: 100px;
+  overflow: hidden;
+}
+
+.logo-container .logo-image {
+  height: 40px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+/* 日历区 */
+.card-wrap.calendar-wrap {
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.calendar-header {
+  display: grid;
+  gap: 0;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.calendar-day-cell {
+  text-align: center;
+  padding: 4px 2px;
+  font-size: 0.75rem;
+  color: #6b7280;
+  border-right: 1px solid #f3f4f6;
+}
+
+.calendar-day-cell:last-child {
+  border-right: none;
+}
+
+.calendar-day-today {
+  background: #6366f1;
+  color: #fff;
+  font-weight: bold;
+}
+
+.calendar-date {
+  display: block;
+}
+
+.calendar-weekday {
+  display: block;
+  font-size: 0.65rem;
+  opacity: 0.9;
+}
+
+/* 活动行：左侧信息 + 右侧日历条 */
+.activity-row {
+  display: grid;
+  gap: 0;
+  min-height: 52px;
+  margin-bottom: 6px;
+  align-items: stretch;
+}
+
+.activity-row:last-of-type {
+  margin-bottom: 0;
+}
+
+.activity-bar-wrap {
+  grid-column: 1 / -1;
+  min-height: 58px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.activity-bar {
+  min-height: 58px;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  border-right: 1px solid #c7d2fe;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  gap: 8px;
+}
+
+.activity-bar:last-child {
+  border-right: none;
+}
+
+.activity-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.activity-info-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.8);
+  border-radius: 4px;
+  font-size: 0.7rem;
+}
+
+.activity-bar-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.activity-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.activity-bar-text .activity-name {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activity-time-line {
+  font-size: 0.72rem;
+  color: #4b5563;
+  display: block;
+  word-break: break-all;
+  line-height: 1.3;
+}
+
+.activity-title-row .activity-remaining {
+  font-size: 0.75rem;
+  color: #6366f1;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.activity-bar-pic {
+  height: 40px;
+  width: auto;
+  max-width: 72px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.calendar-footer {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  text-align: center;
+}
+
+/* 不在时间范围内的活动：底部卡片 */
+.out-of-range-wrap {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.out-of-range-title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #6b7280;
+  margin-bottom: 10px;
+  padding-left: 4px;
+  border-left: 4px solid #9ca3af;
+}
+
+.activity-card-out {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.activity-card-out:last-child {
+  margin-bottom: 0;
+}
+
+/* 左侧内容区：标题+时间 为一组，避免中间大片空白 */
+.activity-card-out-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.activity-card-out-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.activity-card-out-header .activity-name {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activity-card-out-header .activity-remaining {
+  font-size: 0.75rem;
+  color: #6366f1;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.activity-card-out-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.72rem;
+  color: #4b5563;
+  line-height: 1.35;
+}
+
+.activity-card-out-body .activity-time-line {
+  display: block;
+}
+
+.activity-card-out-pic {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #e5e7eb;
+}
+
+.activity-card-out-pic img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

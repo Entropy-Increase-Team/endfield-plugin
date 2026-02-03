@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}} - {{subtitle}}</title>
+  <link rel="stylesheet" href="{{_res_path}}enduid/bind-list.css">
+</head>
+<body>
+  <div class="bind-list-container">
+    <div class="list-top-bar">
+      <div class="list-header-middle">
+        <h1 class="list-title">{{title}}</h1>
+        <p class="list-count">{{subtitle}}</p>
+      </div>
+      {{if pluResPath}}
+      <div class="logo-container list-top-bar-logo">
+        <img src="{{pluResPath}}img/logo.png" alt="Logo" class="logo-image">
+      </div>
+      {{/if}}
+    </div>
+
+    <div class="card-wrap bind-cards">
+      {{each bindings}}
+      <div class="bind-card {{$value.isPrimary ? 'bind-card-current' : ''}}">
+        <div class="bind-card-header">
+          <span class="bind-index">[{{$value.index}}]</span>
+          <span class="bind-nickname">{{$value.nickname}}</span>
+          {{if $value.isPrimary}}
+          <span class="bind-current-mark">⭐当前</span>
+          {{/if}}
+        </div>
+        <div class="bind-card-body">
+          <div class="bind-row"><span class="bind-label">角色ID</span><span class="bind-value">{{$value.role_id}}</span></div>
+          <div class="bind-row"><span class="bind-label">服务器</span><span class="bind-value">{{$value.server_label}}</span></div>
+          <div class="bind-row"><span class="bind-label">绑定类型</span><span class="bind-value">{{$value.type_label}}</span></div>
+          <div class="bind-row"><span class="bind-label">绑定时间</span><span class="bind-value">{{$value.created_at}}</span></div>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+  </div>
+</body>
+</html>

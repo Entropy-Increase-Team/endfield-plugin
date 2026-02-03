@@ -37,6 +37,9 @@
       {{each poolGroups}}
       <div class="pool-group-wrap">
         <div class="pool-group-title">{{$value.label}}</div>
+        {{if !$value.pools || $value.pools.length === 0}}
+        <div class="pool-group-empty">暂无记录</div>
+        {{else}}
         {{each $value.pools}}
         <div class="pool-row-wrap">
           {{if $value.poolName != '免费'}}
@@ -78,6 +81,7 @@
           {{/if}}
         </div>
         {{/each}}
+        {{/if}}
       </div>
       {{/each}}
     </div>

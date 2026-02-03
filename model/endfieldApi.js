@@ -112,6 +112,9 @@ export default class EndfieldApi {
       },
       wiki_item_detail: {
         url: `${baseUrl}/api/wiki/items/${data.id || ''}`
+      },
+      wiki_activities: {
+        url: `${baseUrl}/api/wiki/activities`
       }
     }
   }

@@ -455,7 +455,7 @@ export class EndfieldUid extends plugin {
 
   async bindList() {
     const bindings = await hypergryphAPI.getUnifiedBackendBindings(String(this.e.user_id))
-    
+
     if (!bindings || bindings.length === 0) {
       await this.reply(getMessage('enduid.not_logged_in'))
       return true
@@ -478,6 +478,42 @@ export class EndfieldUid extends plugin {
       return serverId ? `ID=${serverId}` : '未知'
     }
 
+    const bindingItems = bindings.map((binding, index) => {
+      const account = accounts.find(a => a.binding_id === binding.id)
+      const typeLabel = loginTypeLabel[account?.login_type] || '未知'
+      return {
+        index: index + 1,
+        nickname: binding.nickname || '未知',
+        role_id: binding.role_id || '未知',
+        server_label: serverLabel(binding.server_id),
+        type_label: typeLabel,
+        created_at: binding.created_at ? new Date(binding.created_at).toLocaleString('zh-CN') : '未知',
+        isPrimary: !!binding.is_primary
+      }
+    })
+
+    // 优先使用渲染模板出图，失败则回退文字
+    if (this.e?.runtime?.render) {
+      try {
+        const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
+        const pageWidth = 420
+        const baseOpt = { scale: 1.6, retType: 'base64', viewport: { width: pageWidth, height: 680 } }
+        const renderData = {
+          title: '终末地登陆列表',
+          subtitle: `共 ${bindings.length} 个绑定`,
+          bindings: bindingItems,
+          pluResPath
+        }
+        const imgSegment = await this.e.runtime.render('endfield-plugin', 'enduid/bind-list', renderData, baseOpt)
+        if (imgSegment) {
+          await this.reply(imgSegment)
+          return true
+        }
+      } catch (err) {
+        logger.error(`[终末地插件][绑定列表]渲染图失败: ${err?.message || err}`)
+      }
+    }
+
     let msg = '【终末地登陆列表】\n\n'
     bindings.forEach((binding, index) => {
       const account = accounts.find(a => a.binding_id === binding.id)
@@ -488,11 +524,8 @@ export class EndfieldUid extends plugin {
       msg += `    服务器：${serverLabel(binding.server_id)}\n`
       msg += `    绑定类型：${typeLabel}\n`
       msg += `    绑定时间：${binding.created_at ? new Date(binding.created_at).toLocaleString('zh-CN') : '未知'}\n`
-      if (index < bindings.length - 1) {
-        msg += '\n'
-      }
+      if (index < bindings.length - 1) msg += '\n'
     })
-
     await this.reply(msg)
     return true
   }
