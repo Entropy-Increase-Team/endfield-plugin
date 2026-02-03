@@ -67,6 +67,9 @@ help_group:
       - icon: 10
         title: "{prefix}地区建设"
         desc: "查询地区建设信息"
+      - icon: 16
+        title: "{prefix}日历"
+        desc: "活动日历（20 天时间轴）"
       - icon: 11
         title: "{prefix}理智"
         desc: "查询理智与日常活跃"

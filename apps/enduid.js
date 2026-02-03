@@ -194,14 +194,6 @@ export class EndfieldUid extends plugin {
         {
           reg: `^${rulePrefix}验证码\\s*(\\d{6})$`,
           fnc: 'phoneVerifyCode'
-        },
-        {
-          reg: `^${rulePrefix}强删本绑`,
-          fnc: 'forceClearLocalBind'
-        },
-        {
-          reg: `^${rulePrefix}强刷授权`,
-          fnc: 'forceAuthRefresh'
         }
       ]
     })
@@ -527,45 +519,6 @@ export class EndfieldUid extends plugin {
       if (index < bindings.length - 1) msg += '\n'
     })
     await this.reply(msg)
-    return true
-  }
-
-  /** 强制删除本地绑定：直接清理该用户在 Redis 中的绑定记录（不调用云端）；支持 at 他人，仅管理员可 at 他人 */
-  async forceClearLocalBind() {
-    const targetUserId = String(this.e.at || this.e.user_id)
-    if (targetUserId !== String(this.e.user_id) && !this.e.isMaster) {
-      await this.reply('仅管理员可 at 他人进行强制删除本地绑定。')
-      return true
-    }
-    const key = REDIS_KEY(targetUserId)
-    const had = await redis.get(key)
-    await redis.del(key)
-    if (had) {
-      logger.mark(`[终末地插件][强制删除本地绑定]已清理用户 ${targetUserId} 的 Redis 绑定记录`)
-      const tip = targetUserId === String(this.e.user_id) ? '已强制删除本地绑定记录，当前账号下无绑定。' : `已强制删除该用户( ${targetUserId} )的本地绑定记录。`
-      await this.reply(tip)
-    } else {
-      const tip = targetUserId === String(this.e.user_id) ? '本地暂无绑定记录，无需清理。' : `该用户( ${targetUserId} )本地暂无绑定记录。`
-      await this.reply(tip)
-    }
-    return true
-  }
-
-  /** 强制授权刷新：执行一次判断，云端不存在的授权则从本地移除；支持 at 他人，仅管理员可 at 他人 */
-  async forceAuthRefresh() {
-    const targetUserId = String(this.e.at || this.e.user_id)
-    if (targetUserId !== String(this.e.user_id) && !this.e.isMaster) {
-      await this.reply('仅管理员可 at 他人进行强制授权刷新。')
-      return true
-    }
-    try {
-      await checkUserAuthBindings(targetUserId)
-      const tip = targetUserId === String(this.e.user_id) ? '已执行强制授权刷新：已与云端校验，不存在的授权已从本地移除。' : `已对该用户( ${targetUserId} )执行强制授权刷新。`
-      await this.reply(tip)
-    } catch (err) {
-      logger.error(`[终末地插件][强制授权刷新]用户 ${targetUserId} 执行失败: ${err}`)
-      await this.reply('授权刷新执行失败，请稍后重试。')
-    }
     return true
   }
 
