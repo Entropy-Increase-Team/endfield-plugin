@@ -50,16 +50,26 @@ export class EndfieldArea extends plugin {
         const zoneName = zone.zoneName || areaMap[zone.zoneId] || zone.zoneId || '未知'
         msg += `\n- 地区：${zoneName}\n`
         msg += `  等级：${zone.level ?? 0}\n`
+        if (zone.moneyMgr != null && zone.moneyMgr !== '' && String(zone.moneyMgr) !== '0') {
+          msg += `  资金：${zone.moneyMgr}\n`
+        }
 
-        const buildings = zone.buildings || []
-        if (buildings.length) {
-          msg += `  建筑：${buildings.length}个\n`
-          for (const building of buildings) {
-            const buildingName = building.buildingName || building.buildingId || '未知'
-            const status = building.status || 'unknown'
-            const statusText = status === 'idle' ? '空闲' : status === 'working' ? '工作中' : status === 'upgrading' ? '升级中' : status
-            msg += `  • ${buildingName} Lv.${building.level ?? 0}（${statusText}）\n`
+        const settlements = zone.settlements || []
+        if (settlements.length) {
+          msg += `  聚落：${settlements.length}个\n`
+          for (const s of settlements) {
+            const sName = s.name || s.id || '未知'
+            const officerName = (s.officerCharIds && zone.charNameMap?.[s.officerCharIds]) ? zone.charNameMap[s.officerCharIds] : ''
+            msg += `  • ${sName} Lv.${s.level ?? 0}${officerName ? `（派驻：${officerName}）` : ''}\n`
           }
+        }
+
+        const collections = zone.collections || []
+        if (collections.length) {
+          const totalChest = collections.reduce((sum, c) => sum + (Number(c.trchestCount) || 0), 0)
+          const totalPuzzle = collections.reduce((sum, c) => sum + (Number(c.puzzleCount) || 0), 0)
+          const totalBlackbox = collections.reduce((sum, c) => sum + (Number(c.blackboxCount) || 0), 0)
+          msg += `  收集：宝箱 ${totalChest}、拼图 ${totalPuzzle}、黑匣 ${totalBlackbox}\n`
         }
       }
 
@@ -94,7 +104,18 @@ export class EndfieldArea extends plugin {
       return null
     }
 
-    const zones = res.data?.zones || []
+    // 接口返回 data.domain（GET /api/endfield/domain），无 data.zones
+    const domainList = res.data?.domain || []
+    const charNameMap = res.data?.charNameMap || {}
+    const zones = domainList.map((d) => ({
+      zoneId: d.domainId,
+      zoneName: d.name,
+      level: d.level,
+      moneyMgr: d.moneyMgr,
+      settlements: d.settlements || [],
+      collections: d.collections || [],
+      charNameMap
+    }))
     return { zones }
   }
 

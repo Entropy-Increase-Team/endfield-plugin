@@ -1,0 +1,336 @@
+{
+    "code": 0,
+    "message": "成功",
+    "data": {
+      "base": {
+        "avatarUrl": "https://bbs.hycdn.cn/public/skland-game/image/endfield/game-avatar/default_game_avatar.png",
+        "charNum": 20,
+        "createTime": "1769052507",
+        "docNum": 234,
+        "exp": 143970,
+        "lastLoginTime": "1770103218",
+        "level": 54,
+        "mainMission": {
+          "description": "自由开拓",
+          "id": ""
+        },
+        "name": "老年人",
+        "roleId": "1938622034",
+        "serverName": "",
+        "weaponNum": 43,
+        "worldLevel": 7
+      },
+      "charCount": 20,
+      "chars": [
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/3b815e66e26da9403b7a0f3788d741eb.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/4c0224b22ca8b3a4370d21376337e742.png",
+          "id": "0b199a0eaae5a9b37a5d3c990b6c8bca",
+          "level": 90,
+          "name": "莱万汀",
+          "profession": {
+            "key": "profession_assault",
+            "value": "突击"
+          },
+          "rarity": {
+            "key": "rarity_6",
+            "value": "6"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/7244300cee2468f9e42cd9f787fb2f8d.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/a5d57a216e8edb9ebbf8b66f14cceb1d.png",
+          "id": "bfb4ba13f819568c69c2ae46d8f5b869",
+          "level": 80,
+          "name": "艾尔黛拉",
+          "profession": {
+            "key": "profession_supporter",
+            "value": "辅助"
+          },
+          "rarity": {
+            "key": "rarity_6",
+            "value": "6"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/e1fcc32f991446dbf50d2306c3c4366f.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/5322d4a993d240b0d5fcbda2e6857ffe.png",
+          "id": "a0591d65311b190e7d5e09faa0ed1cdd",
+          "level": 80,
+          "name": "秋栗",
+          "profession": {
+            "key": "profession_vanguard",
+            "value": "先锋"
+          },
+          "rarity": {
+            "key": "rarity_4",
+            "value": "4"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/a65896a3e369f596370d6b2ceef7b14b.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/cc2b2e2a9c72de626cc6aef3f01f9dd8.png",
+          "id": "26e3cc73ac23deb8f6a875038d2243ff",
+          "level": 73,
+          "name": "狼卫",
+          "profession": {
+            "key": "profession_caster",
+            "value": "术师"
+          },
+          "rarity": {
+            "key": "rarity_5",
+            "value": "5"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/cdc8beb933489e5dfa7f4b9fbe2cd4da.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/0ebec85a7b1387b2fb71ac489a938a20.png",
+          "id": "1b441436fd73326614cfcd14c640e068",
+          "level": 60,
+          "name": "安塔尔",
+          "profession": {
+            "key": "profession_supporter",
+            "value": "辅助"
+          },
+          "rarity": {
+            "key": "rarity_4",
+            "value": "4"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/4865706e2981357ca7b07bad22dd91b1.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/8dc051b31f89bdfb03e9b06d36dc4a66.png",
+          "id": "db6d086bf664455a86eedf67d9439953",
+          "level": 40,
+          "name": "管理员",
+          "profession": {
+            "key": "profession_guard",
+            "value": "近卫"
+          },
+          "rarity": {
+            "key": "rarity_6",
+            "value": "6"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/fbfc260d37e50859cab28b7d03bb58a8.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/6c6c1917465ddd170c010510fe60728e.png",
+          "id": "ad1607a2d5a203b1e95762ff0d911bcd",
+          "level": 40,
+          "name": "陈千语",
+          "profession": {
+            "key": "profession_guard",
+            "value": "近卫"
+          },
+          "rarity": {
+            "key": "rarity_5",
+            "value": "5"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/d2ff445fa87f0fd4d65c77c197d65be7.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/3bbc15c803354e16dece5ec65d327604.png",
+          "id": "c4cf7541c23c93f991e2e464ee18bb18",
+          "level": 40,
+          "name": "佩丽卡",
+          "profession": {
+            "key": "profession_caster",
+            "value": "术师"
+          },
+          "rarity": {
+            "key": "rarity_5",
+            "value": "5"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/c3b195acbfbf70187b2e48d3670215d2.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/74dee1c724e749e1c1ad0b456b6545d0.png",
+          "id": "0295282ff895bd1b7242d137da99dc94",
+          "level": 20,
+          "name": "洁尔佩塔",
+          "profession": {
+            "key": "profession_supporter",
+            "value": "辅助"
+          },
+          "rarity": {
+            "key": "rarity_6",
+            "value": "6"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/5051e02bfbffe0589a9f31e56f5d97fd.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/7104bc725461810f7381b9b220ee03c6.png",
+          "id": "3839d35948216cc09368cd62167c7368",
+          "level": 5,
+          "name": "赛希",
+          "profession": {
+            "key": "profession_supporter",
+            "value": "辅助"
+          },
+          "rarity": {
+            "key": "rarity_5",
+            "value": "5"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/588ee1ca050eef992d346807143b5598.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/65227b68442687d0dc4ca554f2b2d449.png",
+          "id": "ce97268e7469e004a3e7a81e4b09a025",
+          "level": 1,
+          "name": "余烬",
+          "profession": {
+            "key": "profession_defender",
+            "value": "重装"
+          },
+          "rarity": {
+            "key": "rarity_6",
+            "value": "6"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/a636c56b39b52dd9d51f89ac55ece8fa.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/ab4122281c49372b7bfeec7b284f08f0.png",
+          "id": "9c4a116d4dba884c3db9b7f46ea7ea20",
+          "level": 1,
+          "name": "骏卫",
+          "profession": {
+            "key": "profession_vanguard",
+            "value": "先锋"
+          },
+          "rarity": {
+            "key": "rarity_6",
+            "value": "6"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/250ac15ce9b12035557138946109b214.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/8b8a50678f2518e751c01c4adfe7426f.png",
+          "id": "7e6df1575604cc5872590f22af757e40",
+          "level": 1,
+          "name": "阿列什",
+          "profession": {
+            "key": "profession_vanguard",
+            "value": "先锋"
+          },
+          "rarity": {
+            "key": "rarity_5",
+            "value": "5"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/bb163ac9092e801eb68d3117a7000c91.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/6a8d55223db2b02078fbb411f06892a6.png",
+          "id": "06ba43ff26befc881fd106eaa5ef1b81",
+          "level": 1,
+          "name": "昼雪",
+          "profession": {
+            "key": "profession_defender",
+            "value": "重装"
+          },
+          "rarity": {
+            "key": "rarity_5",
+            "value": "5"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/a99fca5e7bd18d44423847faa2eb5855.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/10184e5312118c648b417ec853a1c26a.png",
+          "id": "e7b91cae9108d01f550922498747a45e",
+          "level": 1,
+          "name": "艾维文娜",
+          "profession": {
+            "key": "profession_assault",
+            "value": "突击"
+          },
+          "rarity": {
+            "key": "rarity_5",
+            "value": "5"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/12531fceb6d049d0d06f9f336aa77032.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/098279e5da9a896bd459303ace8824ed.png",
+          "id": "55ab3b3d98fa76a045347d29da1abbca",
+          "level": 1,
+          "name": "大潘",
+          "profession": {
+            "key": "profession_assault",
+            "value": "突击"
+          },
+          "rarity": {
+            "key": "rarity_5",
+            "value": "5"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/258f2ed4b6f1d81948e74141258050a0.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/c94c95819c4e2c9df3af7a53f16d1783.png",
+          "id": "00ff4c582aeeafc237695f81e36969b4",
+          "level": 1,
+          "name": "弧光",
+          "profession": {
+            "key": "profession_vanguard",
+            "value": "先锋"
+          },
+          "rarity": {
+            "key": "rarity_5",
+            "value": "5"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/d108e49c72b2efa86d5578b5c46183a8.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/b221834f8f2ac7b28477378490f23cc6.png",
+          "id": "bcb564ed05eb0912d4b0f86d1e193c9f",
+          "level": 1,
+          "name": "萤石",
+          "profession": {
+            "key": "profession_caster",
+            "value": "术师"
+          },
+          "rarity": {
+            "key": "rarity_4",
+            "value": "4"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/979ff004727f4d773478f8910696f7d5.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/b9a7b80b7548d7596c8b0a35de1ab6b8.png",
+          "id": "e6c2a3e9f0b1917eb0b1fe29a4b94b3d",
+          "level": 1,
+          "name": "卡契尔",
+          "profession": {
+            "key": "profession_defender",
+            "value": "重装"
+          },
+          "rarity": {
+            "key": "rarity_4",
+            "value": "4"
+          }
+        },
+        {
+          "avatarRtUrl": "https://bbs.hycdn.cn/image/2025/11/19/76be47122c0c40d2c630eb0cc0e2ba9e.png",
+          "avatarSqUrl": "https://bbs.hycdn.cn/image/2025/11/12/8e4ef5daefb6a3b9e090216940dbbc28.png",
+          "id": "50515754ef6085bb6a8ddc21ab18a825",
+          "level": 1,
+          "name": "埃特拉",
+          "profession": {
+            "key": "profession_guard",
+            "value": "近卫"
+          },
+          "rarity": {
+            "key": "rarity_4",
+            "value": "4"
+          }
+        }
+      ],
+      "dailyMission": {
+        "activation": 100,
+        "maxActivation": 100
+      },
+      "stamina": {
+        "current": "91",
+        "max": "348",
+        "maxTs": "1770223436"
+      }
+    }
+  }

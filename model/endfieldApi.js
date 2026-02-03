@@ -63,16 +63,10 @@ export default class EndfieldApi {
         url: `${baseUrl}/api/endfield/note`,
         query: data.roleId ? `roleId=${data.roleId}&serverId=${data.serverId || 1}` : ''
       },
+      // 地区建设：与 API 文档一致，GET /api/endfield/domain
       cultivate_zone: {
-        url: `${baseUrl}/api/endfield/cultivate/zone`,
-        query: (() => {
-          const params = []
-          const roleId = data.roleId || this.uid
-          params.push(`roleId=${roleId}`)
-          if (data.serverId) params.push(`serverId=${data.serverId}`)
-          if (data.userId) params.push(`userId=${data.userId}`)
-          return params.join('&')
-        })()
+        url: `${baseUrl}/api/endfield/domain`,
+        query: data.roleId ? `roleId=${data.roleId}&serverId=${data.serverId || 1}` : ''
       }
     }
   }

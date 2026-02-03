@@ -1,0 +1,121 @@
+{
+    "code": 0,
+    "message": "成功",
+    "data": {
+      "charNameMap": {},
+      "domain": [
+        {
+          "collections": [
+            {
+              "blackboxCount": 11,
+              "levelId": "map01_lv001",
+              "pieceCount": 0,
+              "puzzleCount": 19,
+              "trchestCount": 35
+            },
+            {
+              "blackboxCount": 4,
+              "levelId": "map01_lv002",
+              "pieceCount": 0,
+              "puzzleCount": 8,
+              "trchestCount": 7
+            },
+            {
+              "blackboxCount": 3,
+              "levelId": "map01_lv003",
+              "pieceCount": 1,
+              "puzzleCount": 9,
+              "trchestCount": 11
+            },
+            {
+              "blackboxCount": 4,
+              "levelId": "map01_lv005",
+              "pieceCount": 0,
+              "puzzleCount": 10,
+              "trchestCount": 17
+            },
+            {
+              "blackboxCount": 3,
+              "levelId": "map01_lv006",
+              "pieceCount": 0,
+              "puzzleCount": 14,
+              "trchestCount": 15
+            },
+            {
+              "blackboxCount": 0,
+              "levelId": "map01_lv007",
+              "pieceCount": 0,
+              "puzzleCount": 6,
+              "trchestCount": 13
+            }
+          ],
+          "domainId": "domain_1",
+          "factory": null,
+          "level": 8,
+          "moneyMgr": "0",
+          "name": "四号谷地",
+          "settlements": [
+            {
+              "id": "stm_tundra_1",
+              "level": 3,
+              "name": "难民暂居处",
+              "officerCharIds": "1b441436fd73326614cfcd14c640e068",
+              "remainMoney": "0"
+            },
+            {
+              "id": "stm_tundra_2",
+              "level": 2,
+              "name": "基建前站",
+              "officerCharIds": "ad1607a2d5a203b1e95762ff0d911bcd",
+              "remainMoney": "0"
+            },
+            {
+              "id": "stm_tundra_3",
+              "level": 1,
+              "name": "重建指挥部",
+              "officerCharIds": "",
+              "remainMoney": "0"
+            }
+          ]
+        },
+        {
+          "collections": [
+            {
+              "blackboxCount": 0,
+              "levelId": "map02_lv001",
+              "pieceCount": 0,
+              "puzzleCount": 2,
+              "trchestCount": 2
+            },
+            {
+              "blackboxCount": 2,
+              "levelId": "map02_lv002",
+              "pieceCount": 0,
+              "puzzleCount": 1,
+              "trchestCount": 1
+            }
+          ],
+          "domainId": "domain_2",
+          "factory": null,
+          "level": 1,
+          "moneyMgr": "0",
+          "name": "武陵",
+          "settlements": [
+            {
+              "id": "stm_hongs_1",
+              "level": 0,
+              "name": "天王坪援建点",
+              "officerCharIds": "",
+              "remainMoney": "0"
+            }
+          ]
+        }
+      ],
+      "role": {
+        "level": 49,
+        "name": "清",
+        "roleId": "1282470074",
+        "serverId": 1
+      }
+    }
+  }

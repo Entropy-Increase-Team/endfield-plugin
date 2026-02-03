@@ -32,10 +32,76 @@ export class EndfieldNote extends plugin {
     await this.reply(getMessage('note.loading'))
 
     try {
-      const detailData = await this.fetchCharacterDetail(sklUser)
+      const [detailData, staminaRes] = await Promise.all([
+        this.fetchCharacterDetail(sklUser),
+        sklUser.sklReq.getData('stamina')
+      ])
       if (!detailData) return true
 
       const { base, chars, serverName } = detailData
+      // 体力接口：理智 current/max，活跃度 activation/maxActivation
+      const stamina = staminaRes?.code === 0 ? (staminaRes.data?.stamina || {}) : {}
+      const dailyMission = staminaRes?.code === 0 ? (staminaRes.data?.dailyMission || {}) : {}
+      const staminaCurrent = stamina.current != null ? String(stamina.current) : '—'
+      const staminaMax = stamina.max != null ? String(stamina.max) : '—'
+      const activation = dailyMission.activation != null ? Number(dailyMission.activation) : '—'
+      const maxActivation = dailyMission.maxActivation != null ? Number(dailyMission.maxActivation) : 100
+
+      // 渲染模板所需数据
+      const createTimeStr = base.createTime ? new Date(parseInt(base.createTime) * 1000).toLocaleString('zh-CN') : '未知'
+      const lastLoginTimeStr = base.lastLoginTime ? new Date(parseInt(base.lastLoginTime) * 1000).toLocaleString('zh-CN') : '未知'
+      const mainMissionDesc = base.mainMission?.description || '未知'
+      const awakeningDateStr = base.createTime
+        ? new Date(parseInt(base.createTime) * 1000).toISOString().slice(0, 10).replace(/-/g, '-')
+        : ''
+      // 干员：方形图 SqUrl + 仅显示 name
+      const charsList = (chars || []).map((char) => ({
+        name: char.name || '未知',
+        sqUrl: char.avatarSqUrl || char.avatar_sq_url || ''
+      }))
+
+      if (this.e?.runtime?.render) {
+        try {
+          const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
+          const renderData = {
+            title: '终末地便签',
+            subtitle: `${base.name || '未知'} · ${serverName}`,
+            base: {
+              name: base.name || '未知',
+              roleId: base.roleId || '未知',
+              level: base.level ?? 0,
+              exp: base.exp ?? 0,
+              worldLevel: base.worldLevel ?? 0,
+              serverName,
+              createTimeStr,
+              lastLoginTimeStr,
+              mainMissionDesc,
+              avatarUrl: base.avatarUrl || '',
+              awakeningDateStr
+            },
+            stats: {
+              charNum: base.charNum ?? 0,
+              weaponNum: base.weaponNum ?? 0,
+              docNum: base.docNum ?? 0,
+              staminaCurrent,
+              staminaMax,
+              activation,
+              maxActivation
+            },
+            chars: charsList,
+            pluResPath
+          }
+          const pageWidth = 360
+          const baseOpt = { scale: 1.6, retType: 'base64', viewport: { width: pageWidth, height: 900 } }
+          const imgSegment = await this.e.runtime.render('endfield-plugin', 'note/note', renderData, baseOpt)
+          if (imgSegment) {
+            await this.reply(imgSegment)
+            return true
+          }
+        } catch (err) {
+          logger.error(`[终末地便签]渲染图失败: ${err?.message || err}`)
+        }
+      }
 
       let msg = ``
       msg += `角色名：${base.name || '未知'}\n`
@@ -44,23 +110,19 @@ export class EndfieldNote extends plugin {
       msg += `经验：${base.exp || 0}\n`
       msg += `世界等级：${base.worldLevel || 0}\n`
       msg += `服务器：${serverName}\n`
-      msg += `创建时间：${base.createTime ? new Date(parseInt(base.createTime) * 1000).toLocaleString('zh-CN') : '未知'}\n`
-      msg += `最后登录：${base.lastLoginTime ? new Date(parseInt(base.lastLoginTime) * 1000).toLocaleString('zh-CN') : '未知'}\n`
-      msg += `主线任务：${base.mainMission?.description || '未知'}\n\n`
-
+      msg += `创建时间：${createTimeStr}\n`
+      msg += `最后登录：${lastLoginTimeStr}\n`
+      msg += `主线任务：${mainMissionDesc}\n\n`
       msg += `【收集统计】\n`
       msg += `角色数：${base.charNum || 0}\n`
       msg += `武器数：${base.weaponNum || 0}\n`
-      msg += `文档数：${base.docNum || 0}\n\n`
-
-      if (chars && chars.length > 0) {
-        msg += `【已拥有干员】(${chars.length}个)\n`
-        for (const char of chars) {
-          const name = char.name || '未知'
-          const rarity = char.rarity?.value || '?'
-          const profession = char.profession?.value || '未知'
-          const level = char.level || 0
-          msg += `• ${name} (${rarity}星 ${profession} Lv.${level})\n`
+      msg += `文档数：${base.docNum || 0}\n`
+      msg += `理智：${staminaCurrent}/${staminaMax}\n`
+      msg += `活跃度：${activation}/${maxActivation}\n\n`
+      if (charsList.length > 0) {
+        msg += `【已拥有干员】(${charsList.length}个)\n`
+        for (const char of charsList) {
+          msg += `• ${char.name}\n`
         }
       } else {
         msg += `【已拥有干员】0个\n`

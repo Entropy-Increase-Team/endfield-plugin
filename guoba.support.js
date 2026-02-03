@@ -1059,41 +1059,7 @@ export function supportGuoba() {
           field: 'bluemap.doc_url',
           label: '蓝图 - 文档链接',
           component: 'Input',
-        },
-        {
-          component: 'Divider',
-          label: 'AI 问答',
-        },
-        {
-          field: 'ai.provide_content_new',
-          label: 'AI - 请提供内容（新会话）',
-          component: 'Input',
-        },
-        {
-          field: 'ai.provide_content',
-          label: 'AI - 请提供内容',
-          component: 'Input',
-        },
-        {
-          field: 'ai.create_new_failed',
-          label: 'AI - 创建新会话失败',
-          component: 'Input',
-        },
-        {
-          field: 'ai.create_failed',
-          label: 'AI - 创建会话失败',
-          component: 'Input',
-        },
-        {
-          field: 'ai.empty_response',
-          label: 'AI - 响应为空',
-          component: 'Input',
-        },
-        {
-          field: 'ai.request_failed',
-          label: 'AI - 请求失败',
-          component: 'Input',
-        },
+        }
       ],
       getConfigData() {
         const commonConfig = setting.getConfig('common') || {}
