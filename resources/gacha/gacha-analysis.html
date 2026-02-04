@@ -56,24 +56,26 @@
           {{/if}}
           {{if ($value.images && $value.images.length > 0) || $value.pitySinceLast6 != null}}
           <div class="pool-star6-list">
-            {{if $value.pitySinceLast6 != null && $value.poolName != '免费'}}
+            {{if $value.pitySinceLast6 != null && $value.pitySinceLast6 > 0 && $value.poolName != '免费'}}
             <div class="pool-star6-entry pool-pity-row">
               <div class="pool-star6-icon pool-star6-icon-pity">?</div>
               <div class="pool-star6-bar-wrap">
-                <div class="pool-star6-bar-inner pool-star6-badge-pity pool-star6-bar-inner-not-full" style="width: {{$value.pityBarPercent || 0}}%;">
+                <div class="pool-star6-bar-inner pool-star6-bar-level-{{$value.pityBarColorLevel || 'green'}} pool-star6-bar-inner-not-full" style="width: {{$value.pityBarPercent || 0}}%;">
                   <span class="pool-star6-bar-text">已垫 {{$value.pitySinceLast6}}</span>
                 </div>
               </div>
+              <span class="pool-star6-status pool-star6-status-empty"></span>
             </div>
             {{/if}}
             {{if $value.images && $value.images.length > 0}}
             {{each $value.images}}
             <div class="pool-star6-entry">{{if $value.url}}<img class="pool-star6-icon" src="{{$value.url}}" alt="{{$value.name}}" onerror="this.style.display='none'">{{else}}<div class="pool-star6-icon pool-star6-icon-placeholder pool-star6-icon-free">×</div>{{/if}}
               <div class="pool-star6-bar-wrap">{{if $value.refLinePercent != null}}<div class="pool-star6-bar-ref" style="left: {{$value.refLinePercent}}%;"></div>{{/if}}
-                <div class="pool-star6-bar-inner pool-star6-badge-{{$value.badgeColor || 'normal'}}{{if $value.barPercent < 100}} pool-star6-bar-inner-not-full{{/if}}" style="width: {{$value.barPercent || 50}}%;">
+                <div class="pool-star6-bar-inner pool-star6-bar-level-{{$value.barColorLevel || 'green'}}{{if $value.barPercent < 100}} pool-star6-bar-inner-not-full{{/if}}" style="width: {{$value.barPercent || 50}}%;">
                   <span class="pool-star6-bar-text">{{if $value.isFreeRow}}免费 - {{$value.pullCount}}抽{{else}}{{$value.pullCount}}抽{{/if}}</span>
                 </div>
-              </div>{{if $value.tag && !$value.isFreeRow}}<span class="pool-star6-tag pool-star6-tag-{{$value.badgeColor}}">{{$value.tag}}</span>{{/if}}
+              </div>
+              {{if $value.isFreeRow}}<span class="pool-star6-status pool-star6-status-empty"></span>{{else}}<span class="pool-star6-status pool-star6-status-{{$value.badgeColor || 'normal'}}">{{$value.tag || ''}}</span>{{/if}}
             </div>
             {{/each}}
             {{/if}}

@@ -32,7 +32,7 @@ export class EndfieldStrategy extends plugin {
           fnc: 'queryStrategy'
         },
         {
-          reg: `^${rulePrefix}上传攻略\\s+(\\S+)\\s+(\\S+)(?:\\s+(图片|https?://\\S+))?$`,
+          reg: `^${rulePrefix}(上传攻略|攻略上传)\\s*(\\S+)\\s*(\\S+)(?:\\s*(图片|https?://\\S+))?$`,
           fnc: 'uploadStrategyImage',
           permission: 'master'
         }
@@ -128,10 +128,10 @@ export class EndfieldStrategy extends plugin {
     const prefix = mode === 2 ? /^#(终末地|zmd)?\s*/ : /^[:：]\s*/
     const after = msg
       .replace(prefix, '')
-      .replace(/^上传队伍攻略\s+/i, '')
-      .replace(/^上传攻略\s+/i, '')
+      .replace(/^上传队伍攻略\s*/i, '')
+      .replace(/^(?:上传攻略|攻略上传)\s*/i, '')
       .trim()
-    const match = after.match(/^(\S+)\s+(\S+)(?:\s+(图片|https?:\/\/\S+))?$/)
+    const match = after.match(/^(\S+)\s*(\S+)(?:\s*(图片|https?:\/\/\S+))?$/)
     if (!match) {
       await this.reply(getMessage('strategy.upload_format'))
       return true

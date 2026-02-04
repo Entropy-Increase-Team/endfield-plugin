@@ -627,21 +627,26 @@ body {
   background: #ca8a04;
 }
 
-/* 页脚说明 */
-.footer-note {
-  margin-top: 16px;
-  padding: 14px 16px;
-  font-size: 0.85rem;
-  color: #6b7280;
-  background: #f0f9ff;
-  border: 1px solid #e0f2fe;
-  border-radius: 8px;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+/* 页脚：与 help 统一版式 */
+.gacha-stats-container .footer {
+  text-align: center;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
 }
 
-.footer-note .footer-icon {
+.gacha-stats-container .footer .copyright {
+  font-size: 0.95rem;
+  color: #888888;
+  line-height: 1.5;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+}
+
+.gacha-stats-container .footer .footer-icon {
   color: #0284c7;
   flex-shrink: 0;
 }

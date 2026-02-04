@@ -35,10 +35,10 @@ export class EndfieldWiki extends plugin {
     const msg = (this.e.msg || '').trim()
     const mode = Number(this.common_setting?.prefix_mode) || 1
     const prefix = mode === 2 ? /^#(终末地|zmd)?\s*/ : /^[:：]\s*/
-    const afterPrefix = msg.replace(prefix, '').replace(/^wiki\s*/i, '').trim()
+    const afterPrefix = msg.replace(prefix, '').replace(/^wiki\s*/i, '').trim() // 支持 :wiki 干员 黎风 / :wiki 干员黎风
     if (!afterPrefix) return { subTypeId: '1', name: '' }
     for (const [label, subTypeId] of Object.entries(WIKI.SUB_TYPE_BY_LABEL)) {
-      if (afterPrefix === label || afterPrefix.startsWith(label + ' ')) {
+      if (afterPrefix === label || afterPrefix.startsWith(label) || afterPrefix.startsWith(label + ' ')) {
         const name = afterPrefix === label ? '' : afterPrefix.slice(label.length).trim()
         return { subTypeId, name }
       }

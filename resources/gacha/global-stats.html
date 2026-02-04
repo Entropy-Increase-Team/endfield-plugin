@@ -2,12 +2,12 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width={{maxWidth}}, initial-scale=1">
+  <meta name="viewport" content="width={{pageWidth}}, initial-scale=1">
   <title>{{title}} - {{poolChartTitle}}</title>
   <link rel="stylesheet" href="{{_res_path}}gacha/global-stats.css">
 </head>
 <body>
-  <div class="gacha-stats-container" style="min-width: {{maxWidth}}px; max-width: {{maxWidth}}px;">
+  <div class="gacha-stats-container" style="min-width: {{pageWidth}}px; max-width: {{pageWidth}}px;">
     <!-- 顶栏：标题居中显示 -->
     <div class="list-top-bar">
       <div class="list-header-center list-header-middle">
@@ -182,10 +182,9 @@
     </div>
     {{/if}}
 
-    <div class="footer-note">
-      <span class="footer-icon">ⓘ</span>
-      所有数据来源于已绑定账号的玩家自动同步。数据会缓存 5 分钟以减轻服务器压力。
-    </div>
+    <footer class="footer">
+      <div class="copyright"><span class="footer-icon">ⓘ</span> 所有数据来源于已绑定账号的玩家自动同步。数据会缓存 5 分钟以减轻服务器压力。</div>
+    </footer>
   </div>
 </body>
 </html>

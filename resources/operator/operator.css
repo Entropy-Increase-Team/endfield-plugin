@@ -17,14 +17,24 @@
   --content-bottom-gap: 40px;
 }
 
-/* 页脚 - 紧凑布局 */
-.operator-footer {
+/* 页脚：与 help 统一版式 */
+.ui-layer .footer {
   text-align: center;
+  margin-top: 40px;
   padding-top: 20px;
-  font-size: 1.5em;
-  color: var(--c-subtext);
   border-top: 1px solid #e5e7eb;
   flex-shrink: 0;
+}
+
+.ui-layer .footer .copyright {
+  font-size: 2.2em;
+  color: #000000;
+}
+
+.ui-layer .footer .copyright .version {
+  color: #007180;
+  display: inline-block;
+  padding: 0 3px;
 }
 
 * { 
@@ -342,7 +352,7 @@ body {
   overflow: visible;
 }
 
-/* 技能与武器卡片高度统一 */
+/* 技能、武器、装备卡片共用基础样式 */
 .skills-weapon-row {
   display: flex;
   gap: 25px;
@@ -351,7 +361,8 @@ body {
 }
 
 .skills-section,
-.weapon-section {
+.weapon-section,
+.equip-section {
   min-height: 240px;
   background: #fff;
   border-radius: 6px;
@@ -368,14 +379,6 @@ body {
   width: 380px;
   flex-shrink: 0;
   overflow: visible;
-}
-
-.equip-section {
-  background: #fff;
-  border-radius: 6px;
-  border: 1px solid #eee;
-  padding: 20px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
 .skills-section .section-title,
@@ -789,13 +792,7 @@ body {
   filter: drop-shadow(0 4px 10px rgba(0,0,0,0.12));
 }
 
-/* 战术道具卡片 */
-.equip-card.tactical {
-  background: #fff;
-  border: 1px solid #eee;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
+/* 战术道具卡片（基础同 .equip-card，仅标签样式不同） */
 /* 战术道具标签 */
 .equip-card.tactical .tactical-tag {
   font-size: 11px;

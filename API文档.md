@@ -1,6 +1,6 @@
 # Endfield-API 接口文档
 
-版本号：1.9.5
+版本号：1.9.7
 
 ## 概述
 
@@ -1384,6 +1384,274 @@ X-API-Key: your-api-key
 
 ---
 
+## 公告 API
+
+> **接口认证**: 需要 API Key / Web JWT / Anonymous Token 三选一
+> **数据来源**: 从森空岛终末地官方账号（3737967211133）同步的公告数据
+> **同步机制**: 每 2 分钟自动检查并同步新公告
+
+### 认证方式
+
+所有公告接口都需要认证，支持以下三种方式（任选其一）：
+
+| 认证方式 | Header | 说明 |
+|----------|--------|------|
+| API Key | `X-API-Key: your-api-key` | 第三方开发者使用 |
+| Web JWT | `Authorization: Bearer <access_token>` | 网站登录用户 |
+| Anonymous Token | `X-Anonymous-Token: anon_xxx` | 匿名用户（需先获取） |
+
+### 接口概览
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/announcements` | 获取公告列表（支持分页和筛选） |
+| GET | `/api/announcements/latest` | 获取最新公告 |
+| GET | `/api/announcements/:id` | 获取公告详情 |
+| POST | `/api/announcements/admin/sync` | 手动触发同步 |
+| GET | `/api/announcements/admin/sync/status` | 获取同步状态 |
+
+---
+
+### 获取公告列表
+
+```http
+GET /api/announcements?page=1&page_size=20
+X-API-Key: your-api-key
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 20 | 每页数量（最大 100） |
+| game_id | int | 否 | - | 按游戏 ID 筛选 |
+| cate_id | int | 否 | - | 按分类 ID 筛选 |
+| view_kind | int | 否 | - | 按类型筛选（1=视频, 3=图文） |
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "list": [
+      {
+        "id": "65f1a2b3c4d5e6f7a8b9c0d1",
+        "item_id": "4023334",
+        "view_kind": 3,
+        "game_id": 105,
+        "cate_id": 8,
+        "title": "「悬赏通缉」玩法已开启",
+        "subtitle": "全新活动上线",
+        "published_at": "2026-02-02T12:00:00Z",
+        "published_at_ts": 1738483200,
+        "images": ["https://bbs.hycdn.cn/..."],
+        "user": {
+          "id": "3737967211133",
+          "nickname": "终末地官方",
+          "avatar": "https://..."
+        },
+        "stats": {
+          "like_count": 1234,
+          "comment_count": 56,
+          "view_count": 10000,
+          "bookmark_count": 89
+        }
+      }
+    ],
+    "total": 100,
+    "page": 1,
+    "page_size": 20,
+    "has_more": true
+  }
+}
+```
+
+**字段说明**：
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| item_id | string | 公告唯一 ID（来自森空岛） |
+| view_kind | int | 内容类型（1=视频, 3=图文） |
+| game_id | int | 游戏 ID（105=终末地） |
+| cate_id | int | 分类 ID（8=公告） |
+| published_at_ts | int64 | 发布时间戳（秒），用于判断新公告 |
+| images | array | 内容中的图片列表 |
+| content | object | 富文本内容（blocks 结构） |
+| format | string | 完整内容格式（JSON 字符串，保留原格式） |
+
+---
+
+### 获取公告详情
+
+```http
+GET /api/announcements/:id
+X-API-Key: your-api-key
+```
+
+**路径参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| id | string | 是 | 公告 item_id |
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "id": "65f1a2b3c4d5e6f7a8b9c0d1",
+    "item_id": "4023334",
+    "title": "「悬赏通缉」玩法已开启",
+    "subtitle": "全新活动上线",
+    "content": {
+      "blocks": [
+        {
+          "kind": "text",
+          "text": { "text": "亲爱的管理员：" }
+        },
+        {
+          "kind": "image",
+          "image": { "url": "https://bbs.hycdn.cn/..." }
+        }
+      ]
+    },
+    "format": "{\"blocks\":[...]}",
+    "published_at": "2026-02-02T12:00:00Z",
+    "user": { ... },
+    "stats": { ... },
+    "tags": [
+      { "id": "tag_1", "name": "活动" }
+    ]
+  }
+}
+```
+
+---
+
+### 获取最新公告
+
+获取最新的一条公告，用于客户端轮询检查是否有新公告。
+
+```http
+GET /api/announcements/latest
+X-API-Key: your-api-key
+```
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "item_id": "4023334",
+    "title": "「悬赏通缉」玩法已开启",
+    "published_at_ts": 1738483200,
+    "published_at": "2026-02-02T12:00:00Z"
+  }
+}
+```
+
+**客户端轮询示例**：
+```javascript
+let lastKnownTimestamp = 0;
+
+const checkNewAnnouncement = async () => {
+  const res = await fetch('/api/announcements/latest', {
+    headers: { 'X-API-Key': API_KEY }
+  });
+  const { data } = await res.json();
+  
+  if (data.published_at_ts > lastKnownTimestamp) {
+    // 有新公告
+    showNotification(data.title);
+    lastKnownTimestamp = data.published_at_ts;
+  }
+};
+
+// 建议每 2-5 分钟轮询一次
+setInterval(checkNewAnnouncement, 2 * 60 * 1000);
+```
+
+---
+
+### 手动触发同步
+
+```http
+POST /api/announcements/admin/sync
+X-API-Key: your-api-key
+```
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "message": "同步任务已启动"
+  }
+}
+```
+
+**错误响应**（同步进行中）：
+```json
+{
+  "code": 400,
+  "message": "同步任务正在执行中"
+}
+```
+
+---
+
+### 获取同步状态
+
+```http
+GET /api/announcements/admin/sync/status
+X-API-Key: your-api-key
+```
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "is_running": false,
+    "total_announcements": 100,
+    "last_sync": {
+      "status": "completed",
+      "started_at": "2026-02-02T12:00:00Z",
+      "completed_at": "2026-02-02T12:00:05Z",
+      "items_synced": 10,
+      "new_items_found": 2,
+      "error_message": ""
+    }
+  }
+}
+```
+
+**同步状态说明**：
+| status | 说明 |
+|--------|------|
+| running | 同步中 |
+| completed | 同步完成 |
+| failed | 同步失败 |
+
+---
+
+### 数据同步机制
+
+- **同步间隔**：每 2 分钟自动检查新公告
+- **首次同步**：服务启动 15 秒后执行
+- **同步方式**：增量同步（只同步比数据库中最新公告更新的内容）
+- **数据来源**：森空岛终末地官方账号（`userId=3737967211133`）
+- **数据保留**：完整保留原始格式（`format` 字段）
+
+**公共账号池**：
+- 使用公共账号池进行 API 调用，无需用户凭证
+- 自动处理时间戳同步和签名
+
+---
+
 ## 抽卡记录 API
 
 > ⚠️ 以下接口需要**双重凭证**（同终末地数据 API）
@@ -2085,11 +2353,12 @@ Content-Type: application/json
 **状态对象 (state)**:
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| six_star_pity | int | 当前6星保底计数 |
+| six_star_pity | int | 当前6星保底计数（80抽小保底） |
 | five_star_pity | int | 当前5星保底计数 |
 | total_pulls | int | 总抽数 |
-| guaranteed_limited_pity | int | 硬保底计数（120/80抽） |
-| has_received_guaranteed_limited | bool | 是否已触发硬保底 |
+| guaranteed_limited_pity | int | 硬保底计数（限定池120抽/武器池80抽） |
+| has_received_guaranteed_limited | bool | 是否已触发硬保底（仅触发1次） |
+| is_guaranteed_up | bool | 是否大保底（上次歪了，下次必出UP） |
 | six_star_count | int | 已获得6星数量 |
 | five_star_count | int | 已获得5星数量 |
 | up_six_star_count | int | 已获得UP 6星数量 |
@@ -2115,6 +2384,7 @@ Content-Type: application/json
       "total_pulls": 101,
       "guaranteed_limited_pity": 0,
       "has_received_guaranteed_limited": false,
+      "is_guaranteed_up": false,
       "six_star_count": 1,
       "five_star_count": 0,
       "four_star_count": 0,
@@ -2127,14 +2397,16 @@ Content-Type: application/json
       "up_rate": 100,
       "avg_pulls_per_six_star": 101,
       "current_pity": 0,
-      "expected_pulls": 62
+      "expected_pulls": 62,
+      "is_guaranteed_up": false
     },
     "gifts": {
       "gift_count": 0,
-      "free_ten_count": 3,
+      "free_ten_count": 1,
+      "free_ten_available": 0,
       "has_info_book": true,
       "next_gift_at": 240,
-      "next_free_ten_at": 120
+      "next_free_ten_at": 30
     }
   }
 }
@@ -2179,7 +2451,7 @@ Content-Type: application/json
 
 ### 模拟免费十连
 
-> 仅限定角色池支持。免费十连**不计入保底**，抽完后保底状态恢复到抽之前。
+> 仅限定角色池支持。每期卡池**仅限1次**（30抽后获得）。免费十连**不计入保底**，抽完后保底状态恢复到抽之前。
 
 ```http
 POST /api/endfield/gacha/simulate/free-ten
@@ -4125,16 +4397,51 @@ const callWithAPIKey = async (apiKey, endpoint) => {
 
 ## 更新日志
 
-### v1.9.4 (2026-02-01)
+### v1.9.7 (2026-02-02)
 
-- ✅ **Wiki 攻略数据结构支持**
-  - 支持 typeMainId=2（游戏攻略辑）的完整数据结构
-  - 新增 `chapter_group` 字段：章节组定义
-  - 新增 `widget_common_map` 字段：攻略 tab 切换组件
-    - `tab_list`：多个作者的攻略列表
-    - `tab_data_map`：每个 tab 对应的文档内容（引用 `document_map`）
-  - 新增 `extra_info` 字段：额外展示信息
-  - 干员攻略（typeSubId=11）支持多作者内容切换
+- ✅ **新增公告同步 API**
+  - `GET /api/announcements` - 获取公告列表（支持分页和筛选）
+  - `GET /api/announcements/:id` - 获取公告详情
+  - `GET /api/announcements/latest` - 获取最新公告（用于客户端轮询）
+  - `POST /api/announcements/admin/sync` - 手动触发同步
+  - `GET /api/announcements/admin/sync/status` - 获取同步状态
+
+- ✅ **公告同步机制**
+  - 每 2 分钟自动检查并同步新公告
+  - 数据来源：森空岛终末地官方账号（`userId=3737967211133`）
+  - 增量同步：只同步比数据库中最新的更新的公告
+  - 完整保留原始格式（`format` 字段保存完整 JSON）
+  - 使用公共账号池，无需用户凭证
+
+- ✅ **查询功能**
+  - 支持分页查询（page、page_size）
+  - 支持按游戏 ID 筛选（game_id）
+  - 支持按分类 ID 筛选（cate_id）
+  - 支持按内容类型筛选（view_kind：1=视频, 3=图文）
+  - 按发布时间倒序排列
+
+- ✅ **时间戳同步问题修复**
+  - **问题**：公告同步频繁失败，返回 10003 错误（请勿修改设备本地时间）
+  - **原因**：多个 client 共享同一个 account，但只有 refresh 会更新时间戳。
+    Wiki 同步复用同一 client 内部时间戳持续更新；公告同步每次创建新 client 使用旧时间戳。
+  - **解决**：新增 `GetClientWithForceRefresh` 方法，公告同步强制刷新 Token 获取最新时间戳
+
+### v1.9.6 (2026-02-01)
+
+- ✅ **模拟抽卡大保底机制**
+  - 新增 `is_guaranteed_up` 状态字段
+  - 50/50 歪了后，下次6星必出UP（大保底）
+  - 状态在 `state` 和 `stats` 中均返回
+
+- ✅ **免费十连规则修正**
+  - 每期卡池仅限1次（30抽后获得）
+  - 60抽获得的情报书用于**下一期**卡池
+  - `gifts` 新增 `free_ten_available` 字段表示可用次数
+
+- ✅ **个人抽卡统计修正**
+  - 免费抽卡（`is_free=true`）不计入保底计数
+  - 免费抽卡仍计入稀有度统计
+  - 前端历史记录显示"免费"标签
 
 ### v1.9.5 (2026-02-01)
 
@@ -4151,7 +4458,14 @@ const callWithAPIKey = async (apiKey, endpoint) => {
 
 ### v1.9.4 (2026-02-01)
 
-- ✅ **API 文档版本号修复**
+- ✅ **Wiki 攻略数据结构支持**
+  - 支持 typeMainId=2（游戏攻略辑）的完整数据结构
+  - 新增 `chapter_group` 字段：章节组定义
+  - 新增 `widget_common_map` 字段：攻略 tab 切换组件
+    - `tab_list`：多个作者的攻略列表
+    - `tab_data_map`：每个 tab 对应的文档内容（引用 `document_map`）
+  - 新增 `extra_info` 字段：额外展示信息
+  - 干员攻略（typeSubId=11）支持多作者内容切换
 
 ### v1.9.3 (2026-02-01)
 

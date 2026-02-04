@@ -2,19 +2,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { rulePrefix, getUnbindMessage, getMessage } from '../utils/common.js'
-
-let cachedVersion = null
-function getPluginVersion() {
-  if (cachedVersion) return cachedVersion
-  try {
-    const pkgPath = path.resolve(process.cwd(), './plugins/endfield-plugin/package.json')
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'))
-    cachedVersion = pkg?.version || ''
-  } catch {
-    cachedVersion = ''
-  }
-  return cachedVersion
-}
+import { getCopyright } from '../utils/copyright.js'
 import EndfieldUser from '../model/endfieldUser.js'
 import setting from '../utils/setting.js'
 
@@ -64,10 +52,6 @@ export async function sendOperatorList(e, userId, options = {}) {
       return true
     }
 
-    const userAvatar = base?.avatarUrl || ''
-    const userNickname = base?.name || '未知'
-    const userLevel = base?.level ?? 0
-
     const operators = chars.map((char) => {
       const c = char.charData || char
       const imageUrl = c.avatarRtUrl || ''
@@ -92,7 +76,7 @@ export async function sendOperatorList(e, userId, options = {}) {
       return {
         name,
         nameChars: Array.from(name),
-        imageUrl: imageUrl || 'https://assets.skland.com/ui-component/endfield/assets/evolve-phases/phase-1.png',
+        imageUrl: imageUrl,
         rarityClass,
         rarity,
         level,
@@ -104,12 +88,15 @@ export async function sendOperatorList(e, userId, options = {}) {
       }
     })
 
-    const listBgFile = LIST_BG_FILES[Math.floor(Math.random() * LIST_BG_FILES.length)]
     const listPageWidth = 1600
     const listColumnCount = 6
     const listCardWidth = (listPageWidth - 48 - (listColumnCount - 1) * 12) / listColumnCount
     const listCardHeight = listCardWidth * (4 / 3)
     const listCardScale = Math.min(listCardWidth / 800, listCardHeight / 1200)
+    const userAvatar = base?.avatarUrl || ''
+    const userNickname = base?.name || '未知'
+    const userLevel = base?.level ?? 0
+    const listBgFile = LIST_BG_FILES[Math.floor(Math.random() * LIST_BG_FILES.length)]
 
     const tplData = {
       totalCount: operators.length,
@@ -248,7 +235,7 @@ export class EndfieldOperator extends plugin {
         userAvatar: base?.avatarUrl || '',
         userNickname: base?.name || '未知',
         userLevel: base?.level ?? 0,
-        endfieldVersion: getPluginVersion()
+        ...getCopyright()
       }
       // 使用 runtime.render 对接新渲染器（renderers/puppeteer），模板与资源路径由 runtime 注入
       if (!this.e.runtime?.render) {

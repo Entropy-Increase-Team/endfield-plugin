@@ -2,12 +2,12 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width={{maxWidth}}, initial-scale=1">
+  <meta name="viewport" content="width={{pageWidth}}, initial-scale=1">
   <title>{{title}} - {{subtitle}}</title>
   <link rel="stylesheet" href="{{_res_path}}gacha/gacha-record.css">
 </head>
 <body>
-  <div class="gacha-record-container" style="min-width: {{maxWidth}}px; max-width: {{maxWidth}}px;">
+  <div class="gacha-record-container" style="min-width: {{pageWidth}}px; max-width: {{pageWidth}}px;">
     <div class="list-top-bar">
       <div class="list-header-middle">
         <h1 class="list-title">{{title}}</h1>
@@ -62,7 +62,7 @@
       <p class="page-hint">查看其他页：{{pageHint}}</p>
       {{/if}}
       {{else}}
-      <p class="empty-hint">暂无记录，请先使用「{{syncHint}}」从官方拉取。</p>
+      <p class="empty-hint">暂无记录。{{syncHint}}</p>
       {{/if}}
     </div>
   </div>

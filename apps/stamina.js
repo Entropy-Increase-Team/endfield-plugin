@@ -26,11 +26,11 @@ export class EndfieldStamina extends plugin {
           fnc: 'subscribeStamina'
         },
         {
-          reg: `^${rulePrefix}取消订阅理智$`,
+          reg: `^${rulePrefix}取消\\s*订阅\\s*理智$`,
           fnc: 'unsubscribeStamina'
         },
         {
-          reg: `^${rulePrefix}订阅推送设置\\s+(群聊|私信)(?:\\s+(\\d+))?$`,
+          reg: `^${rulePrefix}(订阅推送设置|订阅设置推送|推送设置订阅|设置推送订阅)\\s*(群聊|私信)(?:\\s*(\\d+))?$`,
           fnc: 'subscribePushSetting'
         }
       ]
@@ -229,7 +229,7 @@ export class EndfieldStamina extends plugin {
   async subscribePushSetting() {
     const isGroup = !!this.e.isGroup
     const raw = (this.e.msg || '').trim()
-    const match = raw.match(/订阅推送设置\s+(群聊|私信)(?:\s+(\d+))?/)
+    const match = raw.match(/(?:订阅推送设置|订阅设置推送|推送设置订阅|设置推送订阅)\s*(群聊|私信)(?:\s*(\d+))?/)
     if (!match) return true
     const [, type, idStr] = match
     const list = await this.getStaminaSubList()

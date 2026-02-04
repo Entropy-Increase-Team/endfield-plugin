@@ -1,38 +1,40 @@
 # 帮助内容（不自动复制到 config；需自定义时请手动复制 defSet/help.yaml 到 config/help.yaml 后修改）
+# 说明：多词命令中空格可有可无，部分命令支持调换词序（如 订阅公告/公告订阅）；绑定/登陆/登录 三者等价
 
 help_layout:
   col_count: 4    # 每行卡片列数
-  col_width: 400  # 每列宽度（px）
+  col_width: 450  # 每列宽度（px）
   width_gap: 20   # 列间距（px）
 
 help_group:
-  - group: "支持多账号绑定，请使用'{prefix}扫码绑定'或'{prefix}手机绑定'完成绑定"
-  - group: "可通过'{prefix}切换绑定 <序号>'切换当前激活账号"
-  - group: "蓝图文档链接 {bluemap_help}"
-  - group: "官网链接 https://end.shallow.ink"
+  - type: tips
+    items:
+      - title: "多账号说明"
+        text: "支持多账号，请使用「{prefix}扫码绑定」「{prefix}手机绑定」「{prefix}授权绑定」完成绑定"
+      - title: "切换账号"
+        text: "可通过「{prefix}切换绑定 <序号>」切换当前激活账号"
+      - title: "相关链接"
+        text: "官网 {official_website} | 蓝图文档 {bluemap_help}"
   - group: "基础指令"
     list:
       - icon: 1
         title: "{prefix}帮助"
-        desc: "打开帮助菜单"
-      - icon: 2
-        title: "{prefix}绑定"
-        desc: "查看绑定方式说明"
+        desc: "打开本帮助菜单"
       - icon: 3
-        title: "{prefix}授权登陆"
-        desc: "网页授权登陆（需先去网站绑定）"
+        title: "{prefix}授权绑定 / 授权登陆"
+        desc: "网页授权绑定（需先在官网完成授权）"
       - icon: 3
-        title: "{prefix}扫码绑定"
+        title: "{prefix}扫码绑定 / 扫码登陆"
         desc: "森空岛 App 扫码绑定"
       - icon: 3
         title: "{prefix}手机绑定 [手机号]"
         desc: "手机验证码绑定（私聊）"
       - icon: 26
-        title: "{prefix}绑定帮助"
+        title: "{prefix}绑定帮助 / 登陆帮助"
         desc: "查看绑定方式说明"
       - icon: 4
-        title: "{prefix}绑定列表"
-        desc: "查看已绑定账号（含绑定类型、当前）"
+        title: "{prefix}绑定列表 / 登陆列表"
+        desc: "查看已绑定账号（含类型、当前激活）"
       - icon: 5
         title: "{prefix}切换绑定 <序号>"
         desc: "切换当前激活账号"
@@ -42,6 +44,21 @@ help_group:
       - icon: 20
         title: "{prefix}蓝图"
         desc: "查看蓝图文档链接"
+      - icon: 20
+        title: "{prefix}公告"
+        desc: "终末地官方公告列表"
+      - icon: 20
+        title: "{prefix}公告 <序号>"
+        desc: "查看第 N 条公告详情"
+      - icon: 20
+        title: "{prefix}公告最新"
+        desc: "获取最新一条公告"
+      - icon: 20
+        title: "{prefix}订阅公告 群聊 / 公告订阅 群聊"
+        desc: "本群订阅新公告推送（空格可选）"
+      - icon: 20
+        title: "{prefix}取消订阅公告 / 公告取消订阅"
+        desc: "取消本群公告订阅"
   - group: "攻略查询"
     list:
       - icon: 21
@@ -74,11 +91,11 @@ help_group:
         title: "{prefix}理智"
         desc: "查询理智与日常活跃"
       - icon: 11
-        title: "{prefix}订阅理智 [值]"
-        desc: "订阅理智与日常活跃推送，不设值则满时推送，设值则到该值推送"
+        title: "{prefix}订阅理智 / 理智订阅 [值]"
+        desc: "订阅理智推送，不设值则满时推送，设值则到该值推送"
       - icon: 11
         title: "{prefix}订阅推送设置 [群聊/私信] [群号]"
-        desc: "设置理智推送目标（不填则发本人）"
+        desc: "设置理智推送目标（群号不填则本群/当前人）"
       - icon: 6
         title: "{prefix}签到"
         desc: "森空岛签到"
@@ -86,7 +103,7 @@ help_group:
         title: "{prefix}取消订阅理智"
         desc: "取消理智推送订阅"
       - icon: 12
-        title: "{prefix}抽卡记录同步"
+        title: "{prefix}抽卡记录同步 / 同步抽卡记录"
         desc: "从官方同步抽卡记录"
       - icon: 12
         title: "{prefix}抽卡记录 [常驻/新手/武器/限定] [页码]"
@@ -100,16 +117,16 @@ help_group:
   - group: "Wiki 查询（需绑定）"
     list:
       - icon: 12
-        title: "{prefix}wiki 干员 <干员名称>"
-        desc: "干员百科"
+        title: "{prefix}wiki 干员 <名称>"
+        desc: "干员百科（类型与名称间空格可选）"
       - icon: 13
-        title: "{prefix}wiki 装备 <装备名称>"
+        title: "{prefix}wiki 装备 <名称>"
         desc: "装备百科"
       - icon: 14
-        title: "{prefix}wiki 战术物品 <物品名称>"
+        title: "{prefix}wiki 战术物品 <名称>"
         desc: "战术物品百科"
       - icon: 15
-        title: "{prefix}wiki 武器 <武器名称>"
+        title: "{prefix}wiki 武器 <名称>"
         desc: "武器百科"
   - group: "管理员功能"
     auth: master

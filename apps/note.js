@@ -63,6 +63,7 @@ export class EndfieldNote extends plugin {
       if (this.e?.runtime?.render) {
         try {
           const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
+          const pageWidth = 360
           const renderData = {
             title: '终末地便签',
             subtitle: `${base.name || '未知'} · ${serverName}`,
@@ -91,7 +92,6 @@ export class EndfieldNote extends plugin {
             chars: charsList,
             pluResPath
           }
-          const pageWidth = 360
           const baseOpt = { scale: 1.6, retType: 'base64', viewport: { width: pageWidth, height: 900 } }
           const imgSegment = await this.e.runtime.render('endfield-plugin', 'note/note', renderData, baseOpt)
           if (imgSegment) {

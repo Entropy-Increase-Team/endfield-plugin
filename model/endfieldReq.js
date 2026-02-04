@@ -133,4 +133,43 @@ export default class EndfieldRequest {
       return false
     }
   }
+
+  /**
+   * 公告 API 请求（仅需 api_key，无需 framework_token，见 API 文档 公告 API）
+   * @param {string} type - announcements_list | announcements_latest | announcement_detail
+   * @param {object} data - page/page_size 或 id(item_id)
+   */
+  async getAnnouncementsData(type, data = {}) {
+    const urlMap = this.endfieldApi.getAnnouncementsUrlMap(data)[type]
+    if (!urlMap) {
+      logger.error(`[终末地插件][公告] 未知类型: ${type}`)
+      return false
+    }
+    if (!this.commonConfig.api_key || String(this.commonConfig.api_key).trim() === '') {
+      logger.error(`[终末地插件][公告] 未配置 api_key`)
+      return false
+    }
+    let url = urlMap.url
+    if (urlMap.query) {
+      url += `?${urlMap.query}`
+    }
+    const headers = {
+      'X-API-Key': this.commonConfig.api_key,
+      'Content-Type': 'application/json'
+    }
+    try {
+      const response = await fetch(url, { headers, method: 'get', timeout: 25000 })
+      if (!response.ok) {
+        logger.error(`[终末地插件][公告][${type}] ${response.status} ${response.statusText}`)
+        return false
+      }
+      const res = await response.json()
+      if (!res) return false
+      res.api = type
+      return res
+    } catch (error) {
+      logger.error(`[终末地插件][公告][${type}] fetch error: ${error.toString()}`)
+      return false
+    }
+  }
 }

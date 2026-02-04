@@ -21,16 +21,35 @@ function normalizeBinding(acc) {
   return out
 }
 
-/** 写入用户绑定列表；删除/撤销时由调用方先过滤再传入 */
+/**
+ * 清理账号列表：移除 is_active 为 false 的记录，并按 role_id 去重（每个 role_id 只保留一条，优先保留 last_sync 更新的）
+ * 保证 Redis 中一个用户下 role_id 唯一，且不存储已失效的绑定
+ */
+export function cleanAccounts(accounts) {
+  if (!Array.isArray(accounts)) return []
+  const normalized = accounts.map(normalizeBinding).filter(Boolean)
+  const activeOnly = normalized.filter(acc => acc.is_active === true)
+  const byRoleId = new Map()
+  for (const acc of activeOnly) {
+    const rid = acc.role_id != null ? String(acc.role_id) : ''
+    const existing = byRoleId.get(rid)
+    if (!existing || (acc.last_sync || acc.bind_time || 0) > (existing.last_sync || existing.bind_time || 0)) {
+      byRoleId.set(rid, acc)
+    }
+  }
+  return Array.from(byRoleId.values())
+}
+
+/** 写入用户绑定列表；写入前自动清除 is_active=false 并按 role_id 去重 */
 export async function saveUserBindings(userId, accounts) {
   if (!Array.isArray(accounts)) accounts = [accounts].filter(Boolean)
-  const normalized = accounts.map(normalizeBinding).filter(Boolean)
+  const cleaned = cleanAccounts(accounts)
   const key = REDIS_KEY(userId)
-  if (normalized.length === 0) {
+  if (cleaned.length === 0) {
     await redis.del(key)
     return
   }
-  await redis.set(key, JSON.stringify(normalized))
+  await redis.set(key, JSON.stringify(cleaned))
 }
 
 // ---------- EndfieldUser ----------
@@ -59,6 +78,13 @@ export default class EndfieldUser {
       if (Array.isArray(data)) accounts = data
       else {
         accounts = [{ ...data, is_active: true }]
+      }
+      const cleaned = cleanAccounts(accounts)
+      if (cleaned.length !== accounts.length) {
+        await saveUserBindings(this.user_id, cleaned)
+        accounts = cleaned
+      } else {
+        accounts = cleaned
       }
     } catch (err) {
       logger.error(`[终末地插件]解析用户绑定信息失败: ${err}`)

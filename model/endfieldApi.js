@@ -112,4 +112,27 @@ export default class EndfieldApi {
       }
     }
   }
+
+  /**
+   * 公告 API 地址映射（认证仅需 X-API-Key，见 API 文档 公告 API）
+   * 对应：/api/announcements 列表、/api/announcements/latest、/api/announcements/:id 详情
+   */
+  getAnnouncementsUrlMap = (data = {}) => {
+    const baseUrl = this.unifiedBackendBaseUrl
+    const page = data.page ?? 1
+    const pageSize = Math.min(100, Math.max(1, data.page_size ?? 20))
+    const listQuery = `page=${page}&page_size=${pageSize}`
+    return {
+      announcements_list: {
+        url: `${baseUrl}/api/announcements`,
+        query: listQuery
+      },
+      announcements_latest: {
+        url: `${baseUrl}/api/announcements/latest`
+      },
+      announcement_detail: {
+        url: `${baseUrl}/api/announcements/${encodeURIComponent(data.id || data.item_id || '')}`
+      }
+    }
+  }
 }

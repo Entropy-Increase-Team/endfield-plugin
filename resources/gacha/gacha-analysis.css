@@ -23,8 +23,6 @@ body {
   width: 100%;
   min-width: 100%;
   min-height: 100%;
-  margin: 0;
-  padding: 0;
   overflow-x: hidden;
   background: #f5f5f5;
   font-family: 'HarmonyOS Sans SC', -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif;
@@ -313,12 +311,11 @@ body {
   flex-shrink: 0;
 }
 
-/* 进度条宽度：占满剩余横向空间；分段式色块 + 背景参考线 */
+/* 进度条占满剩余宽度，仅末尾留约 30px 给歪/保底字 */
 .pool-star6-bar-wrap {
   position: relative;
   flex: 1;
-  min-width: 120px;
-  max-width: none;
+  min-width: 80px;
   height: 32px;
   min-height: 32px;
   background: #e5e7eb;
@@ -326,7 +323,7 @@ body {
   overflow: hidden;
 }
 
-/* 背景参考线：角色池 80 抽处 / 武器池 40 抽处，一眼看出吃满保底或提前出货 */
+/* 背景参考线：角色池 80 抽处（小保底）/ 武器池 40 抽处（100%），一眼看出吃满保底或提前出货 */
 .pool-star6-bar-ref {
   position: absolute;
   top: 0;
@@ -367,8 +364,26 @@ body {
   color: #1f2937;
 }
 
-/* 横向柱状图颜色定义（分段式色块）：UP=金色 #FFD700，歪/常驻=深灰 #708090，保底=青蓝 #00BFFF，垫的抽数=绿色 */
-/* UP出货 RGB(255,215,0)；常驻/歪 RGB(112,128,144)；必定保底 RGB(0,191,255) */
+.pool-star6-bar-level-yellow .pool-star6-bar-text,
+.pool-star6-bar-level-red .pool-star6-bar-text {
+  color: #fff;
+  text-shadow: 0 0 1px rgba(0,0,0,0.3);
+}
+
+/* 进度条分级颜色：角色池 0~80、武器池 0~40，绿(0-50%)-黄(50-80%)-红(80-100%) */
+.pool-star6-bar-level-green {
+  background: #22c55e;
+}
+
+.pool-star6-bar-level-yellow {
+  background: #eab308;
+}
+
+.pool-star6-bar-level-red {
+  background: #ef4444;
+}
+
+/* 原 badge 颜色保留给末尾状态字（歪/保底/UP） */
 .pool-star6-badge,
 .pool-star6-bar-inner.pool-star6-badge-normal {
   background: #22c55e;
@@ -424,22 +439,41 @@ body {
   color: #fff;
 }
 
-.pool-star6-tag {
+/* 末尾状态栏：固定宽度，UP 池非 UP 显示歪、大保底显示保底 */
+/* 行末状态字（歪/保底等）：固定占 30px，小方块，仅在有 tag 时显示 */
+.pool-star6-status {
+  flex-shrink: 0;
   margin-left: 6px;
-  font-size: 0.85rem;
+  width: 30px;
+  height: 24px;
+  min-width: 30px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
   font-weight: 600;
+  border-radius: 4px;
+  line-height: 1;
 }
 
-.pool-star6-tag-wai {
-  color: #708090;
+.pool-star6-status-wai {
+  color: #fff;
+  background: #64748b;
 }
 
-.pool-star6-tag-baodi {
-  color: #00BFFF;
+.pool-star6-status-baodi {
+  color: #fff;
+  background: #0284c7;
 }
 
-.pool-star6-tag-up {
-  color: #b8860b;
+.pool-star6-status-up {
+  color: #fff;
+  background: #b45309;
+}
+
+.pool-star6-status-empty {
+  background: transparent;
 }
 
 .pool-pity-row {
