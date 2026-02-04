@@ -1,5 +1,5 @@
 import { rulePrefix } from '../utils/common.js'
-import { update as UpdatePlugin } from '../../../other/update.js'
+import { update as UpdatePlugin } from '../../other/update.js'
 
 const pluginName = 'endfield-plugin'
 
@@ -12,7 +12,7 @@ export class EndfieldUpdate extends plugin {
       priority: 50,
       rule: [
         {
-          reg: new RegExp(`^${rulePrefix}((插件)?(强制)?更新|update)$`),
+          reg: `^${rulePrefix}((插件)?(强制)?更新|update)$`,
           fnc: 'update',
           permission: 'master'
         }
