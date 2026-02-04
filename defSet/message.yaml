@@ -6,8 +6,8 @@
 # 帮助页与蓝图（帮助菜单前缀提示、蓝图文档链接、官网链接）
 bluemap_help_doc: "https://www.kdocs.cn/l/caI2H6e4APLS"
 official_website: "https://end.shallow.ink"
-prefix_tips_mode1: "前缀为 : / ："
-prefix_tips_mode2: "前缀为 #终末地 / #zmd"
+prefix_tips_mode1: "前缀为 {keywords}"
+prefix_tips_mode2: "前缀为 : / ："
 
 # 未绑定账号时的提示信息
 unbind_message: |
@@ -49,7 +49,7 @@ activity:
 
 # Wiki 查询提示
 wiki:
-  provide_content: "请输入查询内容，例：{prefix}wiki 莱万汀 / {prefix}wiki 干员 莱万汀 / {prefix}wiki 武器 xxx"
+  provide_content: "请输入查询内容，例 {prefix}wiki 莱万汀 / {prefix}wiki 干员 莱万汀 / {prefix}wiki 武器 xxx"
   need_api_key: "Wiki 查询需要配置 api_key，请在 config/common.yaml 中填写（终末地协议终端获取）"
   query_failed: "查询「{name}」失败，请稍后重试"
   not_found: "未找到与「{name}」相关的{type_label}条目"
@@ -57,7 +57,7 @@ wiki:
 
 # 干员相关提示
 operator:
-  provide_name: "请指定要查询的干员名称。示例：{prefix}黎风面板"
+  provide_name: "请指定要查询的干员名称。示例 {prefix}黎风面板"
   loading_detail: "正在获取干员详细信息，请稍候..."
   no_operator_id: "获取干员ID失败，请稍后重试"
   panel_failed: "生成干员面板图片失败，请稍后重试"
@@ -127,7 +127,7 @@ stamina:
   subscribe_ok_full: "✅ 订阅成功，理智回满时推送"
   subscribe_ok_threshold: "✅ 订阅成功，理智达到 {threshold} 时推送"
   push_msg: "诶诶诶，{name}你的理智到 {current} 了！快去清理智~"
-  push_setting_example: "请指定群号，例如：{prefix}订阅推送设置 群聊 123456789"
+  push_setting_example: "请指定群号，例如 {prefix}订阅推送设置 群聊 123456789"
   unsubscribe_ok: "已取消订阅理智推送"
   not_subscribed: "当前未订阅理智推送"
   loading: "正在获取理智信息..."
@@ -179,7 +179,6 @@ gacha:
   sync_failed: "同步失败：{error}"
   sync_timeout: "同步超时，请稍后重试"
   simulate_failed: "模拟抽卡接口无响应，请稍后再试"
-  simulate_count_hint: "请输入次数，示例：{prefix}模拟抽卡 50 或 {prefix}模拟抽卡50（1～300 抽）"
   simulate_disabled: "模拟抽卡功能未开启"
   simulate_group_not_allowed: "本群未开放模拟抽卡"
   simulate_daily_limit_reached: "今日模拟抽卡次数已用完，明天再来吧"
@@ -273,7 +272,7 @@ enduid:
     删除列表（用户名 - QQ号 - UID - 时间）：
     {removed_detail}
   sync_no_pending: "没有待确认的同步操作"
-  switch_index_hint: "请输入有效序号，示例：{prefix}切换登陆 1"
+  switch_index_hint: "请输入有效序号，示例 {prefix}切换登陆 1"
   switched: |
     🔄 已切换至账号：
     角色名：{nickname}
@@ -281,8 +280,8 @@ enduid:
   switch_failed: "切换账号失败"
   phone_please_private: "手机登录需私聊进行"
   phone_ask: "请输入11位手机号码："
-  phone_ask_example: "格式：{prefix}手机登陆 13800138000"
-  phone_code_verify_example: "格式：{prefix}验证码 123456"
+  phone_ask_example: "格式 {prefix}手机登陆 13800138000"
+  phone_code_verify_example: "格式 {prefix}验证码 123456"
   phone_invalid: "请输入有效的11位手机号码"
   phone_send_failed: "验证码发送失败"
   phone_code_sent: "验证码已发送至 {mask}，5分钟内发送「{prefix}验证码 [6位验证码]」完成登录"
@@ -295,7 +294,7 @@ enduid:
   get_token_failed: "获取token失败"
 
 strategy:
-  provide_name: "请指定要查询的攻略名称。示例：{prefix}xx攻略"
+  provide_name: "请指定要查询的攻略名称。示例 {prefix}xx攻略"
   not_found: "未找到「{name}」相关攻略"
   not_found_suffix: "（支持 Wiki 干员攻略或用户上传：干员名/队伍名如 火队，可发 火队攻略 查看队伍攻略）"
   query_failed: "查询失败：{error}"

@@ -1,76 +1,66 @@
 import setting from './setting.js'
 
-function escapeRegex(str) {
-  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
+const DEFAULT_KEYWORDS = ['终末地', 'zmd']
+const escapeRegex = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-function buildRulePrefix() {
+/** 统一获取配置 */
+function getCommonCfg() {
   const cfg = setting.getConfig('common') || {}
+  const kw = Array.isArray(cfg.keywords) && cfg.keywords.length ? cfg.keywords : DEFAULT_KEYWORDS
   const mode = Number(cfg.prefix_mode) || 1
-  const keywords = Array.isArray(cfg.keywords) && cfg.keywords.length
-    ? cfg.keywords
-    : ['终末地', 'zmd']
-
-  let prefixChar
-  if (mode === 2) {
-    prefixChar = '#'
-  } else {
-    prefixChar = ':：'
-  }
-
-  const sorted = [...keywords].sort((a, b) => (b?.length ?? 0) - (a?.length ?? 0))
-  const part = sorted.map((k) => escapeRegex(k)).filter(Boolean).join('|') || '终末地'
-  if (mode === 2) {
-    return `[${prefixChar}](${part})`
-  }
-  return `[:：]`
+  return { kw, mode }
 }
 
-export const rulePrefix = buildRulePrefix()
+export const getKeywords = () => getCommonCfg().kw
 
-function getPrefix() {
-  const commonConfig = setting.getConfig('common') || {}
-  const mode = Number(commonConfig.prefix_mode) || 1
-  return mode === 2 ? '#zmd' : ':'
+export function ruleReg(suffix, fnc, extra = {}) {
+  return {
+    get reg() { return new RegExp('^' + getRulePrefix() + suffix) },
+    fnc,
+    ...extra
+  }
 }
 
+export function getRulePrefix() {
+  const { kw, mode } = getCommonCfg()
+  if (mode !== 1) return '[:：]'
+  const part = [...kw].sort((a, b) => b.length - a.length).map(escapeRegex).join('|')
+  return `[#](${part})`
+}
+
+export function getPrefixStripRegex() {
+  const { kw, mode } = getCommonCfg()
+  if (mode === 2) return /^[:：]\s*/
+  const part = kw.map(escapeRegex).join('|')
+  return new RegExp(`^#(${part})?\\s*`)
+}
+
+export const getKeywordsDisplay = () => getKeywords().map(k => `#${k}`).join(' / ')
+
+/** 统一占位符替换 */
 function replacePlaceholders(message, params = {}) {
-  let result = message
-  const prefix = getPrefix()
-  result = result.replace(/{prefix}/g, prefix)
-  for (const [key, value] of Object.entries(params)) {
-    const replacement = (value !== undefined && value !== null) ? String(value) : ''
-    result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), replacement)
+  const { kw, mode } = getCommonCfg()
+  const data = {
+    prefix: mode === 1 ? `#${kw[0]}` : ':',
+    keywords: getKeywordsDisplay(),
+    ...params
   }
-  return result
+  return message.replace(/\{(\w+)\}/g, (_, key) => 
+    data[key] !== undefined && data[key] !== null ? String(data[key]) : `{${key}}`
+  )
 }
 
-export function getUnbindMessage() {
-  const messageConfig = setting.getConfig('message') || {}
-  let message = messageConfig.unbind_message || `未绑定终末地森空岛账号\n绑定命令 (仅私聊)\n1. {prefix}扫码登陆 -- 森空岛app扫码\n2. {prefix}手机登陆 [手机号] -- 手机号验证码登陆`
-  return replacePlaceholders(message)
-}
-
-/** 从配置对象中按 path 取消息文案 */
+/** 路径查找 */
 function lookupMessage(config, path) {
-  const keys = path.split('.')
-  let value = config
-  for (const key of keys) {
-    if (value && typeof value === 'object') value = value[key]
-    else return undefined
-  }
+  const value = path.split('.').reduce((obj, key) => obj?.[key], config)
   return typeof value === 'string' ? value : undefined
 }
 
 export function getMessage(path, params = {}) {
-  const messageConfig = setting.getConfig('message') || {}
-  let message = lookupMessage(messageConfig, path)
-  // config/message 未合并 defSet，缺键时回退到 defSet
-  if (!message) {
-    const defMessage = setting.getdefSet?.('message') || {}
-    message = lookupMessage(defMessage, path)
-  }
-  if (!message) return `[消息未配置: ${path}]`
-  return replacePlaceholders(message, params)
+  const message = lookupMessage(setting.getConfig('message'), path) 
+    || lookupMessage(setting.getdefSet?.('message'), path)
+  
+  return message ? replacePlaceholders(message, params) : `[消息未配置: ${path}]`
 }
 
+export const getUnbindMessage = () => getMessage('unbind_message')

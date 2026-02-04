@@ -1,6 +1,6 @@
-// 官方wiki数据不全 懒的搞了 后续优化吧
+// 官方 wiki 数据不全，后续可再补
 
-import { rulePrefix, getMessage } from '../utils/common.js'
+import { getMessage, getPrefixStripRegex, ruleReg } from '../utils/common.js'
 import common from '../../../lib/common/common.js'
 import EndfieldRequest from '../model/endfieldReq.js'
 import setting from '../utils/setting.js'
@@ -11,6 +11,7 @@ const WIKI = {
   SUB_LABEL: { '1': '干员', '2': '武器', '3': '威胁', '4': '装备', '5': '设备', '6': '物品', '7': '武器基质', '8': '任务', '9': '活动' }
 }
 WIKI.SUB_TYPE_BY_LABEL = Object.fromEntries(Object.entries(WIKI.SUB_LABEL).map(([k, v]) => [v, k]))
+WIKI.LABELS_SORTED = Object.entries(WIKI.SUB_TYPE_BY_LABEL).sort((a, b) => b[0].length - a[0].length)
 
 export class EndfieldWiki extends plugin {
   constructor() {
@@ -19,9 +20,7 @@ export class EndfieldWiki extends plugin {
       dsc: '终末地Wiki数据查询（:wiki xxx / :wikixxx）',
       event: 'message',
       priority: 50,
-      rule: [
-        { reg: `^${rulePrefix}wiki\\s*(.+)$`, fnc: 'queryWiki' }
-      ]
+      rule: [ruleReg('wiki\\s*(.+)$', 'queryWiki')]
     })
 
     this.common_setting = setting.getConfig('common')
@@ -29,16 +28,14 @@ export class EndfieldWiki extends plugin {
 
   /**
    * 解析 :wiki [干员|武器|...] xxx，返回 { subTypeId, name }。
-   * 无前缀时默认 subTypeId='1'（干员）。
+   * 无前缀时默认 subTypeId='1'（干员）；按标签长度降序匹配，避免短标签抢匹配。
    */
   getWikiQuery() {
     const msg = (this.e.msg || '').trim()
-    const mode = Number(this.common_setting?.prefix_mode) || 1
-    const prefix = mode === 2 ? /^#(终末地|zmd)?\s*/ : /^[:：]\s*/
-    const afterPrefix = msg.replace(prefix, '').replace(/^wiki\s*/i, '').trim() // 支持 :wiki 干员 黎风 / :wiki 干员黎风
+    const afterPrefix = msg.replace(getPrefixStripRegex(), '').replace(/^wiki\s*/i, '').trim()
     if (!afterPrefix) return { subTypeId: '1', name: '' }
-    for (const [label, subTypeId] of Object.entries(WIKI.SUB_TYPE_BY_LABEL)) {
-      if (afterPrefix === label || afterPrefix.startsWith(label) || afterPrefix.startsWith(label + ' ')) {
+    for (const [label, subTypeId] of WIKI.LABELS_SORTED) {
+      if (afterPrefix === label || afterPrefix.startsWith(label + ' ') || afterPrefix.startsWith(label)) {
         const name = afterPrefix === label ? '' : afterPrefix.slice(label.length).trim()
         return { subTypeId, name }
       }
@@ -46,13 +43,16 @@ export class EndfieldWiki extends plugin {
     return { subTypeId: '1', name: afterPrefix }
   }
 
-  /** 在条目列表中按名称精确/模糊匹配 */
+  /** 在条目列表中按名称精确匹配，再模糊匹配（包含关系），无结果时返回首项 */
   findByName(items, name) {
     if (!Array.isArray(items) || !name) return null
     const n = String(name).trim()
     const exact = items.find((item) => (item.name || '') === n)
     if (exact) return exact
-    const fuzzy = items.find((item) => (item.name || '').includes(n) || n.includes(item.name || ''))
+    const fuzzy = items.find((item) => {
+      const itemName = item.name || ''
+      return itemName && (itemName.includes(n) || n.includes(itemName))
+    })
     return fuzzy || items[0] || null
   }
 
@@ -210,13 +210,38 @@ export class EndfieldWiki extends plugin {
   /** 干员资料仅保留：代号、性别、身份认证、生日、种族 */
   static GANYUAN_ZILIAO_KEYS = /^【(代号|性别|身份认证|生日|种族)】/
 
+  /** 统一取 content 的 chapter_group / widget_common_map，避免各处重复写 snake_case 与 camelCase */
+  getContentMaps(content) {
+    return {
+      chapterGroup: content?.chapter_group || content?.chapterGroup || [],
+      widgetMap: content?.widget_common_map || content?.widgetCommonMap || {}
+    }
+  }
+
+  /** 从单个章节的 widgets 中收集 document id 列表（供 getDocumentIdsByChapter / getExcludedDocumentIds 复用） */
+  getDocIdsFromChapter(chapter, widgetMap) {
+    const docIds = []
+    const widgets = chapter?.widgets || []
+    for (const w of widgets) {
+      const wid = w?.id
+      if (!wid) continue
+      const widgetData = widgetMap[wid]
+      if (!widgetData) continue
+      const tabDataMap = widgetData.tab_data_map || widgetData.tabDataMap || {}
+      for (const key of Object.keys(tabDataMap)) {
+        const c = tabDataMap[key]?.content
+        if (c) docIds.push(c)
+      }
+    }
+    return docIds
+  }
+
   /** 干员资料章节无 tab_data_map 时，取干员档案→档案(oAggkMLV)→基础档案对应文档 */
   getFallbackDocIdsForGanyuanZiliao(content) {
-    const chapterGroup = content?.chapter_group || content?.chapterGroup || []
-    const widgetMap = content?.widget_common_map || content?.widgetCommonMap || {}
+    const { chapterGroup, widgetMap } = this.getContentMaps(content)
     const archiveChapter = chapterGroup.find((ch) => (ch?.title || '') === '干员档案')
     if (!archiveChapter) return []
-    const widgetData = widgetMap['oAggkMLV']
+    const widgetData = widgetMap['oAggkMLV'] || {}
     if (!widgetData) return []
     const tabDataMap = widgetData.tab_data_map || widgetData.tabDataMap || {}
     const tabList = widgetData.tab_list || widgetData.tabList || []
@@ -247,73 +272,22 @@ export class EndfieldWiki extends plugin {
 
   /**
    * 根据 content 结构收集需排除的文档 ID（上述章节下 widgets 对应的 document）。
-   * 通过 chapter_group → title 匹配 → widgets → widget_common_map 的 tab_data_map.content。
    */
   getExcludedDocumentIds(content) {
     const excluded = new Set()
-    const chapterGroup = content?.chapter_group || content?.chapterGroup || []
-    const widgetMap = content?.widget_common_map || content?.widgetCommonMap || {}
+    const { chapterGroup, widgetMap } = this.getContentMaps(content)
     const excludeTitles = new Set(EndfieldWiki.EXCLUDED_CHAPTER_TITLES)
     for (const ch of chapterGroup) {
-      const title = ch?.title || ''
-      if (!excludeTitles.has(title)) continue
-      const widgets = ch?.widgets || []
-      for (const w of widgets) {
-        const wid = w?.id
-        if (!wid) continue
-        const widgetData = widgetMap[wid]
-        if (!widgetData) continue
-        const tabDataMap = widgetData.tab_data_map || widgetData.tabDataMap || {}
-        for (const key of Object.keys(tabDataMap)) {
-          const c = tabDataMap[key]?.content
-          if (c) excluded.add(c)
-        }
-      }
+      if (!excludeTitles.has(ch?.title || '')) continue
+      for (const docId of this.getDocIdsFromChapter(ch, widgetMap)) excluded.add(docId)
     }
     return excluded
   }
 
-  /**
-   * 按 chapter_group 顺序收集文档 ID，用于渲染时保持与界面一致的顺序（便于去重后仍可读）。
-   */
-  getOrderedDocumentIds(content) {
-    const ordered = []
-    const chapterGroup = content?.chapter_group || content?.chapterGroup || []
-    const widgetMap = content?.widget_common_map || content?.widgetCommonMap || {}
-    for (const ch of chapterGroup) {
-      const widgets = ch?.widgets || []
-      for (const w of widgets) {
-        const wid = w?.id
-        if (!wid) continue
-        const widgetData = widgetMap[wid]
-        if (!widgetData) continue
-        const tabDataMap = widgetData.tab_data_map || widgetData.tabDataMap || {}
-        for (const key of Object.keys(tabDataMap)) {
-          const c = tabDataMap[key]?.content
-          if (c) ordered.push(c)
-        }
-      }
-    }
-    return ordered
-  }
-
   /** 按 chapter_group 顺序收集某章节下的文档 ID */
   getDocumentIdsByChapter(content, chapter) {
-    const widgetMap = content?.widget_common_map || content?.widgetCommonMap || {}
-    const docIds = []
-    const widgets = chapter?.widgets || []
-    for (const w of widgets) {
-      const wid = w?.id
-      if (!wid) continue
-      const widgetData = widgetMap[wid]
-      if (!widgetData) continue
-      const tabDataMap = widgetData.tab_data_map || widgetData.tabDataMap || {}
-      for (const key of Object.keys(tabDataMap)) {
-        const c = tabDataMap[key]?.content
-        if (c) docIds.push(c)
-      }
-    }
-    return docIds
+    const { widgetMap } = this.getContentMaps(content)
+    return this.getDocIdsFromChapter(chapter, widgetMap)
   }
 
   /** 将 content 按章节渲染为纯文本；干员资料无文档时用基础档案并只保留代号/性别/身份认证/生日/种族；排除特别提醒/干员档案 */
@@ -321,14 +295,15 @@ export class EndfieldWiki extends plugin {
     const docMap = content?.document_map || content?.documentMap || {}
     if (!docMap || typeof docMap !== 'object') return ''
     const excludedDocIds = this.getExcludedDocumentIds(content)
-    const chapterGroup = content?.chapter_group || content?.chapterGroup || []
+    const { chapterGroup } = this.getContentMaps(content)
     const excludeTitles = new Set(EndfieldWiki.EXCLUDED_CHAPTER_TITLES)
 
     const lines = []
     for (const ch of chapterGroup) {
       const title = ch?.title || ''
       if (excludeTitles.has(title)) continue
-      let docIds = this.getDocumentIdsByChapter(content, ch).filter((id) => docMap[id] && !excludedDocIds.has(id))
+      const rawDocIds = this.getDocumentIdsByChapter(content, ch)
+      let docIds = rawDocIds.filter((id) => docMap[id] && !excludedDocIds.has(id))
       if (docIds.length === 0 && title === '干员资料') docIds = this.getFallbackDocIdsForGanyuanZiliao(content)
       if (docIds.length === 0) continue
 
@@ -339,10 +314,10 @@ export class EndfieldWiki extends plugin {
       lines.push('【' + title + '】')
       lines.push('')
 
-      const isGanyuanZiliaoFallback = title === '干员资料' && this.getDocumentIdsByChapter(content, ch).length === 0
+      const isGanyuanZiliaoFallback = title === '干员资料' && rawDocIds.length === 0
+      const opts = isGanyuanZiliaoFallback ? { ganyuanZiliaoOnly: true } : {}
       for (const docId of docIds) {
-        const docLines = this.renderDocument(content, docId, isGanyuanZiliaoFallback ? { ganyuanZiliaoOnly: true } : {})
-        for (const line of docLines) {
+        for (const line of this.renderDocument(content, docId, opts)) {
           if (this.looksLikeSectionTitle(line) && lines.length > 0) lines.push('')
           lines.push(line)
         }
@@ -362,7 +337,7 @@ export class EndfieldWiki extends plugin {
       return { header: `【${typeLabel}】${data?.name || '未知'}\n暂无正文`, sections: [] }
     }
     const excludedDocIds = this.getExcludedDocumentIds(content)
-    const chapterGroup = content?.chapter_group || content?.chapterGroup || []
+    const { chapterGroup } = this.getContentMaps(content)
     const excludeTitles = new Set(EndfieldWiki.EXCLUDED_CHAPTER_TITLES)
 
     let header = `【${typeLabel}】${data?.name || '未知'}\n`
@@ -376,15 +351,16 @@ export class EndfieldWiki extends plugin {
     for (const ch of chapterGroup) {
       const title = ch?.title || ''
       if (excludeTitles.has(title)) continue
-      let docIds = this.getDocumentIdsByChapter(content, ch).filter((id) => docMap[id] && !excludedDocIds.has(id))
+      const rawDocIds = this.getDocumentIdsByChapter(content, ch)
+      let docIds = rawDocIds.filter((id) => docMap[id] && !excludedDocIds.has(id))
       if (docIds.length === 0 && title === '干员资料') docIds = this.getFallbackDocIdsForGanyuanZiliao(content)
       if (docIds.length === 0) continue
 
+      const isGanyuanZiliaoFallback = title === '干员资料' && rawDocIds.length === 0
+      const opts = isGanyuanZiliaoFallback ? { ganyuanZiliaoOnly: true } : {}
       const lines = []
-      const isGanyuanZiliaoFallback = title === '干员资料' && this.getDocumentIdsByChapter(content, ch).length === 0
       for (const docId of docIds) {
-        const docLines = this.renderDocument(content, docId, isGanyuanZiliaoFallback ? { ganyuanZiliaoOnly: true } : {})
-        for (const line of docLines) {
+        for (const line of this.renderDocument(content, docId, opts)) {
           if (this.looksLikeSectionTitle(line) && lines.length > 0) lines.push('')
           lines.push(line)
         }
@@ -481,30 +457,4 @@ export class EndfieldWiki extends plugin {
     }
   }
 
-  splitContent(content, maxLength = 2000) {
-    if (!content) return []
-    const messages = []
-    let currentIndex = 0
-    while (currentIndex < content.length) {
-      let segment = content.slice(currentIndex, currentIndex + maxLength)
-      if (currentIndex + maxLength < content.length) {
-        const lastPunctuation = Math.max(
-          segment.lastIndexOf('。'),
-          segment.lastIndexOf('！'),
-          segment.lastIndexOf('？'),
-          segment.lastIndexOf('\n')
-        )
-        if (lastPunctuation > maxLength * 0.5) {
-          segment = segment.slice(0, lastPunctuation + 1)
-          currentIndex += lastPunctuation + 1
-        } else {
-          currentIndex += maxLength
-        }
-      } else {
-        currentIndex = content.length
-      }
-      if (segment.trim()) messages.push(segment)
-    }
-    return messages
-  }
 }

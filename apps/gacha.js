@@ -1,4 +1,4 @@
-import { rulePrefix, getUnbindMessage, getMessage } from '../utils/common.js'
+import { getUnbindMessage, getMessage, ruleReg } from '../utils/common.js'
 import EndfieldUser from '../model/endfieldUser.js'
 import { REDIS_KEY } from '../model/endfieldUser.js'
 import hypergryphAPI from '../model/hypergryphApi.js'
@@ -69,42 +69,15 @@ export class EndfieldGacha extends plugin {
         log: true
       },
       rule: [
-        {
-          reg: `^${rulePrefix}(抽卡记录同步|同步抽卡记录)$`,
-          fnc: 'syncGacha'
-        },
-        {
-          reg: `^${rulePrefix}抽卡记录(?:\\s*(.+))?$`,
-          fnc: 'viewGachaRecords'
-        },
-        {
-          reg: `^${rulePrefix}抽卡分析$`,
-          fnc: 'viewGachaAnalysis'
-        },
-        {
-          reg: `^${rulePrefix}全服抽卡统计$`,
-          fnc: 'globalGachaStats'
-        },
-        {
-          reg: `^${rulePrefix}十连(?:\\s*[（(]?(常驻|UP|武器|限定)[）)]?)?$`,
-          fnc: 'simulateTen'
-        },
-        {
-          reg: `^${rulePrefix}百连(?:\\s*[（(]?(常驻|UP|武器|限定)[）)]?)?$`,
-          fnc: 'simulateHundred'
-        },
-        {
-          reg: `^${rulePrefix}单抽(?:\\s*[（(]?(常驻|UP|武器|限定)[）)]?)?$`,
-          fnc: 'simulateSingle'
-        },
-        {
-          reg: `^${rulePrefix}(重置模拟抽卡|模拟抽卡重置)$`,
-          fnc: 'resetSimulateGacha'
-        },
-        {
-          reg: `^${rulePrefix}\\d+$`,
-          fnc: 'receiveGachaSelect'
-        }
+        ruleReg('(抽卡记录同步|同步抽卡记录)$', 'syncGacha'),
+        ruleReg('抽卡记录(?:\\s*(.+))?$', 'viewGachaRecords'),
+        ruleReg('抽卡分析$', 'viewGachaAnalysis'),
+        ruleReg('全服抽卡统计$', 'globalGachaStats'),
+        ruleReg('十连(?:\\s*[（(]?(常驻|UP|武器|限定)[）)]?)?$', 'simulateTen'),
+        ruleReg('百连(?:\\s*[（(]?(常驻|UP|武器|限定)[）)]?)?$', 'simulateHundred'),
+        ruleReg('单抽(?:\\s*[（(]?(常驻|UP|武器|限定)[）)]?)?$', 'simulateSingle'),
+        ruleReg('(重置模拟抽卡|模拟抽卡重置)$', 'resetSimulateGacha'),
+        ruleReg('\\d+$', 'receiveGachaSelect')
       ]
     })
   }
@@ -827,7 +800,8 @@ export class EndfieldGacha extends plugin {
 
   getCmdPrefix() {
     const commonConfig = setting.getConfig('common') || {}
-    return Number(commonConfig.prefix_mode) === 2 ? '#zmd' : ':'
+    const mode = Number(commonConfig.prefix_mode) || 1
+    return mode === 1 ? `#${commonConfig.keywords?.[0] || 'zmd'}` : ':'
   }
 
   /** 将后端返回的 {qqname}、{qq号} 替换为当前用户昵称与 QQ 号，用于控制台日志 */

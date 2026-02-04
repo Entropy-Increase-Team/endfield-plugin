@@ -34,18 +34,18 @@ export default function getMessageSchemas() {
     },
     {
       field: 'prefix_tips_mode1',
-      label: '前缀提示（模式1）',
+      label: '前缀提示（模式1：#+关键词）',
       component: 'Input',
       componentProps: {
-        placeholder: '前缀：: / ：',
+        placeholder: '支持占位符 {keywords}，将替换为配置中的关键词列表',
       },
     },
     {
       field: 'prefix_tips_mode2',
-      label: '前缀提示（模式2）',
+      label: '前缀提示（模式2：:）',
       component: 'Input',
       componentProps: {
-        placeholder: '前缀：#终末地 / #zmd',
+        placeholder: '前缀：: / ：',
       },
     },
     {
@@ -643,11 +643,6 @@ export default function getMessageSchemas() {
     {
       field: 'gacha.simulate_failed',
       label: '抽卡 - 模拟失败',
-      component: 'Input',
-    },
-    {
-      field: 'gacha.simulate_count_hint',
-      label: '抽卡 - 模拟次数提示',
       component: 'Input',
     },
     {

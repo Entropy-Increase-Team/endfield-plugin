@@ -1,7 +1,7 @@
 import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { rulePrefix, getUnbindMessage, getMessage } from '../utils/common.js'
+import { getUnbindMessage, getMessage, getPrefixStripRegex, ruleReg } from '../utils/common.js'
 import { getCopyright } from '../utils/copyright.js'
 import EndfieldUser from '../model/endfieldUser.js'
 import setting from '../utils/setting.js'
@@ -151,8 +151,8 @@ export class EndfieldOperator extends plugin {
       event: 'message',
       priority: 50,
       rule: [
-        { reg: `^${rulePrefix}干员列表$`, fnc: 'getOperatorList' },
-        { reg: `^${rulePrefix}(.+?)面板$`, fnc: 'getOperator' }
+        ruleReg('干员列表$', 'getOperatorList'),
+        ruleReg('(.+?)面板$', 'getOperator')
       ]
     })
     this.common_setting = setting.getConfig('common')
@@ -160,7 +160,7 @@ export class EndfieldOperator extends plugin {
 
   getOperatorNameFromMsg() {
     let s = (this.e.msg || '').replace(/面板$/, '').trim()
-    s = s.replace(/^[:：]\s*/, '').replace(/^#(终末地|zmd)?/, '').trim()
+    s = s.replace(getPrefixStripRegex(), '').trim()
     return s
   }
 
@@ -431,6 +431,6 @@ export class EndfieldOperator extends plugin {
 
   getCmdPrefix() {
     const mode = Number(this.common_setting?.prefix_mode) || 1
-    return mode === 2 ? '#zmd' : ':'
+    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
   }
 }

@@ -1,5 +1,5 @@
 import setting from '../utils/setting.js'
-import { rulePrefix } from '../utils/common.js'
+import { getMessage, ruleReg } from '../utils/common.js'
 import { getCopyright } from '../utils/copyright.js'
 
 export class help extends plugin {
@@ -9,12 +9,7 @@ export class help extends plugin {
       dsc: '终末地插件帮助',
       event: 'message',
       priority: 10,
-      rule: [
-        {
-          reg: `^${rulePrefix}(帮助|help)$`,
-          fnc: 'help'
-        }
-      ]
+      rule: [ruleReg('(帮助|help)$', 'help')]
     })
     this.common_setting = setting.getConfig('common')
   }
@@ -22,11 +17,12 @@ export class help extends plugin {
   async help(e) {
     const help_setting = setting.getConfig('help')
     const msgCfg = setting.getConfig('message') || {}
-    const mode = Number(this.common_setting?.prefix_mode) || 1
-    const prefixTips = mode === 2
-      ? (msgCfg.prefix_tips_mode2 || '前缀：#终末地 / #zmd')
-      : (msgCfg.prefix_tips_mode1 || '前缀：: / ：')
-    const cmdPrefix = mode === 2 ? '#zmd' : ':'
+    // 每次请求时读取最新 common 配置，使帮助中的前缀/关键词与当前生效一致
+    const commonCfg = setting.getConfig('common')
+    const mode = Number(commonCfg?.prefix_mode) || 1
+    const prefixTips = mode === 1 ? getMessage('prefix_tips_mode1') : getMessage('prefix_tips_mode2')
+    const kw = commonCfg?.keywords?.[0] || 'zmd'
+    const cmdPrefix = mode === 1 ? `#${kw}` : ':'
     const bluemapHelp = msgCfg.bluemap_help_doc
     const officialWebsite = msgCfg.official_website || 'https://end.shallow.ink'
 

@@ -1,4 +1,4 @@
-import { rulePrefix, getUnbindMessage, getMessage } from '../utils/common.js'
+import { getUnbindMessage, getMessage, ruleReg } from '../utils/common.js'
 import EndfieldUser from '../model/endfieldUser.js'
 import { REDIS_KEY } from '../model/endfieldUser.js'
 import setting from '../utils/setting.js'
@@ -16,23 +16,10 @@ export class EndfieldStamina extends plugin {
         fnc: () => this.pushStamina()
       },
       rule: [
-        {
-          reg: `^${rulePrefix}理智$`,
-          fnc: 'getStamina'
-        },
-        // 适配 :订阅理智xxx 、：订阅理智 xxx 、：理智订阅xxx 、：理智订阅 xxx 等
-        {
-          reg: `^${rulePrefix}(订阅理智|理智订阅)(?:\\s*(\\d+))?.*$`,
-          fnc: 'subscribeStamina'
-        },
-        {
-          reg: `^${rulePrefix}取消\\s*订阅\\s*理智$`,
-          fnc: 'unsubscribeStamina'
-        },
-        {
-          reg: `^${rulePrefix}(订阅推送设置|订阅设置推送|推送设置订阅|设置推送订阅)\\s*(群聊|私信)(?:\\s*(\\d+))?$`,
-          fnc: 'subscribePushSetting'
-        }
+        ruleReg('理智$', 'getStamina'),
+        ruleReg('(订阅理智|理智订阅)(?:\\s*(\\d+))?.*$', 'subscribeStamina'),
+        ruleReg('取消\\s*订阅\\s*理智$', 'unsubscribeStamina'),
+        ruleReg('(订阅推送设置|订阅设置推送|推送设置订阅|设置推送订阅)\\s*(群聊|私信)(?:\\s*(\\d+))?$', 'subscribePushSetting')
       ]
     })
     this.common_setting = setting.getConfig('common')
@@ -265,6 +252,6 @@ export class EndfieldStamina extends plugin {
 
   getCmdPrefix() {
     const mode = Number(this.common_setting?.prefix_mode) || 1
-    return mode === 2 ? '#zmd' : ':'
+    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
   }
 }

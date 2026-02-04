@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { rulePrefix, getMessage } from '../utils/common.js'
+import { getMessage, getPrefixStripRegex, ruleReg } from '../utils/common.js'
 import setting from '../utils/setting.js'
 import common from '../../../lib/common/common.js'
 import EndfieldRequest from '../model/endfieldReq.js'
@@ -23,19 +23,9 @@ export class EndfieldStrategy extends plugin {
       event: 'message',
       priority: 50,
       rule: [
-        {
-          reg: `^${rulePrefix}攻略列表$`,
-          fnc: 'listStrategy'
-        },
-        {
-          reg: `^${rulePrefix}(.+?)攻略$`,
-          fnc: 'queryStrategy'
-        },
-        {
-          reg: `^${rulePrefix}(上传攻略|攻略上传)\\s*(\\S+)\\s*(\\S+)(?:\\s*(图片|https?://\\S+))?$`,
-          fnc: 'uploadStrategyImage',
-          permission: 'master'
-        }
+        ruleReg('攻略列表$', 'listStrategy'),
+        ruleReg('(.+?)攻略$', 'queryStrategy'),
+        ruleReg('(上传攻略|攻略上传)\\s*(\\S+)\\s*(\\S+)(?:\\s*(图片|https?://\\S+))?$', 'uploadStrategyImage', { permission: 'master' })
       ]
     })
 
@@ -45,19 +35,13 @@ export class EndfieldStrategy extends plugin {
   /** 从消息中提取攻略名称（「攻略」前的关键词） */
   getStrategyName() {
     let msg = this.e.msg || ''
-    const mode = Number(this.common_setting?.prefix_mode) || 1
-    if (mode === 2) {
-      msg = msg.replace(/^#(终末地|zmd)?\s*/, '')
-    } else {
-      msg = msg.replace(/^[:：]\s*/, '')
-    }
-    msg = msg.replace(/攻略$/, '').trim()
+    msg = msg.replace(getPrefixStripRegex(), '').replace(/攻略$/, '').trim()
     return msg
   }
 
   getCmdPrefix() {
     const mode = Number(this.common_setting?.prefix_mode) || 1
-    return mode === 2 ? '#zmd' : ':'
+    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
   }
 
   /** 攻略列表：本地 data/strategy-img 子目录 + Wiki 干员攻略名称 */
@@ -124,8 +108,7 @@ export class EndfieldStrategy extends plugin {
   async uploadStrategyImage() {
     if (!this.e?.isMaster) return false
     const msg = (this.e.msg || '').trim()
-    const mode = Number(this.common_setting?.prefix_mode) || 1
-    const prefix = mode === 2 ? /^#(终末地|zmd)?\s*/ : /^[:：]\s*/
+    const prefix = getPrefixStripRegex()
     const after = msg
       .replace(prefix, '')
       .replace(/^上传队伍攻略\s*/i, '')

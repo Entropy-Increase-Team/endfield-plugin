@@ -1,8 +1,8 @@
 /**
- * 终末地公告：:公告 / :公告最新 / :公告 <序号> / :订阅公告 群聊 等
+ * 终末地公告：公告 / 公告最新 / 公告 <序号> / 订阅公告 群聊 等（前缀见 common 配置）
  * 调用公告 API（GET /api/announcements、/api/announcements/latest），需配置 api_key
  */
-import { rulePrefix, getMessage } from '../utils/common.js'
+import { getMessage, ruleReg } from '../utils/common.js'
 import { getCopyright } from '../utils/copyright.js'
 import EndfieldRequest from '../model/endfieldReq.js'
 import setting from '../utils/setting.js'
@@ -108,30 +108,19 @@ export class announcement extends plugin {
         fnc: () => this.pushNewAnnouncement()
       },
       rule: [
-        {
-          reg: `^${rulePrefix}公告最新$`,
-          fnc: 'latest'
-        },
-        {
-          reg: `^${rulePrefix}公告\\s*(\\d+)$`,
-          fnc: 'detailByIndex'
-        },
-        {
-          reg: `^${rulePrefix}公告$`,
-          fnc: 'list'
-        },
-        // 订阅公告群聊：订阅公告 群聊 / 订阅公告群聊 / 公告订阅 群聊 / 公告订阅群聊（空格可选、调换位置）
-        {
-          reg: `^${rulePrefix}(订阅公告|公告订阅)\\s*群聊$`,
-          fnc: 'subscribeGroup'
-        },
-        {
-          reg: `^${rulePrefix}(取消订阅公告|公告取消订阅)$`,
-          fnc: 'unsubscribeGroup'
-        }
+        ruleReg('公告最新$', 'latest'),
+        ruleReg('公告\\s*(\\d+)$', 'detailByIndex'),
+        ruleReg('公告$', 'list'),
+        ruleReg('(订阅公告|公告订阅)\\s*群聊$', 'subscribeGroup'),
+        ruleReg('(取消订阅公告|公告取消订阅)$', 'unsubscribeGroup')
       ]
     })
     this.common_setting = setting.getConfig('common')
+  }
+
+  getCmdPrefix() {
+    const mode = Number(this.common_setting?.prefix_mode) || 1
+    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
   }
 
   /** 检查 api_key 并返回请求实例 */

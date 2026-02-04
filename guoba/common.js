@@ -12,20 +12,20 @@ export default function getCommonSchemas() {
     {
       field: 'prefix_mode',
       label: '命令前缀模式',
-      bottomHelpMessage: '1: 符号前缀（: 或 ：）| 2: 关键词前缀（#终末地 / #zmd）',
+      bottomHelpMessage: '1: # + 关键词（使用下方 keywords）| 2: 符号前缀（: 或 ：）',
       component: 'Select',
       componentProps: {
         placeholder: '请选择前缀模式',
         options: [
-          { label: '符号前缀（: 或 ：）', value: 1 },
-          { label: '关键词前缀（#终末地 / #zmd）', value: 2 },
+          { label: '# + 关键词（使用 keywords 配置）', value: 1 },
+          { label: '符号前缀（: 或 ：）', value: 2 },
         ],
       },
     },
     {
       field: 'keywords',
       label: '关键词列表',
-      bottomHelpMessage: '命令需要匹配其中任意一个关键词（仅在关键词前缀模式下生效）',
+      bottomHelpMessage: '仅模式一有效；命令为 # + 其中任意一个关键词，如 #终末地 攻略',
       component: 'GTags',
       componentProps: {
         placeholder: '请输入关键词后回车',

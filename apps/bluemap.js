@@ -1,5 +1,5 @@
 import setting from '../utils/setting.js'
-import { rulePrefix, getMessage } from '../utils/common.js'
+import { getMessage, ruleReg } from '../utils/common.js'
 
 export class EndfieldBluemap extends plugin {
   constructor() {
@@ -8,13 +8,14 @@ export class EndfieldBluemap extends plugin {
       dsc: '终末地蓝图文档',
       event: 'message',
       priority: 50,
-      rule: [
-        {
-          reg: `^${rulePrefix}蓝图$`,
-          fnc: 'bluemap'
-        }
-      ]
+      rule: [ruleReg('蓝图$', 'bluemap')]
     })
+    this.common_setting = setting.getConfig('common')
+  }
+
+  getCmdPrefix() {
+    const mode = Number(this.common_setting?.prefix_mode) || 1
+    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
   }
 
   async bluemap() {

@@ -1,4 +1,4 @@
-import { rulePrefix, getMessage } from '../utils/common.js'
+import { getMessage, ruleReg } from '../utils/common.js'
 import { saveUserBindings, cleanAccounts, REDIS_KEY } from '../model/endfieldUser.js'
 import EndfieldRequest from '../model/endfieldReq.js'
 import setting from '../utils/setting.js'
@@ -217,38 +217,14 @@ export class EndfieldUid extends plugin {
       event: 'message',
       priority: 100,
       rule: [
-        {
-          reg: `^${rulePrefix}扫码(绑定|登陆|登录)$`,
-          fnc: 'scanQRBind'
-        },
-        {
-          reg: `^${rulePrefix}授权(绑定|登陆|登录)$`,
-          fnc: 'authBind'
-        },
-        {
-          reg: `^${rulePrefix}(绑定|登陆|登录)列表$`,
-          fnc: 'bindList'
-        },
-        {
-          reg: `^${rulePrefix}删除(绑定|登陆|登录)\\s*(\\d+)$`,
-          fnc: 'deleteBind'
-        },
-        {
-          reg: `^${rulePrefix}切换(绑定|登陆|登录)\\s*(\\d+)$`,
-          fnc: 'switchBind'
-        },
-        {
-          reg: `^${rulePrefix}(绑定|登陆|登录)帮助$`,
-          fnc: 'credHelp'
-        },
-        {
-          reg: `^${rulePrefix}手机(绑定|登陆|登录)(\\s*\\d{11})?$`,
-          fnc: 'phoneBind'
-        },
-        {
-          reg: `^${rulePrefix}验证码\\s*(\\d{6})$`,
-          fnc: 'phoneVerifyCode'
-        }
+        ruleReg('扫码(绑定|登陆|登录)$', 'scanQRBind'),
+        ruleReg('授权(绑定|登陆|登录)$', 'authBind'),
+        ruleReg('(绑定|登陆|登录)列表$', 'bindList'),
+        ruleReg('删除(绑定|登陆|登录)\\s*(\\d+)$', 'deleteBind'),
+        ruleReg('切换(绑定|登陆|登录)\\s*(\\d+)$', 'switchBind'),
+        ruleReg('(绑定|登陆|登录)帮助$', 'credHelp'),
+        ruleReg('手机(绑定|登陆|登录)(\\s*\\d{11})?$', 'phoneBind'),
+        ruleReg('验证码\\s*(\\d{6})$', 'phoneVerifyCode')
       ]
     })
     this.help_setting = setting.getConfig('help')
@@ -977,7 +953,7 @@ export class EndfieldUid extends plugin {
 
   getCmdPrefix() {
     const mode = Number(this.common_setting?.prefix_mode) || 1
-    return mode === 2 ? '#zmd' : ':'
+    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
   }
 
   formatAuthExpiryTime(isoString) {

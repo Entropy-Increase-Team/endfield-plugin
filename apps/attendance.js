@@ -1,4 +1,4 @@
-import { rulePrefix, getUnbindMessage, getMessage } from '../utils/common.js'
+import { getUnbindMessage, getMessage, ruleReg } from '../utils/common.js'
 import EndfieldUser from '../model/endfieldUser.js'
 import setting from '../utils/setting.js'
 import common from '../../../lib/common/common.js'
@@ -11,15 +11,8 @@ export class EndfieldAttendance extends plugin {
       event: 'message',
       priority: 50,
       rule: [
-        {
-          reg: `^${rulePrefix}签到$`,
-          fnc: 'attendance'
-        },
-        {
-          reg: `^${rulePrefix}全部签到$`,
-          permission: 'master',
-          fnc: 'attendance_task'
-        }
+        ruleReg('签到$', 'attendance'),
+        ruleReg('全部签到$', 'attendance_task', { permission: 'master' })
       ]
     })
 
@@ -185,6 +178,6 @@ export class EndfieldAttendance extends plugin {
 
   getCmdPrefix() {
     const mode = Number(this.common_setting?.prefix_mode) || 1
-    return mode === 2 ? '#zmd' : ':'
+    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
   }
 }
