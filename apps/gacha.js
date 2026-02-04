@@ -7,6 +7,11 @@ import common from '../../../lib/common/common.js'
 
 const GACHA_PENDING_KEY = (userId) => `ENDFIELD:GACHA_PENDING:${userId}`
 const GACHA_LAST_ANALYSIS_KEY = (userId) => `ENDFIELD:GACHA_LAST_ANALYSIS:${userId}`
+/** 模拟抽卡：持久化 state，按作用域+卡池 */
+const GACHA_SIMULATE_STATE_KEY = (scope, poolType) => `ENDFIELD:GACHA:SIMULATE:STATE:${scope}:${poolType}`
+/** 模拟抽卡：当日用量，按日期+作用域+卡池，过期 2 天自动清理 */
+const GACHA_SIMULATE_DAILY_KEY = (date, scope, poolType) => `ENDFIELD:GACHA:SIMULATE:DAILY:${date}:${scope}:${poolType}`
+const GACHA_SIMULATE_STATE_PREFIX = 'ENDFIELD:GACHA:SIMULATE:STATE:'
 const POLL_INTERVAL_MS = 1500
 const POLL_TIMEOUT_MS = 120000
 const HOURLY_SYNC_DELAY_MIN_MS = 5000
@@ -28,6 +33,28 @@ const GACHA_POOL_BY_INPUT = (str) => {
   const prefix = GACHA_POOLS.find((p) => p.label.startsWith(s) || s.startsWith(p.label))
   return prefix ? { key: prefix.key, label: prefix.label } : null
 }
+
+/** 模拟抽卡卡池：单一配置表，关键词→key（API）+ label（展示） */
+const SIMULATE_POOLS = [
+  { key: 'limited', keywords: ['UP', '限定'], label: 'UP池' },
+  { key: 'standard', keywords: ['常驻'], label: '常驻池' },
+  { key: 'weapon', keywords: ['武器'], label: '武器池' }
+]
+const SIMULATE_KEYWORD_TO_KEY = Object.fromEntries(
+  SIMULATE_POOLS.flatMap((p) => p.keywords.map((k) => [k, p.key]))
+)
+const SIMULATE_POOL_LABEL = Object.fromEntries(SIMULATE_POOLS.map((p) => [p.key, p.label]))
+
+/** 从消息中解析模拟抽卡卡池类型（cmdName 为 十连|单抽|百连），默认 limited */
+function parseSimulatePoolType(msg, cmdName) {
+  if (!msg || typeof msg !== 'string') return 'limited'
+  const m = msg.trim().match(new RegExp(`${cmdName}\\s*[（(]?(常驻|UP|武器|限定)[）)]?`))
+  return (m && SIMULATE_KEYWORD_TO_KEY[m[1]]) || 'limited'
+}
+
+// 模拟抽卡规则缓存（避免每次渲染都请求）
+const SIMULATE_RULES_CACHE = new Map()
+
 export class EndfieldGacha extends plugin {
   constructor() {
     super({
@@ -59,11 +86,60 @@ export class EndfieldGacha extends plugin {
           fnc: 'globalGachaStats'
         },
         {
+          reg: `^${rulePrefix}十连(?:\\s*[（(]?(常驻|UP|武器|限定)[）)]?)?$`,
+          fnc: 'simulateTen'
+        },
+        {
+          reg: `^${rulePrefix}百连(?:\\s*[（(]?(常驻|UP|武器|限定)[）)]?)?$`,
+          fnc: 'simulateHundred'
+        },
+        {
+          reg: `^${rulePrefix}单抽(?:\\s*[（(]?(常驻|UP|武器|限定)[）)]?)?$`,
+          fnc: 'simulateSingle'
+        },
+        {
+          reg: `^${rulePrefix}(重置模拟抽卡|模拟抽卡重置)$`,
+          fnc: 'resetSimulateGacha'
+        },
+        {
           reg: `^${rulePrefix}\\d+$`,
           fnc: 'receiveGachaSelect'
         }
       ]
     })
+  }
+
+  /** 读取模拟抽卡持久化 state（Redis，按作用域+卡池），不存在则返回 null */
+  async loadSimulateState(scope, poolType) {
+    if (!redis) return null
+    try {
+      const raw = await redis.get(GACHA_SIMULATE_STATE_KEY(scope, poolType))
+      if (!raw) return null
+      const state = JSON.parse(raw)
+      return state && typeof state === 'object' ? state : null
+    } catch {
+      return null
+    }
+  }
+
+  /** 保存模拟抽卡持久化 state（Redis，按作用域+卡池） */
+  async saveSimulateState(scope, poolType, nextState) {
+    if (!redis) return
+    try {
+      const key = GACHA_SIMULATE_STATE_KEY(scope, poolType)
+      if (nextState && typeof nextState === 'object') {
+        await redis.set(key, JSON.stringify(nextState))
+      } else {
+        await redis.del(key)
+      }
+    } catch (err) {
+      logger.error(`[终末地插件][模拟抽卡] 保存 state 失败: ${err?.message || err}`)
+    }
+  }
+
+  /** 清空模拟抽卡持久化 state（按作用域+卡池） */
+  async clearSimulateState(scope, poolType) {
+    await this.saveSimulateState(scope, poolType, null)
   }
 
   /** 查看抽卡记录：支持分类（常驻/新手/武器/限定）与页码，如 :抽卡记录 常驻、:抽卡记录 限定 2；无参数时四个卡池第1页合并转发 */
@@ -914,6 +990,390 @@ export class EndfieldGacha extends plugin {
     if (data.cached === true) msg += '\n（缓存数据，约 5 分钟更新）'
     else if (data.last_update) msg += `\n更新时间：${data.last_update}`
     await this.reply(msg)
+    return true
+  }
+
+  /** 获取模拟抽卡配置（合并默认值） */
+  getSimulateConfig() {
+    const gacha = setting.getConfig('gacha') || {}
+    const sim = gacha.simulate || {}
+    return {
+      enable: sim.enable !== false,
+      group_whitelist: Array.isArray(sim.group_whitelist) ? sim.group_whitelist : [],
+      daily_limit: {
+        limited: Number(sim.daily_limit?.limited) || 0,
+        standard: Number(sim.daily_limit?.standard) || 0,
+        weapon: Number(sim.daily_limit?.weapon) || 0
+      }
+    }
+  }
+
+  /** 模拟抽卡用量作用域：群聊按群、私聊按用户 */
+  getSimulateScope() {
+    return this.e.isGroup ? `group_${this.e.group_id}` : `user_${this.e.user_id}`
+  }
+
+  /** 检查是否允许使用模拟抽卡：功能开关 + 群白名单（好友不限制群） */
+  checkSimulateAllowed() {
+    const cfg = this.getSimulateConfig()
+    if (!cfg.enable) return 'disabled'
+    if (this.e.isGroup && cfg.group_whitelist.length > 0) {
+      const gid = String(this.e.group_id)
+      if (!cfg.group_whitelist.includes(gid)) return 'group_not_allowed'
+    }
+    return true
+  }
+
+  /** 获取当日某作用域某卡池已使用次数（Redis） */
+  async getSimulateDailyUsage(scope, poolType) {
+    if (!redis) return 0
+    try {
+      const today = new Date().toISOString().slice(0, 10)
+      const raw = await redis.get(GACHA_SIMULATE_DAILY_KEY(today, scope, poolType))
+      return parseInt(raw, 10) || 0
+    } catch {
+      return 0
+    }
+  }
+
+  /** 检查当日次数是否未超限（0 表示不限制） */
+  async checkSimulateDailyLimit(scope, poolType) {
+    const cfg = this.getSimulateConfig()
+    const limit = cfg.daily_limit[poolType] ?? 0
+    if (limit <= 0) return true
+    const usage = await this.getSimulateDailyUsage(scope, poolType)
+    return usage < limit
+  }
+
+  /** 当日使用次数 +1（Redis，键 2 天后过期） */
+  async incrementSimulateDailyUsage(scope, poolType) {
+    if (!redis) return
+    try {
+      const today = new Date().toISOString().slice(0, 10)
+      const key = GACHA_SIMULATE_DAILY_KEY(today, scope, poolType)
+      const n = await redis.incr(key)
+      if (n === 1) await redis.expire(key, 86400 * 2)
+    } catch (err) {
+      logger.error(`[终末地插件][模拟抽卡] 增加当日用量失败: ${err?.message || err}`)
+    }
+  }
+
+  /** 从卡池角色分布中按稀有度与 UP 状态随机选一个，返回 { cover, name }，无数据则返回空对象 */
+  pickRandomCharFromPool(poolCharsData, poolType, rarity, isUp) {
+    if (!poolCharsData?.pools?.length) return {}
+    const pool = poolCharsData.pools.find((p) => p.pool_type === poolType) || poolCharsData.pools[0]
+    const key = rarity === 6 ? 'star6_chars' : rarity === 5 ? 'star5_chars' : 'star4_chars'
+    let list = Array.isArray(pool[key]) ? pool[key] : []
+    if (rarity === 6 && list.length > 0) list = list.filter((c) => !!c.is_up === !!isUp)
+    if (list.length === 0 && rarity === 6) list = Array.isArray(pool.star6_chars) ? pool.star6_chars : []
+    const char = list[Math.floor(Math.random() * list.length)]
+    return char ? { cover: char.cover || '', name: char.name || '' } : {}
+  }
+
+  /** 构建模拟抽卡渲染数据并尝试渲染（含 pool-chars 封面与名称），成功返回 base64 图片段，失败返回 null */
+  async renderSimulateResult(mode, payload) {
+    if (!this.e?.runtime?.render) return null
+    const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
+    // 整体放大：提高页面宽度与视口高度（卡片网格更大、更接近游戏展示）
+    const pageWidth = 760
+    let viewportHeight = mode === 'single' ? 360 : mode === 'ten' ? 820 : 520
+    // 百连等超过 10 条结果时拉高视口以展示全部卡片（5 列，每行约 199px）
+    if (mode === 'ten' && payload.results?.length > 10) {
+      const rows = Math.ceil(payload.results.length / 5)
+      viewportHeight = 530 + rows * 199
+    }
+    const baseOpt = { scale: 1.6, retType: 'base64', viewport: { width: pageWidth, height: viewportHeight } }
+    const poolType = payload.poolType
+    let poolCharsData = null
+    try {
+      poolCharsData = await hypergryphAPI.getGachaPoolChars(poolType)
+    } catch (e) {}
+    const pickChar = (rarity, isUp) => this.pickRandomCharFromPool(poolCharsData, poolType, rarity, isUp)
+
+    // 模拟抽卡规则（用于进度条与当前概率）
+    let rulesData = SIMULATE_RULES_CACHE.get(poolType) || null
+    if (!rulesData) {
+      try {
+        rulesData = await hypergryphAPI.getGachaSimulateRules(poolType)
+        if (rulesData) SIMULATE_RULES_CACHE.set(poolType, rulesData)
+      } catch (e) {}
+    }
+    const rules = rulesData?.rules || {}
+    const state = payload.state && typeof payload.state === 'object' ? payload.state : {}
+    const stats = payload.stats && typeof payload.stats === 'object' ? payload.stats : {}
+    const totalPulls = state.total_pulls ?? stats.total_pulls
+
+    const n = (v) => Number(v) || 0
+    const pityPct = (cur, max) => (max > 0 ? Math.min(100, Math.max(0, (cur / max) * 100)) : 0)
+    const mkPity = (cur, max, extra) => ({ cur, max, percent: pityPct(cur, max), ...extra })
+
+    const sixMax = n(rules.six_star_pity) || (poolType === 'weapon' ? 40 : 80)
+    const sixCur = n(state.six_star_pity)
+    const baseProb = n(rules.six_star_base_probability) || (poolType === 'weapon' ? 0.04 : 0.008)
+    const softStart = n(rules.six_star_soft_pity_start) || 65
+    const softInc = n(rules.six_star_soft_pity_increase) || 0.05
+    const softSteps = rules.has_soft_pity === true ? Math.max(0, sixCur + 1 - softStart + 1) : 0
+    const curProb = Math.min(1, baseProb + softSteps * softInc)
+
+    const hardMax = n(rules.guaranteed_limited_pity) || (poolType === 'weapon' ? 80 : 120)
+    const hasHard = poolType !== 'standard' && hardMax > 0
+    const hardCur = n(state.guaranteed_limited_pity)
+
+    const pityPanel = {
+      six: mkPity(sixCur, sixMax, { probText: `当前概率：${(curProb * 100).toFixed(2)}%` }),
+      guaranteedUpText: state.is_guaranteed_up == null ? '未触发' : state.is_guaranteed_up ? '已触发' : '未触发',
+      hard: hasHard ? mkPity(hardCur, hardMax, { label: `${hardMax}抽硬保底` }) : null
+    }
+
+    // 统计卡片：使用当前卡池的累计总和（state 优先），与保底进度一致
+    const sixCount = n(state.six_star_count ?? stats.six_star_count ?? stats.six_star)
+    const fiveCount = n(state.five_star_count ?? stats.five_star_count ?? stats.five_star)
+    const upSixCount = n(state.up_six_star_count ?? stats.up_six_star_count)
+    const upRate = sixCount > 0 ? ((upSixCount / sixCount) * 100).toFixed(2) : (stats.up_rate != null ? Number(stats.up_rate) : null)
+    const pctSub = (part, total) => (total ? `${((part / total) * 100).toFixed(2)}%` : '')
+    const summaryCards = {
+      total: { label: '总抽数', value: totalPulls ?? '-', sub: '' },
+      six: { label: '6星数', value: sixCount, sub: pctSub(sixCount, totalPulls) },
+      five: { label: '5星数', value: fiveCount, sub: pctSub(fiveCount, totalPulls) },
+      notWai: { label: '不歪率', value: upRate != null ? `${upRate}%` : '-', sub: upRate != null ? `${upSixCount} UP` : '' }
+    }
+
+    let renderData = {
+      mode,
+      title: payload.title,
+      subtitle: payload.poolLabel ? `卡池：${payload.poolLabel}` : undefined,
+      pageWidth,
+      pluResPath: pluResPath || undefined,
+      pityPanel,
+      summaryCards
+    }
+    if (mode === 'single' && payload.result) {
+      const r = payload.result
+      const charInfo = pickChar(r.rarity, r.is_up)
+      renderData.result = {
+        pull_number: r.pull_number,
+        rarity: r.rarity,
+        starLabel: r.rarity === 6 ? '★6' : r.rarity === 5 ? '★5' : '★4',
+        tag: r.rarity === 6 && r.is_up ? 'UP' : r.rarity === 6 && !r.is_up ? '歪' : '',
+        tagClass: r.rarity === 6 && r.is_up ? 'up' : r.rarity === 6 && !r.is_up ? 'wai' : '',
+        pity_when_pulled: r.pity_when_pulled,
+        cover: charInfo.cover || '',
+        charName: charInfo.name || ''
+      }
+    } else if (mode === 'ten' && payload.results) {
+      renderData.results = payload.results.map((r) => {
+        const charInfo = pickChar(r.rarity, r.is_up)
+        return {
+          pull_number: r.pull_number,
+          rarity: r.rarity,
+          starLabel: r.rarity === 6 ? '★6' : r.rarity === 5 ? '★5' : '★4',
+          tag: r.rarity === 6 && r.is_up ? 'UP' : r.rarity === 6 && !r.is_up ? '歪' : '',
+          tagClass: r.rarity === 6 && r.is_up ? 'up' : r.rarity === 6 && !r.is_up ? 'wai' : '',
+          cover: charInfo.cover || '',
+          charName: charInfo.name || ''
+        }
+      })
+      renderData.stats = payload.stats ? { star6Count: payload.star6Count, upCount: payload.upCount, total_pulls: payload.stats.total_pulls } : null
+    } else {
+      return null
+    }
+    try {
+      const segment = await this.e.runtime.render('endfield-plugin', 'gacha/simulate-result', renderData, baseOpt)
+      return segment || null
+    } catch (e) {
+      return null
+    }
+  }
+
+  /** 模拟单抽：调用公开 API，支持 单抽(常驻/UP/武器) 或 单抽 (常驻/UP/武器)，默认限定池 */
+  async simulateSingle() {
+    const allowed = this.checkSimulateAllowed()
+    if (allowed !== true) {
+      if (allowed === 'disabled') await this.reply(getMessage('gacha.simulate_disabled'))
+      else if (allowed === 'group_not_allowed') await this.reply(getMessage('gacha.simulate_group_not_allowed'))
+      return true
+    }
+    const poolType = parseSimulatePoolType(this.e.msg, '单抽')
+    const poolLabel = SIMULATE_POOL_LABEL[poolType] || poolType
+    const scope = this.getSimulateScope()
+    if (!(await this.checkSimulateDailyLimit(scope, poolType))) {
+      await this.reply(getMessage('gacha.simulate_daily_limit_reached'))
+      return true
+    }
+    // 不主动重置则叠加：从 Redis 持久化 state 继续抽
+    const prevState = await this.loadSimulateState(scope, poolType)
+    const data = await hypergryphAPI.postGachaSimulateSingle(poolType, prevState)
+    if (!data?.result) {
+      await this.reply(getMessage('gacha.simulate_failed'))
+      return true
+    }
+    // 保存最新 state，后续继续叠加
+    await this.saveSimulateState(scope, poolType, data.state || null)
+    await this.incrementSimulateDailyUsage(scope, poolType)
+    const r = data.result
+    const star = r.rarity === 6 ? '★6' : r.rarity === 5 ? '★5' : '★4'
+    const tag = r.rarity === 6 && r.is_up ? ' UP' : r.rarity === 6 && !r.is_up ? ' 歪' : ''
+    let msg = `【模拟单抽】${star}${tag}\n`
+    if (r.rarity === 6 && r.pity_when_pulled != null) msg += `第 ${r.pull_number} 抽出货（垫了 ${r.pity_when_pulled} 抽）`
+    else msg += `第 ${r.pull_number} 抽`
+    const img = await this.renderSimulateResult('single', { title: '模拟单抽', result: r, poolType, poolLabel, state: data.state, stats: data.stats })
+    await this.reply(img || msg)
+    return true
+  }
+
+  /** 模拟十连：调用公开 API，支持 十连(常驻/UP/武器) 或 十连 (常驻/UP/武器)，默认限定池 */
+  async simulateTen() {
+    const allowed = this.checkSimulateAllowed()
+    if (allowed !== true) {
+      if (allowed === 'disabled') await this.reply(getMessage('gacha.simulate_disabled'))
+      else if (allowed === 'group_not_allowed') await this.reply(getMessage('gacha.simulate_group_not_allowed'))
+      return true
+    }
+    const poolType = parseSimulatePoolType(this.e.msg, '十连')
+    const poolLabel = SIMULATE_POOL_LABEL[poolType] || poolType
+    const scope = this.getSimulateScope()
+    if (!(await this.checkSimulateDailyLimit(scope, poolType))) {
+      await this.reply(getMessage('gacha.simulate_daily_limit_reached'))
+      return true
+    }
+    // 不主动重置则叠加：从 Redis 持久化 state 继续抽
+    const prevState = await this.loadSimulateState(scope, poolType)
+    const data = await hypergryphAPI.postGachaSimulateTen(poolType, prevState)
+    if (!data?.results || !Array.isArray(data.results)) {
+      await this.reply(getMessage('gacha.simulate_failed'))
+      return true
+    }
+    // 保存最新 state，后续继续叠加
+    await this.saveSimulateState(scope, poolType, data.state || null)
+    await this.incrementSimulateDailyUsage(scope, poolType)
+    const lines = []
+    let star6Count = 0
+    let upCount = 0
+    for (const r of data.results) {
+      const star = r.rarity === 6 ? '★6' : r.rarity === 5 ? '★5' : '★4'
+      const tag = r.rarity === 6 && r.is_up ? ' UP' : r.rarity === 6 && !r.is_up ? ' 歪' : ''
+      lines.push(`第${r.pull_number}抽 ${star}${tag}`)
+      if (r.rarity === 6) {
+        star6Count += 1
+        if (r.is_up) upCount += 1
+      }
+    }
+    let msg = '【模拟十连】\n' + lines.join('\n')
+    if (data.stats) {
+      msg += `\n──────────────\n`
+      msg += `六星：${star6Count} | UP：${upCount} | 总抽数：${data.stats.total_pulls ?? '-'}`
+    }
+    const img = await this.renderSimulateResult('ten', {
+      title: '模拟十连',
+      results: data.results,
+      stats: data.stats,
+      star6Count,
+      upCount,
+      poolType,
+      poolLabel,
+      state: data.state
+    })
+    await this.reply(img || msg)
+    return true
+  }
+
+  /** 模拟百连：连续 10 次十连，共用 state，每日次数计 10 次 */
+  async simulateHundred() {
+    const allowed = this.checkSimulateAllowed()
+    if (allowed !== true) {
+      if (allowed === 'disabled') await this.reply(getMessage('gacha.simulate_disabled'))
+      else if (allowed === 'group_not_allowed') await this.reply(getMessage('gacha.simulate_group_not_allowed'))
+      return true
+    }
+    const poolType = parseSimulatePoolType(this.e.msg, '百连')
+    const poolLabel = SIMULATE_POOL_LABEL[poolType] || poolType
+    const scope = this.getSimulateScope()
+    const cfg = this.getSimulateConfig()
+    const limit = cfg.daily_limit[poolType] ?? 0
+    if (limit > 0) {
+      const usage = await this.getSimulateDailyUsage(scope, poolType)
+      if (usage + 10 > limit) {
+        await this.reply(getMessage('gacha.simulate_daily_limit_reached'))
+        return true
+      }
+    }
+    let prevState = await this.loadSimulateState(scope, poolType)
+    const allResults = []
+    let lastState = null
+    let lastStats = null
+    for (let i = 0; i < 10; i++) {
+      const data = await hypergryphAPI.postGachaSimulateTen(poolType, prevState)
+      if (!data?.results || !Array.isArray(data.results)) {
+        await this.reply(getMessage('gacha.simulate_failed'))
+        return true
+      }
+      const base = i * 10
+      for (const r of data.results) {
+        allResults.push({ ...r, pull_number: base + (r.pull_number || 0) })
+      }
+      prevState = data.state || null
+      lastState = prevState
+      lastStats = data.stats || null
+    }
+    await this.saveSimulateState(scope, poolType, lastState)
+    for (let j = 0; j < 10; j++) await this.incrementSimulateDailyUsage(scope, poolType)
+
+    let star6Count = 0
+    let upCount = 0
+    for (const r of allResults) {
+      if (r.rarity === 6) {
+        star6Count += 1
+        if (r.is_up) upCount += 1
+      }
+    }
+    const stats = {
+      total_pulls: 100,
+      six_star_count: star6Count,
+      five_star_count: allResults.filter((r) => r.rarity === 5).length,
+      up_six_star_count: upCount,
+      up_rate: star6Count ? ((upCount / star6Count) * 100).toFixed(2) : null
+    }
+    const lines = allResults.map((r) => {
+      const star = r.rarity === 6 ? '★6' : r.rarity === 5 ? '★5' : '★4'
+      const tag = r.rarity === 6 && r.is_up ? ' UP' : r.rarity === 6 && !r.is_up ? ' 歪' : ''
+      return `第${r.pull_number}抽 ${star}${tag}`
+    })
+    let msg = '【模拟百连】\n' + lines.join('\n')
+    msg += `\n──────────────\n六星：${star6Count} | UP：${upCount} | 总抽数：100`
+
+    const img = await this.renderSimulateResult('ten', {
+      title: '模拟百连',
+      results: allResults,
+      stats: { ...stats, total_pulls: 100 },
+      star6Count,
+      upCount,
+      poolType,
+      poolLabel,
+      state: lastState
+    })
+    await this.reply(img || msg)
+    return true
+  }
+
+  /** 重置模拟抽卡状态：不传则默认限定池，可带 (常驻/UP/武器) */
+  async resetSimulateGacha() {
+    const allowed = this.checkSimulateAllowed()
+    if (allowed !== true) {
+      if (allowed === 'disabled') await this.reply(getMessage('gacha.simulate_disabled'))
+      else if (allowed === 'group_not_allowed') await this.reply(getMessage('gacha.simulate_group_not_allowed'))
+      return true
+    }
+    const scope = this.getSimulateScope()
+    // Redis：删除该作用域下全部卡池的 state 键
+    if (redis) {
+      try {
+        const keys = await redis.keys(GACHA_SIMULATE_STATE_PREFIX + scope + ':*')
+        if (keys?.length) for (const k of keys) await redis.del(k)
+      } catch (err) {
+        logger.error(`[终末地插件][模拟抽卡] 重置 state 失败: ${err?.message || err}`)
+      }
+    }
+    await this.reply('已重置模拟抽卡状态（全部卡池），下次将从头开始。')
     return true
   }
 

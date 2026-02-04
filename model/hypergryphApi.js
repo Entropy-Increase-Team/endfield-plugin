@@ -653,6 +653,120 @@ let hypergryphAPI = {
       logger.error(`[终末地插件][全服抽卡统计]${error.toString()}`)
       return null
     }
+  },
+
+  /**
+   * 获取卡池角色/武器分布（用于模拟抽卡展示具体角色封面与名称）
+   * GET /api/endfield/gacha/pool-chars
+   * @param {string} [poolType] 卡池类型 limited/weapon/standard
+   * @returns {{ pools: Array<{ star6_chars, star5_chars, star4_chars }> } | null}
+   */
+  async getGachaPoolChars(poolType = '') {
+    const config = getUnifiedBackendConfig()
+    const headers = {}
+    if (config.apiKey) headers['X-API-Key'] = config.apiKey
+    try {
+      const query = poolType ? `?pool_type=${encodeURIComponent(poolType)}` : ''
+      const response = await fetch(`${config.baseUrl}/api/endfield/gacha/pool-chars${query}`, {
+        timeout: 10000,
+        method: 'get',
+        headers
+      })
+      const bodyText = await response.text()
+      const res = bodyText ? JSON.parse(bodyText) : null
+      if (!response.ok || !res || res.code !== 0) return null
+      return res.data || null
+    } catch (error) {
+      logger.error(`[终末地插件][卡池角色分布]${error.toString()}`)
+      return null
+    }
+  },
+
+  /**
+   * 模拟抽卡：获取卡池规则（用于计算当前概率/保底进度）
+   * GET /api/endfield/gacha/simulate/rules?pool_type={poolType}
+   * @param {string} [poolType=limited] limited/weapon/standard
+   * @returns {{ pool_type: string, rules: object, all_rules?: object } | null}
+   */
+  async getGachaSimulateRules(poolType = 'limited') {
+    const config = getUnifiedBackendConfig()
+    const headers = {}
+    if (config.apiKey) headers['X-API-Key'] = config.apiKey
+    try {
+      const q = poolType ? `?pool_type=${encodeURIComponent(poolType)}` : ''
+      const response = await fetch(`${config.baseUrl}/api/endfield/gacha/simulate/rules${q}`, {
+        timeout: 10000,
+        method: 'get',
+        headers
+      })
+      const bodyText = await response.text()
+      const res = bodyText ? JSON.parse(bodyText) : null
+      if (!response.ok || !res || res.code !== 0) return null
+      return res.data || null
+    } catch (error) {
+      logger.error(`[终末地插件][模拟抽卡规则]${error.toString()}`)
+      return null
+    }
+  },
+
+  /**
+   * 模拟抽卡：单抽（公开接口，无需认证）
+   * POST /api/endfield/gacha/simulate/single
+   * @param {string} [poolType=limited] 卡池类型 limited/weapon/standard
+   * @param {object} [state] 模拟器状态，不传则从头开始
+   * @returns {{ result: object, state: object } | null}
+   */
+  async postGachaSimulateSingle(poolType = 'limited', state = null) {
+    const config = getUnifiedBackendConfig()
+    const headers = { 'Content-Type': 'application/json' }
+    if (config.apiKey) headers['X-API-Key'] = config.apiKey
+    try {
+      const body = { pool_type: poolType }
+      if (state && typeof state === 'object') body.state = state
+      const response = await fetch(`${config.baseUrl}/api/endfield/gacha/simulate/single`, {
+        timeout: 15000,
+        method: 'post',
+        headers,
+        body: JSON.stringify(body)
+      })
+      const bodyText = await response.text()
+      const res = bodyText ? JSON.parse(bodyText) : null
+      if (!response.ok || !res || res.code !== 0) return null
+      return res.data || null
+    } catch (error) {
+      logger.error(`[终末地插件][模拟单抽]${error.toString()}`)
+      return null
+    }
+  },
+
+  /**
+   * 模拟抽卡：十连（公开接口，无需认证）
+   * POST /api/endfield/gacha/simulate/ten
+   * @param {string} [poolType=limited] 卡池类型
+   * @param {object} [state] 模拟器状态
+   * @returns {{ results: array, state: object } | null}
+   */
+  async postGachaSimulateTen(poolType = 'limited', state = null) {
+    const config = getUnifiedBackendConfig()
+    const headers = { 'Content-Type': 'application/json' }
+    if (config.apiKey) headers['X-API-Key'] = config.apiKey
+    try {
+      const body = { pool_type: poolType }
+      if (state && typeof state === 'object') body.state = state
+      const response = await fetch(`${config.baseUrl}/api/endfield/gacha/simulate/ten`, {
+        timeout: 15000,
+        method: 'post',
+        headers,
+        body: JSON.stringify(body)
+      })
+      const bodyText = await response.text()
+      const res = bodyText ? JSON.parse(bodyText) : null
+      if (!response.ok || !res || res.code !== 0) return null
+      return res.data || null
+    } catch (error) {
+      logger.error(`[终末地插件][模拟十连]${error.toString()}`)
+      return null
+    }
   }
 }
 

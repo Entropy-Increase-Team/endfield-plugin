@@ -31,27 +31,15 @@ announcement:
   unsubscribe_ok: "已取消本群公告订阅。"
   list_header: "终末地·公告列表"
   list_subtitle: "共 {count} 条"
-  list_forward_suffix: "（共 {count} 条）"
   list_total: "共 {total} 条，当前显示前 {count} 条。"
-  list_more: "更多请关注森空岛终末地官方动态。"
   list_footer_line1: "请勿将图片用于商业用途 | {prefix}公告 | 查看某条详情如 {prefix}公告 1"
-  list_footer_line2: "Powered by endfield-plugin"
   no_list: "暂无公告。"
   list_failed: "获取公告列表失败，请稍后再试。"
   latest_failed: "获取最新公告失败，请稍后再试。"
   detail_index_out: "当前列表只有 {count} 条，请输入 1～{count} 的序号。"
-  detail_failed: "获取公告列表失败，请稍后再试。"
   title_unknown: "（无标题）"
   time_label: "发布时间："
-  detail_header: "【公告】"
-  detail_footer: "Powered by endfield-plugin"
   render_failed: "公告图片渲染失败，请稍后再试。"
-  push_header: "【终末地·新公告】"
-  push_body: |
-    【终末地·新公告】
-    {title}
-    发布时间：{time}
-    {content}
 
 # 活动日历（:日历）
 activity:
@@ -61,21 +49,11 @@ activity:
 
 # Wiki 查询提示
 wiki:
-  # 请提供名称的提示
   provide_content: "请输入查询内容，例：{prefix}wiki 莱万汀 / {prefix}wiki 干员 莱万汀 / {prefix}wiki 武器 xxx"
-  provide_operator: "请指定要查询的干员名称。示例：{prefix}wiki 干员 管理员"
-  provide_weapon: "请指定要查询的武器名称。示例：{prefix}wiki 武器 不知归"
-  provide_equip: "请指定要查询的装备名称。示例：{prefix}wiki 装备 脉冲式干扰服"
-  provide_tactical: "请指定要查询的战术物品名称。示例：{prefix}wiki 战术物品 谷地馅饼"
   need_api_key: "Wiki 查询需要配置 api_key，请在 config/common.yaml 中填写（终末地协议终端获取）"
   query_failed: "查询「{name}」失败，请稍后重试"
   not_found: "未找到与「{name}」相关的{type_label}条目"
   detail_failed: "未获取到「{name}」的百科详情"
-  # 未找到的提示（按类型）
-  not_found_operator: "未找到名为「{name}」的干员，请确认名称是否正确"
-  not_found_weapon: "未找到名为「{name}」的武器，请确认名称是否正确"
-  not_found_equip: "未找到名为「{name}」的装备，请确认名称是否正确"
-  not_found_tactical: "未找到名为「{name}」的战术物品，请确认名称是否正确"
 
 # 干员相关提示
 operator:
@@ -173,7 +151,6 @@ attendance:
   task_complete_fail_users: |
     ⚠️ 失败用户QQ号：
     {fail_users}
-  not_found_role_id: "未找到角色ID，请重新绑定账号"
 
 gacha:
   global_stats_failed: "获取全服抽卡统计失败"
@@ -201,6 +178,11 @@ gacha:
   auth_full_sync: "首次同步，从零开始拉取记录…"
   sync_failed: "同步失败：{error}"
   sync_timeout: "同步超时，请稍后重试"
+  simulate_failed: "模拟抽卡接口无响应，请稍后再试"
+  simulate_count_hint: "请输入次数，示例：{prefix}模拟抽卡 50 或 {prefix}模拟抽卡50（1～300 抽）"
+  simulate_disabled: "模拟抽卡功能未开启"
+  simulate_group_not_allowed: "本群未开放模拟抽卡"
+  simulate_daily_limit_reached: "今日模拟抽卡次数已用完，明天再来吧"
 
 enduid:
   bind_help: |
@@ -336,6 +318,6 @@ bluemap:
 # 插件更新（仅管理员）
 update:
   starting: "已经开始更新咯~"
-  done: "✅ 插件更新完成\n{output}"
+  done: "✅ 插件更新完成\n{commit}"
   already_latest: "✅ 插件已是最新了诶"
   failed: "❌ 插件更新失败：{error}"

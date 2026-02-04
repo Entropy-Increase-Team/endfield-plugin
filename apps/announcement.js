@@ -210,6 +210,19 @@ export class announcement extends plugin {
     const d = res.data
     const ts = d.published_at_ts != null ? Number(d.published_at_ts) : 0
     if (ts <= 0) return
+
+    // 先判断是否有群需要推送，避免无意义渲染（一直生成不发送）
+    const needPushIndexes = list
+      .map((sub, i) => (ts > Number(sub.since_ts ?? 0) ? i : -1))
+      .filter((i) => i >= 0)
+    if (needPushIndexes.length === 0) return
+
+    const bot = global.Bot || Bot
+    if (!bot?.pickGroup) {
+      logger.warn('[终末地插件][公告推送] Bot 不可用，跳过本次推送')
+      return
+    }
+
     const itemId = d.item_id
     let item = { ...d }
     if (itemId && (!getCoverUrl(d) || !getContentText(d))) {
@@ -223,16 +236,15 @@ export class announcement extends plugin {
       imgSegment = await e.runtime.render('endfield-plugin', 'announcement/detail', renderData, baseOpt)
     } catch (err) {
       logger.error(`[终末地插件][公告推送]详情图渲染失败: ${err?.message || err}`)
+      return
     }
     if (!imgSegment) return
+
     let updated = false
-    for (let i = 0; i < list.length; i++) {
+    for (const i of needPushIndexes) {
       const sub = list[i]
-      const sinceTs = Number(sub.since_ts ?? 0)
-      if (ts <= sinceTs) continue
       try {
-        const bot = Bot?.[sub.bot_id] || global.Bot
-        if (bot?.pickGroup) await bot.pickGroup(sub.group_id).sendMsg(imgSegment)
+        await bot.pickGroup(sub.group_id).sendMsg(imgSegment)
         list[i] = { ...sub, since_ts: ts }
         updated = true
       } catch (e) {

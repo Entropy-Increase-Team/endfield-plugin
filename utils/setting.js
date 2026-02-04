@@ -69,10 +69,20 @@ class Setting {
     return this.setYaml(app, 'config', { ...this.getdefSet(app), ...data })
   }
 
+  /** 写入 data 目录下的 yaml（如用量统计），不合并 defSet */
+  setData(app, data) {
+    return this.setYaml(app, 'data', data)
+  }
+
   setYaml(app, type, data) {
     let file = this.getFilePath(app, type)
     try {
+      if (type === 'data') {
+        const dir = this.dataPath
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+      }
       fs.writeFileSync(file, YAML.stringify(data), 'utf8')
+      if (type === 'data' && this[type]?.[app]) delete this[type][app]
     } catch (error) {
       logger.error(`[${app}] 写入失败 ${error}`)
       return false
@@ -95,13 +105,15 @@ class Setting {
       return this[type][app]
     }
     let file = this.getFilePath(app, type)
+    // data 目录下文件不存在时直接返回空对象，避免 ENOENT 报错
+    if (type === 'data' && !fs.existsSync(file)) return {}
     if (this[type][app]) return this[type][app]
 
     try {
       this[type][app] = YAML.parse(fs.readFileSync(file, 'utf8'))
     } catch (error) {
       logger.error(`[${app}] 格式错误 ${error}`)
-      return false
+      return type === 'data' ? {} : false
     }
     this.watch(file, app, type)
     return this[type][app]
