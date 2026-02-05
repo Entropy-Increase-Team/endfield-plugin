@@ -42,23 +42,6 @@ const PITY = {
   weaponBaodiMax: 40
 }
 
-/**
- * 从 description 解析 UP 角色名：格式为「限时签到·XXX / 作战演练·YYY」，按 / 分割后取每段 · 后的名称
- */
-function parseUpNamesFromDescription(description) {
-  if (!description || typeof description !== 'string') return []
-  const parts = description.split(/\s*\/\s*|\s*／\s*/).map((s) => s.trim()).filter(Boolean)
-  const names = []
-  for (const p of parts) {
-    const idx = p.indexOf('·')
-    if (idx !== -1) {
-      const name = p.slice(idx + 1).trim()
-      if (name) names.push(name)
-    }
-  }
-  return names
-}
-
 export class EndfieldGacha extends plugin {
   constructor() {
     super({
@@ -84,9 +67,9 @@ export class EndfieldGacha extends plugin {
 
   /**
    * 从 /api/bili-wiki/activities 获取当期 UP：仅取 is_active 为 true 的活动，
-   * 特许寻访从 description 解析角色名（限时签到·XXX / 作战演练·YYY），武库申领从 name 取武器 UP 名。
-   * 返回 { upCharNames, upCharName, upWeaponName, activeCharPoolName, activeWeaponPoolName }，
-   * active*PoolName 用于匹配抽卡记录的 pool_name，仅当列表内且 is_active 时才有值；失败或未配置 api_key 时返回 null。
+   * 按 API 文档使用 up 字段：特许寻访为 UP 角色名，武库申领为 UP 武器名。
+   * 返回 { upCharNames, upCharName, upWeaponName, activeCharPoolName, activeWeaponPoolName }；
+   * 失败或未配置 api_key 时返回 null。
    */
   async getCurrentUpFromBiliWiki() {
     const now = Date.now()
@@ -99,29 +82,28 @@ export class EndfieldGacha extends plugin {
       const req = new EndfieldRequest(0, '', '')
       const res = await req.getWikiData('bili_wiki_activities')
       if (!res || res.code !== 0) return null
-      const list = Array.isArray(res.data?.activities) ? res.data.activities : []
+      const list = Array.isArray(res.data?.items) ? res.data.items : (Array.isArray(res.data?.activities) ? res.data.activities : [])
       const activeOnly = list.filter((a) => a?.is_active === true)
       let upCharNames = []
       let upWeaponName = ''
       let activeCharPoolName = ''
       let activeWeaponPoolName = ''
       const charActivity = activeOnly.find((a) => (a?.type || '') === '特许寻访')
-      if (charActivity?.description) {
-        upCharNames = parseUpNamesFromDescription(charActivity.description)
+      if (charActivity?.up && String(charActivity.up).trim()) {
+        const upStr = String(charActivity.up).trim()
+        upCharNames = [upStr]
       }
       if (charActivity?.name) {
         const idx = charActivity.name.indexOf('·')
         activeCharPoolName = idx !== -1 ? charActivity.name.slice(idx + 1).trim() : charActivity.name.trim()
       }
       const weaponActivity = activeOnly.find((a) => (a?.type || '') === '武库申领')
-      if (weaponActivity?.name) {
+      if (weaponActivity?.up && String(weaponActivity.up).trim()) {
+        upWeaponName = String(weaponActivity.up).trim()
+        activeWeaponPoolName = upWeaponName
+      } else if (weaponActivity?.name) {
         const idx = weaponActivity.name.indexOf('·')
-        if (idx !== -1) {
-          upWeaponName = weaponActivity.name.slice(idx + 1).trim()
-          activeWeaponPoolName = upWeaponName
-        } else {
-          activeWeaponPoolName = weaponActivity.name.trim()
-        }
+        activeWeaponPoolName = idx !== -1 ? weaponActivity.name.slice(idx + 1).trim() : weaponActivity.name.trim()
       }
       const upCharName = upCharNames.length > 0 ? upCharNames.join('、') : ''
       const data = { upCharNames, upCharName, upWeaponName, activeCharPoolName, activeWeaponPoolName }

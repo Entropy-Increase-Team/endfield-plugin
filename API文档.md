@@ -1560,6 +1560,19 @@ X-API-Key: your-api-key
 | type | string | 否 | - | 活动类型（特许寻访/武库申领） |
 | active_only | bool | 否 | false | 是否只返回进行中的活动 |
 
+**响应字段说明**：
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| name | string | 活动名称 |
+| type | string | 活动类型（特许寻访/武库申领） |
+| start_time | string | 开始时间 |
+| end_time | string | 结束时间 |
+| description | string | 描述（特许寻访为其他关联活动；武库申领为 UP 武器名） |
+| up | string | 所属卡池的 UP 角色或武器名（如熔铸火焰、莱万汀） |
+| image_url | string | 图片 URL |
+| detail_url | string | 详情页 URL |
+| is_active | bool | 是否进行中 |
+
 **响应示例**：
 ```json
 {
@@ -1576,7 +1589,8 @@ X-API-Key: your-api-key
         "is_active": true,
         "image_url": "https://patchwiki.biligame.com/images/...",
         "detail_url": "https://wiki.biligame.com/zmd/莱万汀",
-        "description": "限时签到·行火留烬 / 作战演练·莱万汀"
+        "description": "限时签到·行火留烬 / 作战演练·莱万汀",
+        "up": "莱万汀"
       },
       {
         "id": "64f1a2b3c4d5e6f7a8b9c0d2",
@@ -1586,7 +1600,9 @@ X-API-Key: your-api-key
         "end_time": "2026/3/12",
         "is_active": true,
         "image_url": "https://patchwiki.biligame.com/images/...",
-        "detail_url": "https://wiki.biligame.com/zmd/熔铸火焰"
+        "detail_url": "https://wiki.biligame.com/zmd/熔铸火焰",
+        "description": "熔铸火焰",
+        "up": "熔铸火焰"
       }
     ],
     "total": 6
