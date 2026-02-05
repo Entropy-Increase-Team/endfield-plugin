@@ -61,27 +61,6 @@ html, body {
   margin: 0;
 }
 
-.list-top-bar-logo {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.logo-container {
-  display: flex;
-  align-items: center;
-  max-width: 100px;
-  overflow: hidden;
-}
-
-.logo-container .logo-image {
-  height: 42px;
-  width: auto;
-  max-width: 100%;
-  object-fit: contain;
-}
-
 /* 公告条目列表 */
 .announcement-entries {
   display: flex;

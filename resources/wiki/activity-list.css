@@ -92,6 +92,102 @@ body {
   object-fit: contain;
 }
 
+/* 本期 UP（与日历合并展示） */
+.card-wrap.current-up-wrap {
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.current-up-title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #6366f1;
+  margin-bottom: 8px;
+  padding-left: 4px;
+  border-left: 4px solid #6366f1;
+}
+
+.current-up-group-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin: 8px 0 6px 0;
+  padding-left: 4px;
+}
+
+.current-up-group-label:first-of-type {
+  margin-top: 0;
+}
+
+.current-up-item {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.current-up-item:last-child {
+  margin-bottom: 0;
+}
+
+.current-up-item.current-up-active {
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  border-color: #c7d2fe;
+}
+
+.current-up-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.current-up-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.current-up-header .current-up-name {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.current-up-remaining {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+.current-up-meta {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.current-up-type {
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.current-up-time {
+  color: #9ca3af;
+}
+
+.current-up-desc {
+  font-size: 0.78rem;
+  color: #6b7280;
+  line-height: 1.4;
+  word-break: break-all;
+  margin-top: 2px;
+}
+
 /* 日历区 */
 .card-wrap.calendar-wrap {
   padding: 12px 14px;
@@ -100,6 +196,23 @@ body {
   border-radius: 8px;
   border: 1px solid #e5e7eb;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* 日历网格区域：用于定位「当前日期」竖线 */
+.calendar-grid-area {
+  position: relative;
+}
+
+/* 当前日期竖线：仅贯穿活动列表，不覆盖日期行 */
+.calendar-today-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+  background: #6366f1;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .calendar-header {
@@ -174,6 +287,19 @@ body {
   border-right: none;
 }
 
+/* 本期 UP 在日期轴内的样式 */
+.activity-bar.activity-bar-up {
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+  border-right-color: #a5b4fc;
+}
+
+.activity-bar-up .activity-info-icon {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #4f46e5;
+  background: rgba(255,255,255,0.9);
+}
+
 .activity-bar-info {
   display: flex;
   align-items: center;
@@ -184,14 +310,15 @@ body {
 
 .activity-info-icon {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.8);
-  border-radius: 4px;
-  font-size: 0.7rem;
+  color: #9ca3af;
+  font-size: 1rem;
+  font-weight: bold;
+  line-height: 1;
 }
 
 .activity-bar-text {
@@ -290,6 +417,11 @@ body {
 
 .activity-card-out:last-child {
   margin-bottom: 0;
+}
+
+.activity-card-out.activity-card-out-up {
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  border-color: #c7d2fe;
 }
 
 /* 左侧内容区：标题+时间 为一组，避免中间大片空白 */

@@ -124,11 +124,11 @@ body {
   font-weight: bold;
   color: #000000;
   margin-bottom: 4px;
-  font-size: 1.5em;
+  font-size: 2em;
 }
 
 .command-description {
-  font-size: 1.2em;
+  font-size: 1.5em;
   color: #007180;
   line-height: 1.4;
 }

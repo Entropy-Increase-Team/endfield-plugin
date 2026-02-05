@@ -64,27 +64,6 @@ html, body {
   margin: 0;
 }
 
-.detail-top-bar-logo {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.logo-container {
-  display: flex;
-  align-items: center;
-  max-width: 100px;
-  overflow: hidden;
-}
-
-.logo-container .logo-image {
-  height: 42px;
-  width: auto;
-  max-width: 100%;
-  object-fit: contain;
-}
-
 /* 封面图容器：随图片比例动态撑开高度 */
 .detail-cover-wrap {
   width: 100%;

@@ -109,6 +109,10 @@ export default class EndfieldApi {
       },
       wiki_activities: {
         url: `${baseUrl}/api/wiki/activities`
+      },
+      /** 哔哩 Wiki 活动列表：本期 UP/武库等，GET /api/bili-wiki/activities，响应 data.activities */
+      bili_wiki_activities: {
+        url: `${baseUrl}/api/bili-wiki/activities`
       }
     }
   }

@@ -14,6 +14,7 @@ const _meta = path.join(_res, 'meta')
 const OPERATOR_DIR = _operator
 const META_CLASS_DIR = path.join(_meta, 'class')
 const META_ATTRPANLE_DIR = path.join(_meta, 'attrpanle')
+const META_PHASES_DIR = path.join(_meta, 'phases')
 const LIST_BG_FILES = ['bg1.png', 'bg2.png']
 
 /**
@@ -73,6 +74,9 @@ export async function sendOperatorList(e, userId, options = {}) {
       }
       const colorCode = (colorCodeMap[c.property?.key] || c.colorCode || 'PHY').toUpperCase()
       const name = String(c.name ?? '').trim() || '未知'
+      const evolvePhase = parseInt(char.evolvePhase ?? c.evolvePhase ?? '0', 10) || 0
+      const potentialLevel = parseInt(char.potentialLevel ?? c.potentialLevel ?? '0', 10) || 0
+      const phaseIcon = iconToDataUrl(META_PHASES_DIR, `phase-${evolvePhase}`)
       return {
         name,
         nameChars: Array.from(name),
@@ -84,20 +88,33 @@ export async function sendOperatorList(e, userId, options = {}) {
         professionIcon,
         property,
         propertyIcon,
-        colorCode
+        colorCode,
+        evolvePhase,
+        potentialLevel,
+        phaseIcon
       }
     })
 
-    const listPageWidth = 1600
-    const listColumnCount = 6
-    const listCardWidth = (listPageWidth - 48 - (listColumnCount - 1) * 12) / listColumnCount
-    const listCardHeight = listCardWidth * (4 / 3)
-    const listCardScale = Math.min(listCardWidth / 800, listCardHeight / 1200)
+    // 按星级从高到低排序展示（六星 → 五星 → 四星）
+    operators.sort((a, b) => (b.rarity - a.rarity))
+
+    // 固定列宽、列数、间距，反算总宽；viewport 略大于内容宽避免裁切
+    const LIST_COLUMN_COUNT = 6
+    const LIST_CARD_WIDTH_PX = 300
+    const LIST_GAP_PX = 12
+    const LIST_CONTAINER_PADDING_PX = 48
+    const listContentWidth =
+      LIST_COLUMN_COUNT * LIST_CARD_WIDTH_PX + (LIST_COLUMN_COUNT - 1) * LIST_GAP_PX
+    const listPageWidth = LIST_CONTAINER_PADDING_PX + listContentWidth
+    const listCardScale = LIST_CARD_WIDTH_PX / 800
+    const viewportWidth = listPageWidth + 40
+
     const userAvatar = base?.avatarUrl || ''
     const userNickname = base?.name || '未知'
     const userLevel = base?.level ?? 0
     const listBgFile = LIST_BG_FILES[Math.floor(Math.random() * LIST_BG_FILES.length)]
 
+    const pluResPath = e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
     const tplData = {
       totalCount: operators.length,
       operators,
@@ -106,15 +123,22 @@ export async function sendOperatorList(e, userId, options = {}) {
       userLevel,
       listBgFile,
       listCardScale,
-      listColumnCount,
-      listPageWidth
+      listColumnCount: LIST_COLUMN_COUNT,
+      listCardWidthPx: LIST_CARD_WIDTH_PX,
+      listGapPx: LIST_GAP_PX,
+      listPageWidth,
+      listContentWidth,
+      pluResPath
     }
 
     if (!e.runtime?.render) {
       await e.reply(getMessage('operator.list_failed'))
       return true
     }
-    const img = await e.runtime.render('endfield-plugin', 'operator/list', tplData, { retType: 'base64' })
+    const img = await e.runtime.render('endfield-plugin', 'operator/list', tplData, {
+      retType: 'base64',
+      viewport: { width: viewportWidth }
+    })
     if (img) {
       await e.reply(img)
     } else {
@@ -230,11 +254,13 @@ export class EndfieldOperator extends plugin {
       }
 
       const panelData = this.buildPanelData(operator, charData, userSkills, container)
+      const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
       const tplData = {
         ...panelData,
         userAvatar: base?.avatarUrl || '',
         userNickname: base?.name || '未知',
         userLevel: base?.level ?? 0,
+        pluResPath,
         ...getCopyright()
       }
       // 使用 runtime.render 对接新渲染器（renderers/puppeteer），模板与资源路径由 runtime 注入

@@ -102,6 +102,11 @@ export default function getMessageSchemas() {
       component: 'Input',
     },
     {
+      field: 'announcement.list_total',
+      label: '公告 - 列表总数（共 total 条，当前显示前 count 条）',
+      component: 'Input',
+    },
+    {
       field: 'announcement.list_footer_line1',
       label: '公告 - 列表页脚行1',
       component: 'Input',
@@ -288,11 +293,6 @@ export default function getMessageSchemas() {
       component: 'Input',
     },
     {
-      field: 'common.not_found_cred',
-      label: '通用 - 未找到cred',
-      component: 'Input',
-    },
-    {
       field: 'common.switch_failed',
       label: '通用 - 切换失败',
       component: 'Input',
@@ -330,21 +330,6 @@ export default function getMessageSchemas() {
     {
       field: 'common.delete_failed',
       label: '通用 - 删除失败',
-      component: 'Input',
-    },
-    {
-      field: 'common.login_failed',
-      label: '通用 - 登陆失败',
-      component: 'Input',
-    },
-    {
-      field: 'common.login_failed_no_cred',
-      label: '通用 - 登陆失败（无cred）',
-      component: 'Input',
-    },
-    {
-      field: 'common.login_failed_no_cred_phone',
-      label: '通用 - 登陆失败（无cred-手机）',
       component: 'Input',
     },
     {
@@ -545,6 +530,21 @@ export default function getMessageSchemas() {
       component: 'Input',
     },
     {
+      field: 'gacha.current_up_need_api_key',
+      label: '抽卡 - 本期 UP 需 api_key',
+      component: 'Input',
+    },
+    {
+      field: 'gacha.current_up_failed',
+      label: '抽卡 - 本期 UP 获取失败',
+      component: 'Input',
+    },
+    {
+      field: 'gacha.current_up_empty',
+      label: '抽卡 - 暂无本期 UP 数据',
+      component: 'Input',
+    },
+    {
       field: 'gacha.no_accounts',
       label: '抽卡 - 无可用账号',
       component: 'Input',
@@ -661,6 +661,16 @@ export default function getMessageSchemas() {
       component: 'Input',
     },
     {
+      field: 'gacha.simulate_reset_all_ok',
+      label: '抽卡 - 重置全员抽卡成功',
+      component: 'Input',
+    },
+    {
+      field: 'gacha.simulate_reset_all_no_auth',
+      label: '抽卡 - 仅管理员可重置全员抽卡',
+      component: 'Input',
+    },
+    {
       component: 'Divider',
       label: '登陆相关提示',
     },
@@ -690,26 +700,6 @@ export default function getMessageSchemas() {
     {
       field: 'enduid.please_private',
       label: '登陆 - 请私聊',
-      component: 'Input',
-    },
-    {
-      field: 'enduid.cred_please',
-      label: '登陆 - 请发送cred',
-      component: 'Input',
-    },
-    {
-      field: 'enduid.cred_no_token',
-      label: '登陆 - cred无token',
-      component: 'Input',
-    },
-    {
-      field: 'enduid.cred_invalid',
-      label: '登陆 - cred无效',
-      component: 'Input',
-    },
-    {
-      field: 'enduid.cred_checking',
-      label: '登陆 - cred校验中',
       component: 'Input',
     },
     {

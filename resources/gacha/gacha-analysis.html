@@ -32,6 +32,9 @@
     <div class="card-wrap pools-card">
       <div class="section-head section-head-time">
         <span class="analysis-time">{{analysisTime}}</span>
+        {{if syncHint}}
+        <p class="sync-hint">{{syncHint}}</p>
+        {{/if}}
       </div>
 
       {{each poolGroups}}

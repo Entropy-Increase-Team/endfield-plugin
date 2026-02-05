@@ -1,6 +1,6 @@
 # Endfield-API 接口文档
 
-版本号：1.9.7
+版本号：1.9.9
 
 ## 概述
 
@@ -1384,6 +1384,380 @@ X-API-Key: your-api-key
 
 ---
 
+## B站 Wiki API
+
+> **接口认证**: 需要 API Key / Web JWT / Anonymous Token 三选一
+> **数据来源**: 从哔哩哔哩终末地 Wiki（wiki.biligame.com/zmd）抓取的数据
+> **同步机制**: 每 6 小时自动同步，首次启动 60 秒后执行
+
+### 接口概览
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/bili-wiki/operators` | 获取干员列表 |
+| GET | `/api/bili-wiki/operators/:name` | 获取干员详情 |
+| GET | `/api/bili-wiki/weapons` | 获取武器列表 |
+| GET | `/api/bili-wiki/weapons/:name` | 获取武器详情 |
+| GET | `/api/bili-wiki/equipments` | 获取装备列表 |
+| GET | `/api/bili-wiki/equipments/:name` | 获取装备详情 |
+| GET | `/api/bili-wiki/devices` | 获取设备列表 |
+| GET | `/api/bili-wiki/devices/:name` | 获取设备详情 |
+| GET | `/api/bili-wiki/items` | 获取物品列表 |
+| GET | `/api/bili-wiki/items/:name` | 获取物品详情 |
+| GET | `/api/bili-wiki/enemies` | 获取敌对单位列表 |
+| GET | `/api/bili-wiki/enemies/:name` | 获取敌对单位详情 |
+| GET | `/api/bili-wiki/activities` | 获取活动列表（特许寻访/武库申领） |
+| GET | `/api/bili-wiki/search` | 全文搜索 |
+| GET | `/api/bili-wiki/stats` | 获取统计信息 |
+| POST | `/api/bili-wiki/admin/sync` | 手动触发同步 |
+| GET | `/api/bili-wiki/admin/sync/status` | 获取同步状态 |
+
+---
+
+### 获取干员列表
+
+```http
+GET /api/bili-wiki/operators?rarity=6&profession=突击&page=1&page_size=20
+X-API-Key: your-api-key
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| rarity | string | 否 | - | 稀有度筛选（如 `6` 或 `橙色`） |
+| profession | string | 否 | - | 职业筛选（近卫/术师/突击/先锋/重装/辅助） |
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 20 | 每页数量（最大 100） |
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "items": [
+      {
+        "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+        "name": "莱万汀",
+        "rarity": "橙色",
+        "profession": "突击",
+        "tags": "近战, 攻击型",
+        "icon_url": "https://patchwiki.biligame.com/images/...",
+        "detail_url": "https://wiki.biligame.com/zmd/莱万汀",
+        "created_at": "2026-02-04T12:00:00Z",
+        "updated_at": "2026-02-04T12:00:00Z"
+      }
+    ],
+    "total": 23,
+    "page": 1,
+    "page_size": 20,
+    "total_pages": 2
+  }
+}
+```
+
+---
+
+### 获取干员详情
+
+```http
+GET /api/bili-wiki/operators/莱万汀
+X-API-Key: your-api-key
+```
+
+**路径参数**：
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 是 | 干员名称（URL 编码） |
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+    "name": "莱万汀",
+    "rarity": "橙色",
+    "profession": "突击",
+    "tags": "近战, 攻击型",
+    "icon_url": "https://patchwiki.biligame.com/images/...",
+    "detail_url": "https://wiki.biligame.com/zmd/莱万汀",
+    "detail": {
+      "description": "干员描述...",
+      "skills": [...],
+      "stats": {...}
+    }
+  }
+}
+```
+
+---
+
+### 获取武器列表
+
+```http
+GET /api/bili-wiki/weapons?rarity=5&type=步枪&page=1&page_size=20
+X-API-Key: your-api-key
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| rarity | string | 否 | - | 稀有度筛选 |
+| type | string | 否 | - | 武器类型筛选 |
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 20 | 每页数量 |
+
+---
+
+### 获取物品列表
+
+```http
+GET /api/bili-wiki/items?rarity=5&type=采集材料&page=1&page_size=20
+X-API-Key: your-api-key
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| rarity | string | 否 | - | 稀有度筛选（如 `5星`） |
+| type | string | 否 | - | 物品类型筛选（采集材料、矿物、植物等） |
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 20 | 每页数量 |
+
+---
+
+### 获取敌对单位列表
+
+```http
+GET /api/bili-wiki/enemies?type=野外生物&level=普通敌人&page=1&page_size=20
+X-API-Key: your-api-key
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| type | string | 否 | - | 敌对类型（野外生物、机械单位等） |
+| level | string | 否 | - | 等级（普通敌人、进阶敌人、精英敌人、BOSS） |
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 20 | 每页数量 |
+
+---
+
+### 获取活动列表
+
+获取首页的特许寻访和武库申领活动。
+
+```http
+GET /api/bili-wiki/activities?type=特许寻访&active_only=true
+X-API-Key: your-api-key
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| type | string | 否 | - | 活动类型（特许寻访/武库申领） |
+| active_only | bool | 否 | false | 是否只返回进行中的活动 |
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "items": [
+      {
+        "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+        "name": "特许寻访·熔火灼痕",
+        "type": "特许寻访",
+        "start_time": "2026/1/22 11:00",
+        "end_time": "2026/2/7 11:59",
+        "is_active": true,
+        "image_url": "https://patchwiki.biligame.com/images/...",
+        "detail_url": "https://wiki.biligame.com/zmd/莱万汀",
+        "description": "限时签到·行火留烬 / 作战演练·莱万汀"
+      },
+      {
+        "id": "64f1a2b3c4d5e6f7a8b9c0d2",
+        "name": "武库申领·熔铸申领",
+        "type": "武库申领",
+        "start_time": "2026/1/22 11:00",
+        "end_time": "2026/3/12",
+        "is_active": true,
+        "image_url": "https://patchwiki.biligame.com/images/...",
+        "detail_url": "https://wiki.biligame.com/zmd/熔铸火焰"
+      }
+    ],
+    "total": 6
+  }
+}
+```
+
+---
+
+### 全文搜索
+
+```http
+GET /api/bili-wiki/search?q=莱万汀&type=operator&page=1&page_size=20
+X-API-Key: your-api-key
+```
+
+**查询参数**：
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| q | string | **是** | - | 搜索关键词 |
+| type | string | 否 | all | 搜索类型：`all`/`operator`/`weapon`/`equipment`/`device`/`item`/`enemy` |
+| page | int | 否 | 1 | 页码 |
+| page_size | int | 否 | 20 | 每页数量 |
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "results": {
+      "operators": [...],
+      "weapons": [...],
+      "items": [...]
+    },
+    "total": 5
+  }
+}
+```
+
+---
+
+### 获取统计信息
+
+```http
+GET /api/bili-wiki/stats
+X-API-Key: your-api-key
+```
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "operators_count": 23,
+    "weapons_count": 62,
+    "equipments_count": 161,
+    "devices_count": 63,
+    "items_count": 246,
+    "enemies_count": 85,
+    "activities_count": 6,
+    "last_sync": {
+      "status": "completed",
+      "started_at": "2026-02-04T12:00:00Z",
+      "completed_at": "2026-02-04T12:01:52Z",
+      "operators_synced": 23,
+      "weapons_synced": 62,
+      "equipments_synced": 161,
+      "devices_synced": 63,
+      "items_synced": 246,
+      "enemies_synced": 85,
+      "activities_synced": 6
+    }
+  }
+}
+```
+
+---
+
+### 手动触发同步
+
+```http
+POST /api/bili-wiki/admin/sync
+X-API-Key: your-api-key
+```
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "message": "同步任务已启动",
+    "status": "running"
+  }
+}
+```
+
+**错误响应**（同步进行中）：
+```json
+{
+  "code": 409,
+  "message": "同步任务已在运行中"
+}
+```
+
+---
+
+### 获取同步状态
+
+```http
+GET /api/bili-wiki/admin/sync/status
+X-API-Key: your-api-key
+```
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "is_running": false,
+    "last_task": {
+      "id": "65f1a2b3c4d5e6f7...",
+      "status": "completed",
+      "started_at": "2026-02-04T12:00:00Z",
+      "completed_at": "2026-02-04T12:01:52Z",
+      "operators_synced": 23,
+      "weapons_synced": 62,
+      "equipments_synced": 161,
+      "devices_synced": 63,
+      "items_synced": 246,
+      "enemies_synced": 85,
+      "activities_synced": 6,
+      "error_message": ""
+    }
+  }
+}
+```
+
+---
+
+### 数据同步机制
+
+- **同步间隔**：每 6 小时自动同步
+- **首次启动**：服务启动 60 秒后执行首次同步
+- **同步方式**：HTML 页面抓取 + goquery 解析
+- **请求间隔**：200ms（防止 IP 被封）
+- **优雅关闭**：支持 context 取消信号
+- **数据来源**：哔哩哔哩终末地 Wiki
+  - `/zmd/干员图鉴` - 干员列表
+  - `/zmd/武器图鉴` - 武器列表
+  - `/zmd/装备图鉴` - 装备列表
+  - `/zmd/设备图鉴` - 设备列表
+  - `/zmd/物品图鉴` - 物品列表
+  - `/zmd/敌对图鉴` - 敌对单位列表
+  - `/zmd/首页` - 特许寻访和武库申领活动
+
+### 与森空岛 Wiki 的区别
+
+| 特性 | 森空岛 Wiki | B站 Wiki |
+|------|------------|---------|
+| 数据来源 | 官方 API | HTML 页面抓取 |
+| 数据结构 | 结构化 JSON | 从 HTML 解析 |
+| 更新频率 | 较快 | 取决于社区编辑 |
+| 内容范围 | 官方数据 | 社区补充（攻略等） |
+| 同步方式 | API 调用 | HTTP + goquery |
+
+---
+
 ## 公告 API
 
 > **接口认证**: 需要 API Key / Web JWT / Anonymous Token 三选一
@@ -2224,15 +2598,17 @@ GET /api/endfield/gacha/global-stats
 **统计字段说明**:
 | 字段 | 说明 |
 |------|------|
-| `total_pulls` | 全服总抽数 |
+| `total_pulls` | 全服总抽数（**不含免费抽卡**） |
 | `total_users` | 已同步记录的用户数 |
-| `star6_total` | 6星总数 |
+| `star6_total` | 6星总数（不含免费抽卡获得的） |
 | `avg_pity` | 全服平均出货（抽数/6星） |
 | `current_pool` | 当前UP卡池信息（用于判断歪不歪） |
 | `by_type` | 按卡池类型分类的统计 |
 | `by_channel` | 按渠道/服务器分类的统计（官服/B服） |
 | `ranking` | 出货排名（各角色/武器获取数量排名） |
 | `distribution` | 6星出货分布（按抽数区间） |
+
+> **统计口径说明**：所有统计数据均**完全排除免费抽卡**（`is_free=true`），包括抽数统计、稀有度统计、出货分布和平均出货。这样可以准确反映玩家实际消耗资源的出货情况。
 
 **当前卡池信息**（用于判断是否歪了）:
 | 字段 | 说明 |
@@ -3410,12 +3786,251 @@ Authorization: Bearer your-access-token
     "is_developer": false,
     "has_password": true,
     "linked_oauth": [
-      { "provider": "qq", "oauth_id": "123456" },
-      { "provider": "github", "oauth_id": "789012" }
+      {
+        "provider": "qq",
+        "oauth_id": "123456789",
+        "nickname": "QQ昵称",
+        "avatar": "https://q.qlogo.cn/...",
+        "linked_at": "2024-01-15T10:30:00Z"
+      },
+      {
+        "provider": "github",
+        "oauth_id": "12345678",
+        "nickname": "GitHub用户名",
+        "avatar": "https://avatars.githubusercontent.com/...",
+        "linked_at": "2024-02-20T14:20:00Z"
+      }
     ]
   }
 }
 ```
+
+**响应字段说明**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| username | string | 用户名（OAuth 用户可能为空，需调用设置用户名接口） |
+| nickname | string | 昵称（显示名称） |
+| email | string | 绑定的邮箱（可能为空） |
+| email_verified | bool | 邮箱是否已验证 |
+| has_password | bool | 是否设置了密码（OAuth 用户可能为 false） |
+| linked_oauth | array | **所有绑定的第三方账号**（包括首次登录时使用的 OAuth） |
+
+> **说明**：`linked_oauth` 字段包含所有绑定的第三方账号，包括：
+> - 首次通过 OAuth 登录时创建账号使用的主 OAuth
+> - 后续手动绑定的其他 OAuth 账号
+
+---
+
+### 修改用户信息
+
+> ⚠️ 需要认证：`Authorization: Bearer <access_token>`
+
+修改当前用户的昵称或头像。
+
+```http
+PUT /api/v1/user/profile
+Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "nickname": "新昵称",
+  "avatar": "https://example.com/avatar.png"
+}
+```
+
+**请求参数**:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| nickname | string | 否 | 新昵称（1-30 字符，不允许特殊字符） |
+| avatar | string | 否 | 新头像 URL（必须 HTTPS，域名白名单限制） |
+
+> **安全说明**：
+> - 昵称会过滤 `< > & " ' \`` 等危险字符，防止 XSS 攻击
+> - 头像 URL 必须是 HTTPS，且域名必须在白名单中（包括：bbs.hycdn.cn、q.qlogo.cn、avatars.githubusercontent.com、gravatar.com 等）
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "message": "用户信息更新成功",
+    "user": {
+      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+      "username": "testuser",
+      "nickname": "新昵称",
+      "avatar": "https://example.com/avatar.png",
+      "email": "user@example.com",
+      "email_verified": true,
+      "is_developer": false,
+      "has_password": true
+    }
+  }
+}
+```
+
+**错误情况**:
+| 错误码 | 说明 |
+|--------|------|
+| 400 | 昵称不能超过 30 个字符 |
+| 400 | 昵称包含非法字符 |
+| 400 | 头像 URL 必须使用 HTTPS |
+| 400 | 头像 URL 域名不在允许列表中 |
+
+---
+
+### 绑定邮箱
+
+> ⚠️ 需要认证：`Authorization: Bearer <access_token>`
+
+为当前账号绑定或更换邮箱。需要先调用发送验证码接口获取验证码。
+
+```http
+POST /api/v1/auth/bind-email
+Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "email": "new@example.com",
+  "code": "123456"
+}
+```
+
+**请求参数**:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| email | string | 是 | 要绑定的邮箱 |
+| code | string | 是 | 邮箱验证码（需先调用 `/api/v1/auth/send-code` 获取，type 为 `bind_email`） |
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "message": "邮箱绑定成功",
+    "user": {
+      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+      "username": "testuser",
+      "nickname": "用户昵称",
+      "email": "new@example.com",
+      "email_verified": true,
+      "has_password": true
+    }
+  }
+}
+```
+
+**错误情况**:
+| 错误码 | 说明 |
+|--------|------|
+| 400 | 验证码不正确或已使用 |
+| 400 | 验证码已过期 |
+| 400 | 该邮箱已被其他用户绑定 |
+
+---
+
+### 设置用户名
+
+> ⚠️ 需要认证：`Authorization: Bearer <access_token>`
+
+为 OAuth 用户设置用户名。**只能设置一次，设置后不可更改**。
+
+> 适用于通过 QQ/GitHub 登录的用户，这些用户首次登录时没有用户名。
+
+```http
+POST /api/v1/auth/set-username
+Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "username": "myusername"
+}
+```
+
+**请求参数**:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| username | string | 是 | 用户名（3-20 字符，仅支持字母、数字、下划线） |
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "message": "用户名设置成功",
+    "user": {
+      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+      "username": "myusername",
+      "nickname": "QQ昵称",
+      "email": "",
+      "email_verified": false,
+      "has_password": false,
+      "linked_oauth": [
+        { "provider": "qq", "oauth_id": "123456", "nickname": "QQ昵称" }
+      ]
+    }
+  }
+}
+```
+
+**错误情况**:
+| 错误码 | 说明 |
+|--------|------|
+| 400 | 用户名已设置，不可更改 |
+| 400 | 用户名已被使用 |
+| 400 | 用户名格式不正确 |
+
+---
+
+### 设置密码
+
+> ⚠️ 需要认证：`Authorization: Bearer <access_token>`
+
+为 OAuth 用户首次设置密码。设置密码后，用户可以使用邮箱+密码登录。
+
+> 适用于通过 QQ/GitHub 登录且尚未设置密码的用户。已设置密码的用户请使用"修改密码"接口。
+
+```http
+POST /api/v1/auth/set-password
+Authorization: Bearer your-access-token
+Content-Type: application/json
+
+{
+  "password": "MySecurePassword123"
+}
+```
+
+**请求参数**:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| password | string | 是 | 密码（至少 8 位，包含字母和数字） |
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "message": "密码设置成功",
+    "user": {
+      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+      "username": "myusername",
+      "nickname": "QQ昵称",
+      "email": "user@example.com",
+      "email_verified": true,
+      "has_password": true
+    }
+  }
+}
+```
+
+**错误情况**:
+| 错误码 | 说明 |
+|--------|------|
+| 400 | 已设置密码，请使用修改密码功能 |
+| 400 | 密码强度不足 |
 
 ---
 
@@ -4396,6 +5011,41 @@ const callWithAPIKey = async (apiKey, endpoint) => {
 ---
 
 ## 更新日志
+
+### v1.9.9 (2026-02-04)
+
+- ✅ **新增 B站 Wiki 数据抓取 API**
+  - 数据来源：哔哩哔哩终末地 Wiki（wiki.biligame.com/zmd）
+  - 使用 goquery 解析 HTML 页面，无需官方 API
+  - 支持 7 种图鉴数据：干员、武器、装备、设备、物品、敌对单位、活动
+
+- ✅ **B站 Wiki 接口**
+  - `GET /api/bili-wiki/operators` - 获取干员列表（支持稀有度、职业筛选）
+  - `GET /api/bili-wiki/operators/:name` - 获取干员详情
+  - `GET /api/bili-wiki/weapons` - 获取武器列表
+  - `GET /api/bili-wiki/equipments` - 获取装备列表
+  - `GET /api/bili-wiki/devices` - 获取设备列表
+  - `GET /api/bili-wiki/items` - 获取物品列表（支持稀有度、类型筛选）
+  - `GET /api/bili-wiki/enemies` - 获取敌对单位列表（支持类型、等级筛选）
+  - `GET /api/bili-wiki/activities` - 获取活动列表（特许寻访/武库申领）
+  - `GET /api/bili-wiki/search` - 全文搜索
+  - `GET /api/bili-wiki/stats` - 获取统计信息
+  - `POST /api/bili-wiki/admin/sync` - 手动触发同步
+  - `GET /api/bili-wiki/admin/sync/status` - 获取同步状态
+
+- ✅ **同步机制**
+  - 每 6 小时自动同步
+  - 首次启动 60 秒后执行首次同步
+  - 请求间隔 200ms（防止 IP 被封）
+  - 支持 context 取消信号，优雅关闭
+
+- ✅ **活动日历解析**
+  - 从首页解析特许寻访和武库申领活动
+  - 自动解析活动时间（data-start/data-end）
+  - 自动判断活动是否进行中
+
+- ✅ **依赖更新**
+  - 新增 `github.com/PuerkitoBio/goquery v1.8.1`
 
 ### v1.9.7 (2026-02-02)
 

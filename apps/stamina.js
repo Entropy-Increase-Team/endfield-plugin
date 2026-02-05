@@ -16,9 +16,9 @@ export class EndfieldStamina extends plugin {
         fnc: () => this.pushStamina()
       },
       rule: [
-        ruleReg('理智$', 'getStamina'),
-        ruleReg('(订阅理智|理智订阅)(?:\\s*(\\d+))?.*$', 'subscribeStamina'),
-        ruleReg('取消\\s*订阅\\s*理智$', 'unsubscribeStamina'),
+        ruleReg('(理智|体力)$', 'getStamina'),
+        ruleReg('(订阅(?:理智|体力)|(?:理智|体力)订阅)(?:\\s*(\\d+))?.*$', 'subscribeStamina'),
+        ruleReg('取消\\s*订阅\\s*(?:理智|体力)$', 'unsubscribeStamina'),
         ruleReg('(订阅推送设置|订阅设置推送|推送设置订阅|设置推送订阅)\\s*(群聊|私信)(?:\\s*(\\d+))?$', 'subscribePushSetting')
       ]
     })
@@ -28,7 +28,7 @@ export class EndfieldStamina extends plugin {
   async subscribeStamina() {
     const isGroup = !!this.e.isGroup
     const raw = (this.e.msg || '').trim()
-    const valueMatch = raw.match(/(?:订阅理智|理智订阅)\s*(\d+)/)
+    const valueMatch = raw.match(/(?:订阅(?:理智|体力)|(?:理智|体力)订阅)\s*(\d+)/)
     const threshold = valueMatch ? Math.max(0, parseInt(valueMatch[1], 10)) : undefined
     const nickname = this.e.sender?.nickname || this.e.sender?.card || String(this.e.user_id)
     const sub = {
@@ -131,7 +131,9 @@ export class EndfieldStamina extends plugin {
     const maxTs = Number(stamina.maxTs || 0)
     const recover = Number(stamina.recover || 360)
     let fullTime = '未知'
-    if (maxTs) {
+    if (current >= max && max > 0) {
+      fullTime = '已满'
+    } else if (maxTs) {
       fullTime = new Date(maxTs * 1000).toLocaleString('zh-CN')
     } else if (current < max && recover) {
       const remaining = max - current

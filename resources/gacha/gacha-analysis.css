@@ -182,6 +182,14 @@ body {
   letter-spacing: 0.02em;
 }
 
+/* 顶部刷新提示：若需要刷新，发送 xxx同步抽卡记录 */
+.section-head-time .sync-hint {
+  margin-top: 6px;
+  font-size: 0.875rem;
+  color: #000000;
+  letter-spacing: 0.02em;
+}
+
 .pools-card {
   padding: 12px 14px;
 }

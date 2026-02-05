@@ -27,7 +27,7 @@ help_group:
         title: "{prefix}扫码绑定 / 扫码登陆"
         desc: "森空岛 App 扫码绑定"
       - icon: 3
-        title: "{prefix}手机绑定 [手机号]"
+        title: "{prefix}手机绑定 <手机号>"
         desc: "手机验证码绑定（私聊）"
       - icon: 26
         title: "{prefix}绑定帮助 / 登陆帮助"
@@ -55,7 +55,7 @@ help_group:
         desc: "获取最新一条公告"
       - icon: 20
         title: "{prefix}订阅公告 群聊 / 公告订阅 群聊"
-        desc: "本群订阅新公告推送（空格可选）"
+        desc: "本群订阅新公告推送"
       - icon: 20
         title: "{prefix}取消订阅公告 / 公告取消订阅"
         desc: "取消本群公告订阅"
@@ -66,7 +66,7 @@ help_group:
         desc: "查看可查询的攻略名（本地+Wiki）"
       - icon: 21
         title: "{prefix}<攻略名>攻略"
-        desc: "查询攻略（干员名或队伍名，如 莱万汀攻略、火队攻略）"
+        desc: "查询攻略（干员名或队伍名）"
   - group: "终末地信息查询（需绑定）"
     list:
       - icon: 6
@@ -88,13 +88,13 @@ help_group:
         title: "{prefix}日历"
         desc: "活动日历（20 天时间轴）"
       - icon: 11
-        title: "{prefix}理智"
+        title: "{prefix}理智 / {prefix}体力"
         desc: "查询理智与日常活跃"
       - icon: 11
-        title: "{prefix}订阅理智 / 理智订阅 [值]"
-        desc: "订阅理智推送，不设值则满时推送，设值则到该值推送"
+        title: "{prefix}订阅理智 / 理智订阅 <值>"
+        desc: "订阅理智推送，不设值则满时推送"
       - icon: 11
-        title: "{prefix}订阅推送设置 [群聊/私信] [群号]"
+        title: "{prefix}订阅推送设置 <群聊/私信> <群号>"
         desc: "设置理智推送目标（群号不填则本群/当前人）"
       - icon: 6
         title: "{prefix}签到"
@@ -106,7 +106,7 @@ help_group:
         title: "{prefix}抽卡记录同步 / 同步抽卡记录"
         desc: "从官方同步抽卡记录"
       - icon: 12
-        title: "{prefix}抽卡记录 [常驻/新手/武器/限定] [页码]"
+        title: "{prefix}抽卡记录 <常驻/新手/武器/限定> <页码>"
         desc: "查看抽卡记录，支持分类与分页"
       - icon: 12
         title: "{prefix}抽卡分析"
@@ -114,6 +114,12 @@ help_group:
       - icon: 12
         title: "{prefix}全服抽卡统计"
         desc: "查看全服抽卡统计（合并转发多图）"
+      - icon: 12
+        title: "{prefix}十连 / {prefix}百连 / {prefix}单抽 <常驻|UP|武器|限定>"
+        desc: "模拟抽卡（可选卡池，默认 UP/限定）"
+      - icon: 12
+        title: "{prefix}重置抽卡 / {prefix}抽卡重置"
+        desc: "重置个人模拟抽卡状态（保底等清零）"
   - group: "Wiki 查询（需绑定）"
     list:
       - icon: 12
@@ -134,9 +140,12 @@ help_group:
       - icon: 6
         title: "{prefix}全部签到"
         desc: "为所有已绑定账号执行签到"
+      - icon: 12
+        title: "{prefix}重置全员抽卡"
+        desc: "重置所有用户的模拟抽卡状态（管理员）"
       - icon: 22
-        title: "{prefix}上传攻略 [干员/队伍名] [作者] [图片/链接]"
+        title: "{prefix}上传攻略 <干员/队伍名> <作者> <图片>"
         desc: "上传攻略图片"
       - icon: 5
-        title: "{prefix}更新"
+        title: "{prefix}更新 / {prefix}强制更新"
         desc: "更新终末地插件（git pull）"

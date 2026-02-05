@@ -6,8 +6,8 @@
   <title>{{title}} - {{subtitle}}</title>
   <link rel="stylesheet" href="{{_res_path}}wiki/activity-list.css">
 </head>
-<body>
-  <div class="activity-list-container">
+<body style="min-width: {{pageWidth}}px;">
+  <div class="activity-list-container" style="width: {{pageWidth}}px; min-width: {{pageWidth}}px;">
     <!-- 头部：标题 + 正方形图 -->
     <div class="list-top-bar">
       <div class="list-header-middle">
@@ -20,7 +20,7 @@
       </div>
       {{/if}}
     </div>
-    <!-- 日历区：20 天时间轴 + 在范围内的活动条（与时间轴对应） -->
+    <!-- 日历区：31 天时间轴 + 活动条，当前日期竖线（仅贯穿活动列表，不盖住日期） -->
     <div class="card-wrap calendar-wrap">
       <div class="calendar-header" style="grid-template-columns: repeat({{dayCount}}, 1fr);">
         {{each days day idx}}
@@ -30,28 +30,30 @@
         </div>
         {{/each}}
       </div>
-      {{each activitiesInRange}}
-      <div class="activity-row" style="grid-template-columns: repeat({{dayCount}}, 1fr);">
-        <div class="activity-bar-wrap" style="display: grid; grid-template-columns: repeat({{dayCount}}, 1fr);">
-          <div class="activity-bar" style="grid-column: {{$value.startCol + 1}} / span {{$value.span}};">
-            <div class="activity-bar-info">
-              <span class="activity-info-icon">❗</span>
-              <div class="activity-bar-text">
-                <div class="activity-title-row">
-                  <span class="activity-name">{{$value.name}}</span>
-                  <span class="activity-remaining">{{if $value.opensInText}}{{$value.opensInText}}{{else}}{{$value.remainingText}}{{/if}}</span>
+      <div class="calendar-grid-area">
+        <div class="calendar-today-line" style="left: calc(({{todayColIndex}} + 0.5) * (100% / {{dayCount}}));"></div>
+        {{each activitiesInRange}}
+        <div class="activity-row" style="grid-template-columns: repeat({{dayCount}}, 1fr);">
+          <div class="activity-bar-wrap" style="display: grid; grid-template-columns: repeat({{dayCount}}, 1fr);">
+            <div class="activity-bar {{$value.isUpPool ? 'activity-bar-up' : ''}}" style="grid-column: {{$value.startCol + 1}} / span {{$value.span}};">
+              <div class="activity-bar-info">
+                <span class="activity-info-icon">{{if $value.isUpPool}}UP{{else}}·{{/if}}</span>
+                <div class="activity-bar-text">
+                  <div class="activity-title-row">
+                    <span class="activity-name">{{if $value.isUpPool && $value.is_active}}▶ {{/if}}{{$value.name}}</span>
+                    <span class="activity-remaining">{{if $value.opensInText}}{{$value.opensInText}}{{else}}{{$value.remainingText}}{{/if}}</span>
+                  </div>
+                  <span class="activity-time-line">{{$value.timeLine}}</span>
                 </div>
-                <span class="activity-time-line">{{$value.startLabel}}</span>
-                <span class="activity-time-line">{{$value.endLabel}}</span>
               </div>
+              {{if $value.cover}}
+              <img src="{{$value.cover}}" alt="" class="activity-bar-pic" onerror="this.style.display='none'">
+              {{/if}}
             </div>
-            {{if $value.cover}}
-            <img src="{{$value.cover}}" alt="" class="activity-bar-pic" onerror="this.style.display='none'">
-            {{/if}}
           </div>
         </div>
+        {{/each}}
       </div>
-      {{/each}}
       <footer class="footer">
         <div class="copyright">当前时间: {{currentTimeStr}}</div>
       </footer>
@@ -62,15 +64,14 @@
     <div class="card-wrap out-of-range-wrap">
       <div class="out-of-range-title">不在时间范围内</div>
       {{each activitiesOutOfRange}}
-      <div class="activity-card-out">
+      <div class="activity-card-out {{$value.isUpPool ? 'activity-card-out-up' : ''}}">
         <div class="activity-card-out-content">
           <div class="activity-card-out-header">
-            <span class="activity-name">{{$value.name}}</span>
+            <span class="activity-name">{{if $value.isUpPool && $value.is_active}}▶ {{/if}}{{$value.name}}</span>
             <span class="activity-remaining">{{if $value.opensInText}}{{$value.opensInText}}{{else}}{{$value.remainingText}}{{/if}}</span>
           </div>
           <div class="activity-card-out-body">
-            <span class="activity-time-line">{{$value.startLabel}}</span>
-            <span class="activity-time-line">{{$value.endLabel}}</span>
+            <span class="activity-time-line">{{$value.timeLine}}</span>
           </div>
         </div>
         {{if $value.cover}}

@@ -79,7 +79,6 @@ common:
   not_found_role_info: "未找到角色信息"
   not_found_login_info: "未找到登录信息"
   not_found_skland_user_id: "获取森空岛用户ID失败"
-  not_found_cred: "未找到有效的cred凭证"
   switch_failed: "切换账号失败"
   # 查询失败
   query_failed: "查询失败：{error}"
@@ -91,10 +90,6 @@ common:
   read_info_failed: "读取登录信息失败"
   parse_info_failed: "解析登录信息失败"
   delete_failed: "删除登录记录失败"
-  # 登陆相关
-  login_failed: "登录失败，请确认cred凭证有效"
-  login_failed_no_cred: "登录失败，无法获取cred凭证，请检查日志或使用cred直接登录"
-  login_failed_no_cred_phone: "登录失败，无法获取cred凭证，请查看详细日志"
 
 # 功能模块特定提示
 spaceship:
@@ -154,6 +149,9 @@ attendance:
 
 gacha:
   global_stats_failed: "获取全服抽卡统计失败"
+  current_up_need_api_key: "本期 UP 查询需要配置 api_key，请在 config/common.yaml 中填写（终末地协议终端获取）"
+  current_up_failed: "获取本期 UP 信息失败，请稍后再试"
+  current_up_empty: "暂无本期 UP 活动数据"
   no_accounts: "未找到可用账号，请确认已绑定角色"
   no_records: "暂无抽卡记录。若需同步请发送「{prefix}同步抽卡记录」"
   records_sync_hint: "若需同步请发送「{prefix}同步抽卡记录」"
@@ -182,6 +180,8 @@ gacha:
   simulate_disabled: "模拟抽卡功能未开启"
   simulate_group_not_allowed: "本群未开放模拟抽卡"
   simulate_daily_limit_reached: "今日模拟抽卡次数已用完，明天再来吧"
+  simulate_reset_all_ok: "已重置全员模拟抽卡状态，共清理 {count} 条记录。"
+  simulate_reset_all_no_auth: "仅管理员可执行重置全员抽卡。"
 
 enduid:
   bind_help: |
@@ -198,10 +198,6 @@ enduid:
   auth_link_expiry: "⏰ 链接有效期至：{time}"
   auth_link_wait: "授权完成后将自动绑定，请稍候..."
   please_private: "此操作需私聊完成"
-  cred_please: "请发送32位森空岛cred凭证（SK_OAUTH_CRED_KEY）"
-  cred_no_token: "当前暂不支持token转换，请直接发送32位cred凭证"
-  cred_invalid: "请输入有效的32位cred凭证"
-  cred_checking: "正在校验cred凭证..."
   binding_ok: |
     ✅ 账号绑定成功
     ──────────────
@@ -235,7 +231,7 @@ enduid:
   qr_login_ok: "✅ 登录成功，正在创建绑定..."
   qr_error: "扫码登录过程出现错误"
   please_private_op: "此操作需私聊进行"
-  unbind_hint: "尚未绑定cred，请先使用「{prefix}扫码绑定」"
+  unbind_hint: "尚未绑定账号，请先使用「{prefix}绑定帮助」查看绑定方式"
   token_show: |
     🔑 当前激活账号的Framework Token：
     {token}
@@ -281,10 +277,10 @@ enduid:
   phone_please_private: "手机登录需私聊进行"
   phone_ask: "请输入11位手机号码："
   phone_ask_example: "格式 {prefix}手机登陆 13800138000"
-  phone_code_verify_example: "格式 {prefix}验证码 123456"
+  phone_code_verify_example: "请直接发送收到的 6 位验证码"
   phone_invalid: "请输入有效的11位手机号码"
   phone_send_failed: "验证码发送失败"
-  phone_code_sent: "验证码已发送至 {mask}，5分钟内发送「{prefix}验证码 [6位验证码]」完成登录"
+  phone_code_sent: "验证码已发送至 {mask}，5 分钟内直接发送收到的 6 位验证码完成登录"
   phone_code_digit: "请输入6位数字验证码"
   phone_code_expired: "验证码已过期，请重新发起登录"
   phone_cache_error: "缓存数据异常，请重新发起登录"

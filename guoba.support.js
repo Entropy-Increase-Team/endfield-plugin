@@ -32,42 +32,34 @@ export function supportGuoba() {
         const signConfig = setting.getConfig('sign') || {}
         const gachaConfig = setting.getConfig('gacha') || {}
         
-        // message.yaml 特殊处理：如果存在 config/message.yaml 则使用它，否则使用 defSet/message.yaml
-        const configPath = `${_path}/plugins/endfield-plugin/config/message.yaml`
-        const defSetPath = `${_path}/plugins/endfield-plugin/defSet/message.yaml`
-        let messageConfig = {}
-        if (fs.existsSync(configPath)) {
+        // message：defSet 为底，config 覆盖；config 中不存在的 defSet 键会增量显示，保存时全量写入 config
+        const messageConfigPath = `${_path}/plugins/endfield-plugin/config/message.yaml`
+        const messageDefSetPath = `${_path}/plugins/endfield-plugin/defSet/message.yaml`
+        let messageDefSet = {}
+        if (fs.existsSync(messageDefSetPath)) {
           try {
-            messageConfig = YAML.parse(fs.readFileSync(configPath, 'utf8')) || {}
-          } catch (error) {
-            logger.error('[终末地插件] 读取 config/message.yaml 失败:', error)
-          }
-        } else if (fs.existsSync(defSetPath)) {
-          try {
-            messageConfig = YAML.parse(fs.readFileSync(defSetPath, 'utf8')) || {}
+            messageDefSet = YAML.parse(fs.readFileSync(messageDefSetPath, 'utf8')) || {}
           } catch (error) {
             logger.error('[终末地插件] 读取 defSet/message.yaml 失败:', error)
           }
         }
-        
-        const common = lodash.merge(
-          {
-            prefix_mode: 1,
-            keywords: ['终末地', 'zmd'],
-            auth_client_name: '终末地机器人',
-            auth_client_type: 'bot',
-            auth_scopes: ['user_info', 'binding_info', 'game_data', 'attendance'],
-            api_key: '',
-          },
-          commonConfig
-        )
-        
-        if (!Array.isArray(common.keywords)) {
-          common.keywords = ['终末地', 'zmd']
+        let messageConfigFromFile = {}
+        if (fs.existsSync(messageConfigPath)) {
+          try {
+            messageConfigFromFile = YAML.parse(fs.readFileSync(messageConfigPath, 'utf8')) || {}
+          } catch (error) {
+            logger.error('[终末地插件] 读取 config/message.yaml 失败:', error)
+          }
         }
-        if (!Array.isArray(common.auth_scopes)) {
-          common.auth_scopes = ['user_info', 'binding_info', 'game_data', 'attendance']
-        }
+        const messageConfig = lodash.merge({}, messageDefSet, messageConfigFromFile)
+        
+        // common：默认读 config（启动时 defSet 会复制到 config），缺项从 defSet 补全
+        const commonDefSet = setting.getdefSet('common') || {}
+        const common = lodash.merge({}, commonDefSet, commonConfig)
+        if (Array.isArray(commonConfig.keywords)) common.keywords = commonConfig.keywords
+        else if (!Array.isArray(common.keywords)) common.keywords = Array.isArray(commonDefSet.keywords) ? commonDefSet.keywords : []
+        if (Array.isArray(commonConfig.auth_scopes)) common.auth_scopes = commonConfig.auth_scopes
+        else if (!Array.isArray(common.auth_scopes)) common.auth_scopes = Array.isArray(commonDefSet.auth_scopes) ? commonDefSet.auth_scopes : []
         
         const sign = lodash.merge(
           {
@@ -154,10 +146,11 @@ export function supportGuoba() {
             lodash.set(unflattenedData, key, data[key])
           }
           
-          // 分离不同配置文件的字段，分别写入 config/common.yaml、config/sign.yaml、config/gacha.yaml、config/message.yaml（help 锅巴不配置）
+          // 隔离保存：各配置只写入对应文件，不混入其他文件
+          // common → config/common.yaml；sign → config/sign.yaml；gacha → config/gacha.yaml；message → config/message.yaml
           const commonFields = ['prefix_mode', 'keywords', 'auth_client_name', 'auth_client_type', 'auth_scopes', 'api_key']
 
-          // message 仅包含 defSet/message.yaml 中的叶子键（如 gacha.no_records），用于写入 config/message.yaml
+          // message 字段仅写入 config/message.yaml（defSet 中的叶子键，如 gacha.no_records）
           const defSetMessagePath = `${_path}/plugins/endfield-plugin/defSet/message.yaml`
           const messageFields = new Set()
           if (fs.existsSync(defSetMessagePath)) {
@@ -184,24 +177,29 @@ export function supportGuoba() {
           const gachaData = {}
           const messageData = {}
 
-          // 必须遍历扁平键 data（锅巴传来 sign.notify_list 等），不能遍历 unflattenedData（只有顶层 sign）
+          // 必须先判断 message 再按前缀分流，否则 gacha.xxx 等文案键会误入 gacha.yaml
           for (const key in data) {
-            if (commonFields.includes(key)) {
+            if (messageFields.has(key)) {
+              messageData[key] = data[key]
+            } else if (commonFields.includes(key)) {
               commonData[key] = data[key]
             } else if (key.startsWith('sign.')) {
-              // 使用 lodash.set 支持嵌套键（如 sign.notify_list.friend）
               lodash.set(signData, key.replace('sign.', ''), data[key])
             } else if (key.startsWith('gacha.')) {
               lodash.set(gachaData, key.replace('gacha.', ''), data[key])
-            } else if (messageFields.has(key)) {
-              messageData[key] = data[key]
             }
           }
           
-          // 保存 common 配置
+          // 保存 common 配置（keywords、auth_scopes 整体替换，否则 merge 按索引合并会导致删除项仍存在）
           if (Object.keys(commonData).length > 0) {
             const currentCommonConfig = setting.getConfig('common') || {}
             const mergedCommonConfig = lodash.merge({}, currentCommonConfig, commonData)
+            if (Array.isArray(commonData.keywords)) {
+              mergedCommonConfig.keywords = commonData.keywords
+            }
+            if (Array.isArray(commonData.auth_scopes)) {
+              mergedCommonConfig.auth_scopes = commonData.auth_scopes
+            }
             const result = setting.setConfig('common', mergedCommonConfig)
             if (result === false) {
               return Result.error('common 配置保存失败，请检查文件权限')
@@ -225,51 +223,69 @@ export function supportGuoba() {
           if (Object.keys(gachaData).length > 0) {
             const currentGachaConfig = setting.getConfig('gacha') || {}
             const mergedGachaConfig = lodash.merge({}, currentGachaConfig, gachaData)
+            // 整体替换数组/对象，否则 merge 按索引合并会导致白名单、daily_limit 清空不生效
+            if (gachaData.simulate) {
+              if (Array.isArray(gachaData.simulate.group_whitelist)) {
+                mergedGachaConfig.simulate.group_whitelist = gachaData.simulate.group_whitelist
+              }
+              if (gachaData.simulate.daily_limit && typeof gachaData.simulate.daily_limit === 'object') {
+                mergedGachaConfig.simulate.daily_limit = { ...mergedGachaConfig.simulate.daily_limit, ...gachaData.simulate.daily_limit }
+              }
+            }
             const gachaResult = setting.setConfig('gacha', mergedGachaConfig)
             if (gachaResult === false) {
               return Result.error('gacha 配置保存失败，请检查文件权限')
             }
           }
           
-          // 保存 message 配置到 config/message.yaml（总是保存到 config，即使修改的是 defSet 的内容）
+          // message：改了一条则在「当前合并结果」基础上全量写入 config；一条都没改则不保存（并删除 config）
           if (Object.keys(messageData).length > 0) {
-            const configPath = `${_path}/plugins/endfield-plugin/config/message.yaml`
-            const configDir = path.dirname(configPath)
-            
-            if (!fs.existsSync(configDir)) {
-              fs.mkdirSync(configDir, { recursive: true })
-            }
-            
-            // 读取当前 config/message.yaml（如果存在）
-            let currentMessageConfig = {}
-            if (fs.existsSync(configPath)) {
+            const messageConfigPath = `${_path}/plugins/endfield-plugin/config/message.yaml`
+            const messageConfigDir = path.dirname(messageConfigPath)
+            const defSetMessagePath = `${_path}/plugins/endfield-plugin/defSet/message.yaml`
+            let defSetFlat = {}
+            if (fs.existsSync(defSetMessagePath)) {
               try {
-                currentMessageConfig = YAML.parse(fs.readFileSync(configPath, 'utf8')) || {}
-              } catch (error) {
-                logger.warn('[终末地插件] 读取现有 config/message.yaml 失败，将创建新配置')
+                const defSetMessage = YAML.parse(fs.readFileSync(defSetMessagePath, 'utf8')) || {}
+                function flattenForCompare(obj, prefix = '') {
+                  for (const key in obj) {
+                    const fullKey = prefix ? `${prefix}.${key}` : key
+                    const v = obj[key]
+                    if (v != null && typeof v === 'object' && !Array.isArray(v)) {
+                      flattenForCompare(v, fullKey)
+                    } else {
+                      defSetFlat[fullKey] = v
+                    }
+                  }
+                }
+                flattenForCompare(defSetMessage)
+              } catch (e) {
+                logger.warn('[终末地插件] 读取 defSet/message.yaml 失败，将保存 message 到 config')
               }
-            } else {
-              // 如果 config/message.yaml 不存在，先从 defSet/message.yaml 读取作为基础
-              const defSetPath = `${_path}/plugins/endfield-plugin/defSet/message.yaml`
-              if (fs.existsSync(defSetPath)) {
+            }
+            // 比较配置内容是否一致（注释不算配置，YAML.parse 已不包含注释；字符串 trim 避免空白/换行导致误判）
+            const norm = (v) => (typeof v === 'string' ? v.trim() : v)
+            const sameAsDefSet = Object.keys(defSetFlat).length > 0 && Object.keys(defSetFlat).every(
+              (k) => String(norm(messageData[k] ?? '')) === String(norm(defSetFlat[k] ?? ''))
+            )
+            if (sameAsDefSet) {
+              if (fs.existsSync(messageConfigPath)) {
                 try {
-                  currentMessageConfig = YAML.parse(fs.readFileSync(defSetPath, 'utf8')) || {}
-                } catch (error) {
-                  logger.warn('[终末地插件] 读取 defSet/message.yaml 作为基础配置失败')
+                  fs.unlinkSync(messageConfigPath)
+                } catch (e) {
+                  logger.warn('[终末地插件] 删除 config/message.yaml 失败:', e)
                 }
               }
+            } else {
+              if (!fs.existsSync(messageConfigDir)) {
+                fs.mkdirSync(messageConfigDir, { recursive: true })
+              }
+              const nestedMessage = {}
+              for (const key in messageData) {
+                lodash.set(nestedMessage, key, messageData[key])
+              }
+              fs.writeFileSync(messageConfigPath, YAML.stringify(nestedMessage), 'utf8')
             }
-            
-            // 将扁平数据转换为嵌套对象并合并
-            const nestedMessageData = {}
-            for (const key in messageData) {
-              lodash.set(nestedMessageData, key, messageData[key])
-            }
-            
-            const mergedMessageConfig = lodash.merge({}, currentMessageConfig, nestedMessageData)
-            fs.writeFileSync(configPath, YAML.stringify(mergedMessageConfig), 'utf8')
-            
-            // 清除 setting 缓存
             if (setting.config && setting.config.message) {
               delete setting.config.message
             }

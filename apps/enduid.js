@@ -1,4 +1,4 @@
-import { getMessage, ruleReg } from '../utils/common.js'
+import { getMessage, ruleReg, getPrefixStripRegex } from '../utils/common.js'
 import { saveUserBindings, cleanAccounts, REDIS_KEY } from '../model/endfieldUser.js'
 import EndfieldRequest from '../model/endfieldReq.js'
 import setting from '../utils/setting.js'
@@ -224,7 +224,7 @@ export class EndfieldUid extends plugin {
         ruleReg('切换(绑定|登陆|登录)\\s*(\\d+)$', 'switchBind'),
         ruleReg('(绑定|登陆|登录)帮助$', 'credHelp'),
         ruleReg('手机(绑定|登陆|登录)(\\s*\\d{11})?$', 'phoneBind'),
-        ruleReg('验证码\\s*(\\d{6})$', 'phoneVerifyCode')
+        ruleReg('\\d{6}$', 'phoneVerifyCode')
       ]
     })
     this.help_setting = setting.getConfig('help')
@@ -793,23 +793,15 @@ export class EndfieldUid extends plugin {
   }
 
   async phoneVerifyCode() {
-    if (this.e.isGroup) {
-      await this.reply(getMessage('enduid.phone_please_private'))
-      return true
-    }
+    if (this.e.isGroup) return false
 
-    const codeMatch = this.e.msg.match(/验证码\s*(\d{6})/)
-    const code = codeMatch ? codeMatch[1] : null
-    if (!code) {
-      await this.reply(getMessage('enduid.phone_code_verify_example', { prefix: this.getCmdPrefix() }))
-      return true
-    }
-
+    // 仅当该用户存在待验证状态（发送过手机验证后）才将本条 6 位数字当作验证码处理，否则不消费消息
     const cacheText = await redis.get(`ENDFIELD:PHONE_BIND:${this.e.user_id}`)
-    if (!cacheText) {
-      await this.reply(getMessage('enduid.phone_code_expired'))
-      return true
-    }
+    if (!cacheText) return false
+
+    const raw = (this.e.msg || '').replace(getPrefixStripRegex(), '').trim()
+    const code = /^\d{6}$/.test(raw) ? raw : null
+    if (!code) return false
 
     let cache
     try {

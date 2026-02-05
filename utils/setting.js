@@ -5,6 +5,21 @@ import fs from 'node:fs'
 const _path = process.cwd().replace(/\\/g, '/')
 const CONFIG_SKIP_COPY = ['help', 'message']
 
+function deepMerge(base, override) {
+  if (override == null || typeof override !== 'object') return base ?? override
+  if (Array.isArray(override)) return override
+  const out = { ...(base && typeof base === 'object' && !Array.isArray(base) ? base : {}) }
+  for (const key of Object.keys(override)) {
+    const v = override[key]
+    if (v != null && typeof v === 'object' && !Array.isArray(v)) {
+      out[key] = deepMerge(out[key], v)
+    } else {
+      out[key] = v
+    }
+  }
+  return out
+}
+
 class Setting {
   constructor() {
     this.defPath = `${_path}/plugins/endfield-plugin/defSet/`
@@ -19,6 +34,9 @@ class Setting {
   }
 
   initCfg() {
+    if (!fs.existsSync(this.configPath)) {
+      fs.mkdirSync(this.configPath, { recursive: true })
+    }
     const files = fs.readdirSync(this.defPath).filter((file) => file.endsWith('.yaml'))
     for (let file of files) {
       const app = file.replace('.yaml', '')
@@ -52,11 +70,11 @@ class Setting {
 
   getConfig(app) {
     if (CONFIG_SKIP_COPY.includes(app)) {
+      const def = this.getdefSet(app) || {}
       const configFile = `${this.configPath}${app}.yaml`
-      if (fs.existsSync(configFile)) {
-        return this.getYaml(app, 'config')
-      }
-      return this.getdefSet(app)
+      if (!fs.existsSync(configFile)) return def
+      const cfg = this.getYaml(app, 'config') || {}
+      return deepMerge(def, cfg)
     }
     return { ...this.getdefSet(app), ...this.getYaml(app, 'config') }
   }
@@ -79,6 +97,9 @@ class Setting {
     try {
       if (type === 'data') {
         const dir = this.dataPath
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+      } else if (type === 'config') {
+        const dir = this.configPath
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
       }
       fs.writeFileSync(file, YAML.stringify(data), 'utf8')

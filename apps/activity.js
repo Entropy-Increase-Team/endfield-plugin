@@ -27,6 +27,35 @@ function formatMonthDay(ts) {
   return `${month}月${date}日`
 }
 
+/** 将 bili-wiki 的 start_time/end_time 字符串解析为秒级时间戳 */
+function parseBiliWikiTime(str) {
+  if (!str || typeof str !== 'string') return null
+  const s = str.trim().replace(/\//g, '-')
+  const ts = Date.parse(s)
+  return Number.isFinite(ts) ? Math.floor(ts / 1000) : null
+}
+
+/** 根据 startTs/endTs 与当前时间计算「xx后结束」或「xx日后开启」 */
+function getRemainingOrOpensText(nowTs, startTs, endTs) {
+  let remainingText = ''
+  let opensInText = ''
+  if (startTs != null && nowTs < startTs) {
+    const daysUntil = Math.max(0, Math.ceil((startTs - nowTs) / DAY_SEC))
+    opensInText = daysUntil < 30 ? `${daysUntil}日后开启` : daysUntil < 60 ? '1个月后开启' : `${Math.floor(daysUntil / 30)}个月后开启`
+  } else if (endTs != null) {
+    const diff = endTs - nowTs
+    if (diff <= 0) remainingText = '已结束'
+    else {
+      const daysLeft = Math.floor(diff / DAY_SEC)
+      if (daysLeft <= 0) remainingText = '即将结束'
+      else if (daysLeft < 30) remainingText = `${daysLeft}天后结束`
+      else if (daysLeft < 60) remainingText = '1个月后结束'
+      else remainingText = `${Math.floor(daysLeft / 30)}个月后结束`
+    }
+  } else remainingText = '长期有效'
+  return { remainingText, opensInText }
+}
+
 /**
  * 将 API 返回的活动列表统一为模板所需结构，并计算日历用 startCol/endCol、剩余时间文案
  * 响应格式以 1s.json 为准：data.activities，项含 pic、activity_start_at_ts、activity_end_at_ts 等（snake_case）
@@ -103,16 +132,16 @@ function buildCalendarData(activities, dayCount = 20, daysBefore = 0) {
     const shortStart = (a.startTs != null) ? formatShortTs(a.startTs) : a.startTime || '-'
     const shortEnd = (a.endTs != null) ? formatShortTs(a.endTs) : a.endTime || '-'
     const notStarted = a.startTs != null && a.startTs > nowTs
-    // 未开启的：标题后显示「X日后开启」
     const daysUntilStart = notStarted && a.startTs != null ? Math.max(0, Math.ceil((a.startTs - nowTs) / DAY_SEC)) : 0
     const opensInText = notStarted ? `${daysUntilStart}日后开启` : ''
     const startLabel = notStarted ? `${formatMonthDay(a.startTs)}开启` : `开始 ${shortStart}`
     const endLabel = `结束 ${shortEnd}`
+    const timeLine = `${startLabel} ～ ${endLabel}`
 
     const overlaps = (a.startTs != null && a.endTs != null)
       ? (a.endTs >= startDayTs && a.startTs <= endDayTs)
       : true
-    const item = { ...a, remainingText, opensInText, shortStart, shortEnd, startLabel, endLabel }
+    const item = { ...a, remainingText, opensInText, shortStart, shortEnd, startLabel, endLabel, timeLine }
 
     if (overlaps) {
       let startCol = 0
@@ -182,22 +211,110 @@ export class EndfieldActivity extends plugin {
       return true
     }
 
+    // 本期 UP（特许寻访 / 武库申领）：并入日历展示，按 is_active 分为进行中/即将开始，并计算 xx后结束/xx日后开启
+    let currentUpActive = []
+    let currentUpUpcoming = []
+    if (config.api_key && String(config.api_key).trim() !== '') {
+      try {
+        const upRes = await req.getWikiData('bili_wiki_activities')
+        if (upRes?.code === 0 && Array.isArray(upRes.data?.activities)) {
+          const nowTs = Math.floor(Date.now() / 1000)
+          const upTypes = ['特许寻访', '武库申领']
+          const upItems = upRes.data.activities
+            .filter((a) => upTypes.includes(a?.type || ''))
+            .map((a) => {
+              const startTs = parseBiliWikiTime(a.start_time)
+              const endTs = parseBiliWikiTime(a.end_time)
+              const { remainingText, opensInText } = getRemainingOrOpensText(nowTs, startTs, endTs)
+              const timeStr = a.end_time ? `${a.start_time || ''} ~ ${a.end_time}` : (a.start_time || '')
+              const shortStart = startTs != null ? formatShortTs(startTs) : (a.start_time || '-')
+              const shortEnd = endTs != null ? formatShortTs(endTs) : (a.end_time || '-')
+              const notStarted = startTs != null && startTs > nowTs
+              const startLabel = notStarted && startTs != null ? `${formatMonthDay(startTs)}开启` : `开始 ${shortStart}`
+              const endLabel = `结束 ${shortEnd}`
+              const timeLine = `${startLabel} ～ ${endLabel}`
+              return {
+                name: a.name || '未知',
+                type: a.type || '',
+                timeStr,
+                description: (a.description || '').trim(),
+                is_active: !!a.is_active,
+                remainingText,
+                opensInText,
+                startTs,
+                endTs,
+                timeLine,
+                isUpPool: true
+              }
+            })
+            .sort((a, b) => {
+              if (a.is_active !== b.is_active) return a.is_active ? -1 : 1
+              return 0
+            })
+          currentUpActive = upItems.filter((a) => a.is_active)
+          currentUpUpcoming = upItems.filter((a) => !a.is_active)
+        }
+      } catch (e) {
+        logger.error(`[终末地插件][活动列表]获取本期UP失败: ${e?.message || e}`)
+      }
+    }
+    const currentUpList = currentUpActive.concat(currentUpUpcoming)
+
     if (this.e?.runtime?.render) {
       try {
         const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
-        // 20 天从当天前两天开始（如今天 3 号则 1 号～20 号）
-        const { days, activitiesInRange, activitiesOutOfRange, dayCount, currentTimeStr } = buildCalendarData(activities, 20, 2)
-        const pageWidth = 560
-        const baseOpt = { scale: 1.6, retType: 'base64', viewport: { width: pageWidth, height: 1100 } }
+        // 31 天：往前 15、当天、往后 15
+        const daysBefore = 15
+        const dayCount = 31
+        const { days, activitiesInRange: calendarInRange, activitiesOutOfRange: calendarOutOfRange, currentTimeStr } = buildCalendarData(activities, dayCount, daysBefore)
+        const todayColIndex = days.findIndex(d => d.isToday)
+
+        const now = new Date()
+        const startDate = new Date(now)
+        startDate.setDate(startDate.getDate() - daysBefore)
+        startDate.setHours(0, 0, 0, 0)
+        const startDayTs = Math.floor(startDate.getTime() / 1000)
+        const endDayTs = startDayTs + dayCount * DAY_SEC
+
+        const upToBarItem = (up) => {
+          const overlaps = (up.startTs != null && up.endTs != null)
+            ? (up.endTs >= startDayTs && up.startTs <= endDayTs)
+            : false
+          let startCol = 0
+          let endCol = 1
+          if (up.startTs != null && up.endTs != null) {
+            startCol = Math.floor((up.startTs - startDayTs) / DAY_SEC)
+            endCol = Math.ceil((up.endTs - startDayTs) / DAY_SEC)
+            if (startCol < 0) startCol = 0
+            if (endCol > dayCount) endCol = dayCount
+            if (endCol <= startCol) endCol = startCol + 1
+          }
+          const span = endCol - startCol
+          return { ...up, startCol, endCol, span, overlaps }
+        }
+
+        const upInRange = currentUpList.filter((up) => upToBarItem(up).overlaps).map(upToBarItem)
+        const upOutOfRange = currentUpList.filter((up) => !upToBarItem(up).overlaps)
+
+        const sortByStart = (x, y) => (x.startTs ?? 1e12) - (y.startTs ?? 1e12)
+        const activitiesInRange = [...upInRange.map(({ overlaps, ...u }) => u), ...calendarInRange].sort(sortByStart)
+        const activitiesOutOfRange = [...upOutOfRange, ...calendarOutOfRange].sort(sortByStart)
+
+        const pageWidth = 1400
+        const viewportHeight = 800
+        const baseOpt = { scale: 1.6, retType: 'base64' }
         const renderData = {
           title: '活动列表',
           subtitle: `共 ${activities.length} 个活动`,
           days,
           dayCount,
+          todayColIndex: todayColIndex >= 0 ? todayColIndex : 15,
           activitiesInRange,
           activitiesOutOfRange,
           currentTimeStr,
-          pluResPath
+          pluResPath,
+          pageWidth,
+          viewport: { width: pageWidth, height: viewportHeight }
         }
         const imgSegment = await this.e.runtime.render('endfield-plugin', 'wiki/activity-list', renderData, baseOpt)
         if (imgSegment) {
@@ -210,6 +327,17 @@ export class EndfieldActivity extends plugin {
     }
 
     let msg = '【活动列表】\n\n'
+    if (currentUpList.length > 0) {
+      msg += '【本期 UP】\n'
+      currentUpList.forEach((a) => {
+        const timeLabel = a.opensInText || a.remainingText || ''
+        msg += `${a.is_active ? '▶ ' : ''}${a.name}${timeLabel ? ` ${timeLabel}` : ''}\n`
+        msg += `类型：${a.type}${a.timeStr ? ` | ${a.timeStr}` : ''}\n`
+        if (a.description) msg += `${a.description}\n`
+        msg += '\n'
+      })
+      msg += '────────────\n\n'
+    }
     activities.forEach((a) => {
       msg += `[${a.index}] ${a.name}\n`
       if (a.description) msg += `    ${a.description}\n`
