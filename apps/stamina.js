@@ -1,4 +1,4 @@
-import { getUnbindMessage, getMessage, ruleReg } from '../utils/common.js'
+import { getUnbindMessage, getMessage } from '../utils/common.js'
 import EndfieldUser from '../model/endfieldUser.js'
 import { REDIS_KEY } from '../model/endfieldUser.js'
 import setting from '../utils/setting.js'
@@ -16,13 +16,24 @@ export class EndfieldStamina extends plugin {
         fnc: () => this.pushStamina()
       },
       rule: [
-        ruleReg('(理智|体力)$', 'getStamina'),
-        ruleReg('(订阅(?:理智|体力)|(?:理智|体力)订阅)(?:\\s*(\\d+))?.*$', 'subscribeStamina'),
-        ruleReg('取消\\s*订阅\\s*(?:理智|体力)$', 'unsubscribeStamina'),
-        ruleReg('(订阅推送设置|订阅设置推送|推送设置订阅|设置推送订阅)\\s*(群聊|私信)(?:\\s*(\\d+))?$', 'subscribePushSetting')
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)(理智|体力)$',
+          fnc: 'getStamina'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)(订阅(?:理智|体力)|(?:理智|体力)订阅)(?:\\s*(\\d+))?.*$',
+          fnc: 'subscribeStamina'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)取消\\s*订阅\\s*(?:理智|体力)$',
+          fnc: 'unsubscribeStamina'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)(订阅推送设置|订阅设置推送|推送设置订阅|设置推送订阅)\\s*(群聊|私信)(?:\\s*(\\d+))?$',
+          fnc: 'subscribePushSetting'
+        }
       ]
     })
-    this.common_setting = setting.getConfig('common')
   }
 
   async subscribeStamina() {
@@ -239,7 +250,7 @@ export class EndfieldStamina extends plugin {
     } else {
       const groupId = idStr && idStr.trim() ? idStr.trim() : (isGroup ? String(this.e.group_id) : '')
       if (!groupId) {
-        await this.reply(getMessage('stamina.push_setting_example', { prefix: this.getCmdPrefix() }), false, { at: isGroup })
+        await this.reply(getMessage('stamina.push_setting_example', { prefix: ':' }), false, { at: isGroup })
         return true
       }
       sub.push_type = 'group'
@@ -250,10 +261,5 @@ export class EndfieldStamina extends plugin {
     const tip = type === '私信' ? '已改为推送到私信（本人）' : `已改为推送到群聊 ${sub.push_target}`
     await this.reply(tip, false, { at: isGroup })
     return true
-  }
-
-  getCmdPrefix() {
-    const mode = Number(this.common_setting?.prefix_mode) || 1
-    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
   }
 }

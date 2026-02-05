@@ -9,7 +9,7 @@ export default function getMessageSchemas() {
       component: 'Alert',
       componentProps: {
         type: 'info',
-        message: '提示：消息配置支持占位符 {prefix} 和 {name}。配置保存到 config/message.yaml，defSet/message.yaml 为默认配置不可修改。',
+        message: '提示：消息配置支持占位符 {name}。配置保存到 config/message.yaml，defSet/message.yaml 为默认配置不可修改。',
       },
     },
     {
@@ -30,22 +30,6 @@ export default function getMessageSchemas() {
       component: 'Input',
       componentProps: {
         placeholder: 'https://end.shallow.ink',
-      },
-    },
-    {
-      field: 'prefix_tips_mode1',
-      label: '前缀提示（模式1：#+关键词）',
-      component: 'Input',
-      componentProps: {
-        placeholder: '支持占位符 {keywords}，将替换为配置中的关键词列表',
-      },
-    },
-    {
-      field: 'prefix_tips_mode2',
-      label: '前缀提示（模式2：:）',
-      component: 'Input',
-      componentProps: {
-        placeholder: '前缀：: / ：',
       },
     },
     {

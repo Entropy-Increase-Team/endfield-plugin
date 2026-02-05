@@ -56,8 +56,6 @@ export function supportGuoba() {
         // common：默认读 config（启动时 defSet 会复制到 config），缺项从 defSet 补全
         const commonDefSet = setting.getdefSet('common') || {}
         const common = lodash.merge({}, commonDefSet, commonConfig)
-        if (Array.isArray(commonConfig.keywords)) common.keywords = commonConfig.keywords
-        else if (!Array.isArray(common.keywords)) common.keywords = Array.isArray(commonDefSet.keywords) ? commonDefSet.keywords : []
         if (Array.isArray(commonConfig.auth_scopes)) common.auth_scopes = commonConfig.auth_scopes
         else if (!Array.isArray(common.auth_scopes)) common.auth_scopes = Array.isArray(commonDefSet.auth_scopes) ? commonDefSet.auth_scopes : []
         
@@ -148,7 +146,7 @@ export function supportGuoba() {
           
           // 隔离保存：各配置只写入对应文件，不混入其他文件
           // common → config/common.yaml；sign → config/sign.yaml；gacha → config/gacha.yaml；message → config/message.yaml
-          const commonFields = ['prefix_mode', 'keywords', 'auth_client_name', 'auth_client_type', 'auth_scopes', 'api_key']
+          const commonFields = ['auth_client_name', 'auth_client_type', 'auth_scopes', 'api_key']
 
           // message 字段仅写入 config/message.yaml（defSet 中的叶子键，如 gacha.no_records）
           const defSetMessagePath = `${_path}/plugins/endfield-plugin/defSet/message.yaml`
@@ -194,9 +192,6 @@ export function supportGuoba() {
           if (Object.keys(commonData).length > 0) {
             const currentCommonConfig = setting.getConfig('common') || {}
             const mergedCommonConfig = lodash.merge({}, currentCommonConfig, commonData)
-            if (Array.isArray(commonData.keywords)) {
-              mergedCommonConfig.keywords = commonData.keywords
-            }
             if (Array.isArray(commonData.auth_scopes)) {
               mergedCommonConfig.auth_scopes = commonData.auth_scopes
             }

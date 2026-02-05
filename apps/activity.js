@@ -1,7 +1,7 @@
 /**
  * 活动列表（日历）：:日历，调用 GET /api/wiki/activities，渲染 HTML 模板
  */
-import { getMessage, ruleReg } from '../utils/common.js'
+import { getMessage } from '../utils/common.js'
 import EndfieldRequest from '../model/endfieldReq.js'
 import setting from '../utils/setting.js'
 
@@ -176,19 +176,16 @@ export class EndfieldActivity extends plugin {
       event: 'message',
       priority: 50,
       rule: [
-        ruleReg('日历$', 'getActivityList')
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)日历$',
+          fnc: 'getActivityList'
+        }
       ]
     })
-    this.common_setting = setting.getConfig('common')
-  }
-
-  getCmdPrefix() {
-    const mode = Number(this.common_setting?.prefix_mode) || 1
-    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
   }
 
   async getActivityList() {
-    const config = this.common_setting || {}
+    const config = setting.getConfig('common') || {}
     if (!config.api_key || String(config.api_key).trim() === '') {
       await this.reply(getMessage('activity.need_api_key'))
       return true

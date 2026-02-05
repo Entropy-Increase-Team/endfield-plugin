@@ -10,142 +10,142 @@ help_group:
   - type: tips
     items:
       - title: "多账号说明"
-        text: "支持多账号，请使用「{prefix}扫码绑定」「{prefix}手机绑定」「{prefix}授权绑定」完成绑定"
+        text: "支持多账号，请使用「:扫码绑定」「:手机绑定」「:授权绑定」完成绑定"
       - title: "切换账号"
-        text: "可通过「{prefix}切换绑定 <序号>」切换当前激活账号"
+        text: "可通过「:切换绑定 <序号>」切换当前激活账号"
       - title: "相关链接"
         text: "官网 {official_website} | 蓝图文档 {bluemap_help}"
   - group: "基础指令"
     list:
       - icon: 1
-        title: "{prefix}帮助"
+        title: ":帮助"
         desc: "打开本帮助菜单"
       - icon: 3
-        title: "{prefix}授权绑定 / 授权登陆"
+        title: ":授权绑定 / 授权登陆"
         desc: "网页授权绑定（需先在官网完成授权）"
       - icon: 3
-        title: "{prefix}扫码绑定 / 扫码登陆"
+        title: ":扫码绑定 / 扫码登陆"
         desc: "森空岛 App 扫码绑定"
       - icon: 3
-        title: "{prefix}手机绑定 <手机号>"
+        title: ":手机绑定 <手机号>"
         desc: "手机验证码绑定（私聊）"
       - icon: 26
-        title: "{prefix}绑定帮助 / 登陆帮助"
+        title: ":绑定帮助 / 登陆帮助"
         desc: "查看绑定方式说明"
       - icon: 4
-        title: "{prefix}绑定列表 / 登陆列表"
+        title: ":绑定列表 / 登陆列表"
         desc: "查看已绑定账号（含类型、当前激活）"
       - icon: 5
-        title: "{prefix}切换绑定 <序号>"
+        title: ":切换绑定 <序号>"
         desc: "切换当前激活账号"
       - icon: 5
-        title: "{prefix}删除绑定 <序号>"
+        title: ":删除绑定 <序号>"
         desc: "删除指定绑定（网页授权需前往官网解除）"
       - icon: 20
-        title: "{prefix}蓝图"
+        title: ":蓝图"
         desc: "查看蓝图文档链接"
       - icon: 20
-        title: "{prefix}公告"
+        title: ":公告"
         desc: "终末地官方公告列表"
       - icon: 20
-        title: "{prefix}公告 <序号>"
+        title: ":公告 <序号>"
         desc: "查看第 N 条公告详情"
       - icon: 20
-        title: "{prefix}公告最新"
+        title: ":公告最新"
         desc: "获取最新一条公告"
       - icon: 20
-        title: "{prefix}订阅公告 群聊 / 公告订阅 群聊"
+        title: ":订阅公告 群聊 / 公告订阅 群聊"
         desc: "本群订阅新公告推送"
       - icon: 20
-        title: "{prefix}取消订阅公告 / 公告取消订阅"
+        title: ":取消订阅公告 / 公告取消订阅"
         desc: "取消本群公告订阅"
   - group: "攻略查询"
     list:
       - icon: 21
-        title: "{prefix}攻略列表"
+        title: ":攻略列表"
         desc: "查看可查询的攻略名（本地+Wiki）"
       - icon: 21
-        title: "{prefix}<攻略名>攻略"
+        title: ":<攻略名>攻略"
         desc: "查询攻略（干员名或队伍名）"
   - group: "终末地信息查询（需绑定）"
     list:
       - icon: 6
-        title: "{prefix}便签"
+        title: ":便签"
         desc: "查询角色便签"
       - icon: 8
-        title: "{prefix}干员列表"
+        title: ":干员列表"
         desc: "查询干员列表"
       - icon: 7
-        title: "{prefix}<干员名>面板"
+        title: ":<干员名>面板"
         desc: "干员面板（如 黎风面板）"
       - icon: 9
-        title: "{prefix}帝江号建设"
+        title: ":帝江号建设"
         desc: "查询帝江号建设信息"
       - icon: 10
-        title: "{prefix}地区建设"
+        title: ":地区建设"
         desc: "查询地区建设信息"
       - icon: 16
-        title: "{prefix}日历"
+        title: ":日历"
         desc: "活动日历（20 天时间轴）"
       - icon: 11
-        title: "{prefix}理智 / {prefix}体力"
+        title: ":理智 / :体力"
         desc: "查询理智与日常活跃"
       - icon: 11
-        title: "{prefix}订阅理智 / 理智订阅 <值>"
+        title: ":订阅理智 / 理智订阅 <值>"
         desc: "订阅理智推送，不设值则满时推送"
       - icon: 11
-        title: "{prefix}订阅推送设置 <群聊/私信> <群号>"
+        title: ":订阅推送设置 <群聊/私信> <群号>"
         desc: "设置理智推送目标（群号不填则本群/当前人）"
       - icon: 6
-        title: "{prefix}签到"
+        title: ":签到"
         desc: "森空岛签到"
       - icon: 11
-        title: "{prefix}取消订阅理智"
+        title: ":取消订阅理智"
         desc: "取消理智推送订阅"
       - icon: 12
-        title: "{prefix}抽卡记录同步 / 同步抽卡记录"
+        title: ":抽卡记录同步 / 同步抽卡记录"
         desc: "从官方同步抽卡记录"
       - icon: 12
-        title: "{prefix}抽卡记录 <常驻/新手/武器/限定> <页码>"
+        title: ":抽卡记录 <常驻/新手/武器/限定> <页码>"
         desc: "查看抽卡记录，支持分类与分页"
       - icon: 12
-        title: "{prefix}抽卡分析"
+        title: ":抽卡分析"
         desc: "查看抽卡分析（数据概览页）"
       - icon: 12
-        title: "{prefix}全服抽卡统计"
+        title: ":全服抽卡统计"
         desc: "查看全服抽卡统计（合并转发多图）"
       - icon: 12
-        title: "{prefix}十连 / {prefix}百连 / {prefix}单抽 <常驻|UP|武器|限定>"
+        title: ":十连 / :百连 / :单抽 <常驻|UP|武器|限定>"
         desc: "模拟抽卡（可选卡池，默认 UP/限定）"
       - icon: 12
-        title: "{prefix}重置抽卡 / {prefix}抽卡重置"
+        title: ":重置抽卡 / :抽卡重置"
         desc: "重置个人模拟抽卡状态（保底等清零）"
   - group: "Wiki 查询（需绑定）"
     list:
       - icon: 12
-        title: "{prefix}wiki 干员 <名称>"
+        title: ":wiki 干员 <名称>"
         desc: "干员百科（类型与名称间空格可选）"
       - icon: 13
-        title: "{prefix}wiki 装备 <名称>"
+        title: ":wiki 装备 <名称>"
         desc: "装备百科"
       - icon: 14
-        title: "{prefix}wiki 战术物品 <名称>"
+        title: ":wiki 战术物品 <名称>"
         desc: "战术物品百科"
       - icon: 15
-        title: "{prefix}wiki 武器 <名称>"
+        title: ":wiki 武器 <名称>"
         desc: "武器百科"
   - group: "管理员功能"
     auth: master
     list:
       - icon: 6
-        title: "{prefix}全部签到"
+        title: ":全部签到"
         desc: "为所有已绑定账号执行签到"
       - icon: 12
-        title: "{prefix}重置全员抽卡"
+        title: ":重置全员抽卡"
         desc: "重置所有用户的模拟抽卡状态（管理员）"
       - icon: 22
-        title: "{prefix}上传攻略 <干员/队伍名> <作者> <图片>"
+        title: ":上传攻略 <干员/队伍名> <作者> <图片>"
         desc: "上传攻略图片"
       - icon: 5
-        title: "{prefix}更新 / {prefix}强制更新"
+        title: ":更新 / :强制更新"
         desc: "更新终末地插件（git pull）"

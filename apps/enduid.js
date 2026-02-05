@@ -1,4 +1,4 @@
-import { getMessage, ruleReg, getPrefixStripRegex } from '../utils/common.js'
+import { getMessage } from '../utils/common.js'
 import { saveUserBindings, cleanAccounts, REDIS_KEY } from '../model/endfieldUser.js'
 import EndfieldRequest from '../model/endfieldReq.js'
 import setting from '../utils/setting.js'
@@ -217,18 +217,41 @@ export class EndfieldUid extends plugin {
       event: 'message',
       priority: 100,
       rule: [
-        ruleReg('扫码(绑定|登陆|登录)$', 'scanQRBind'),
-        ruleReg('授权(绑定|登陆|登录)$', 'authBind'),
-        ruleReg('(绑定|登陆|登录)列表$', 'bindList'),
-        ruleReg('删除(绑定|登陆|登录)\\s*(\\d+)$', 'deleteBind'),
-        ruleReg('切换(绑定|登陆|登录)\\s*(\\d+)$', 'switchBind'),
-        ruleReg('(绑定|登陆|登录)帮助$', 'credHelp'),
-        ruleReg('手机(绑定|登陆|登录)(\\s*\\d{11})?$', 'phoneBind'),
-        ruleReg('\\d{6}$', 'phoneVerifyCode')
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)扫码(绑定|登陆|登录)$',
+          fnc: 'scanQRBind'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)授权(绑定|登陆|登录)$',
+          fnc: 'authBind'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)(绑定|登陆|登录)列表$',
+          fnc: 'bindList'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)删除(绑定|登陆|登录)\\s*(\\d+)$',
+          fnc: 'deleteBind'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)切换(绑定|登陆|登录)\\s*(\\d+)$',
+          fnc: 'switchBind'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)(绑定|登陆|登录)帮助$',
+          fnc: 'credHelp'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)手机(绑定|登陆|登录)(\\s*\\d{11})?$',
+          fnc: 'phoneBind'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)\\d{6}$',
+          fnc: 'phoneVerifyCode'
+        }
       ]
     })
     this.help_setting = setting.getConfig('help')
-    this.common_setting = setting.getConfig('common')
   }
 
   async saveUnifiedBackendBinding(frameworkToken, bindingData, loginType = 'unknown') {
@@ -799,7 +822,7 @@ export class EndfieldUid extends plugin {
     const cacheText = await redis.get(`ENDFIELD:PHONE_BIND:${this.e.user_id}`)
     if (!cacheText) return false
 
-    const raw = (this.e.msg || '').replace(getPrefixStripRegex(), '').trim()
+    const raw = (this.e.msg || '').replace(/^([:：]|#zmd|#终末地)\s*/i, '').trim()
     const code = /^\d{6}$/.test(raw) ? raw : null
     if (!code) return false
 

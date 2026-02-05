@@ -1,6 +1,6 @@
 // 官方 wiki 数据不全，后续可再补
 
-import { getMessage, getPrefixStripRegex, ruleReg } from '../utils/common.js'
+import { getMessage } from '../utils/common.js'
 import common from '../../../lib/common/common.js'
 import EndfieldRequest from '../model/endfieldReq.js'
 import setting from '../utils/setting.js'
@@ -20,10 +20,13 @@ export class EndfieldWiki extends plugin {
       dsc: '终末地Wiki数据查询（:wiki xxx / :wikixxx）',
       event: 'message',
       priority: 50,
-      rule: [ruleReg('wiki\\s*(.+)$', 'queryWiki')]
+      rule: [
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)wiki\\s*(.+)$',
+          fnc: 'queryWiki'
+        }
+      ]
     })
-
-    this.common_setting = setting.getConfig('common')
   }
 
   /**
@@ -32,7 +35,7 @@ export class EndfieldWiki extends plugin {
    */
   getWikiQuery() {
     const msg = (this.e.msg || '').trim()
-    const afterPrefix = msg.replace(getPrefixStripRegex(), '').replace(/^wiki\s*/i, '').trim()
+    const afterPrefix = msg.replace(/^([:：]|#zmd|#终末地)\s*/i, '').replace(/^wiki\s*/i, '').trim()
     if (!afterPrefix) return { subTypeId: '1', name: '' }
     for (const [label, subTypeId] of WIKI.LABELS_SORTED) {
       if (afterPrefix === label || afterPrefix.startsWith(label + ' ') || afterPrefix.startsWith(label)) {

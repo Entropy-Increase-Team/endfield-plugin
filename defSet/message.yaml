@@ -1,13 +1,12 @@
 # 提示信息配置（默认）
 # 注意：此文件不会自动复制到 config 目录；config/message.yaml 与 defSet 合并，缺键时使用此处默认值
 # 如需自定义，请复制 defSet/message.yaml 到 config/message.yaml 后修改
-# 占位符：{prefix}=命令前缀，{name}/{title}/{time}/{content}/{count}/{total} 等见各键说明
+# 占位符：{name}/{title}/{time}/{content}/{count}/{total} 等见各键说明
 
 # 帮助页与蓝图（帮助菜单前缀提示、蓝图文档链接、官网链接）
 bluemap_help_doc: "https://www.kdocs.cn/l/caI2H6e4APLS"
 official_website: "https://end.shallow.ink"
-prefix_tips_mode1: "前缀为 {keywords}"
-prefix_tips_mode2: "前缀为 : / ："
+prefixTips: "命令前缀 : | ： | #终末地 | #zmd 四种方式均可"
 
 # 未绑定账号时的提示信息
 unbind_message: |
@@ -15,11 +14,11 @@ unbind_message: |
   ──────────────
   📖 绑定方法：
   1. 访问官网：end.shallow.ink 完成绑定
-  2. 发送 {prefix}授权登陆 开启网页授权
+  2. 发送 :授权登陆 开启网页授权
   ──────────────
   其他绑定方式：
-  • {prefix}扫码绑定 - App扫码登录
-  • {prefix}手机绑定 [手机号] - 需私聊使用
+  • :扫码绑定 - App扫码登录
+  • :手机绑定 [手机号] - 需私聊使用
 
 # 公告（:公告 / :公告最新 / :公告 <序号> / 订阅公告 群聊）
 announcement:
@@ -32,7 +31,7 @@ announcement:
   list_header: "终末地·公告列表"
   list_subtitle: "共 {count} 条"
   list_total: "共 {total} 条，当前显示前 {count} 条。"
-  list_footer_line1: "请勿将图片用于商业用途 | {prefix}公告 | 查看某条详情如 {prefix}公告 1"
+  list_footer_line1: "请勿将图片用于商业用途 | :公告 | 查看某条详情如 :公告 1"
   no_list: "暂无公告。"
   list_failed: "获取公告列表失败，请稍后再试。"
   latest_failed: "获取最新公告失败，请稍后再试。"
@@ -49,7 +48,7 @@ activity:
 
 # Wiki 查询提示
 wiki:
-  provide_content: "请输入查询内容，例 {prefix}wiki 莱万汀 / {prefix}wiki 干员 莱万汀 / {prefix}wiki 武器 xxx"
+  provide_content: "请输入查询内容，例 :wiki 莱万汀 / :wiki 干员 莱万汀 / :wiki 武器 xxx"
   need_api_key: "Wiki 查询需要配置 api_key，请在 config/common.yaml 中填写（终末地协议终端获取）"
   query_failed: "查询「{name}」失败，请稍后重试"
   not_found: "未找到与「{name}」相关的{type_label}条目"
@@ -57,7 +56,7 @@ wiki:
 
 # 干员相关提示
 operator:
-  provide_name: "请指定要查询的干员名称。示例 {prefix}黎风面板"
+  provide_name: "请指定要查询的干员名称。示例 :黎风面板"
   loading_detail: "正在获取干员详细信息，请稍候..."
   no_operator_id: "获取干员ID失败，请稍后重试"
   panel_failed: "生成干员面板图片失败，请稍后重试"
@@ -122,7 +121,7 @@ stamina:
   subscribe_ok_full: "✅ 订阅成功，理智回满时推送"
   subscribe_ok_threshold: "✅ 订阅成功，理智达到 {threshold} 时推送"
   push_msg: "诶诶诶，{name}你的理智到 {current} 了！快去清理智~"
-  push_setting_example: "请指定群号，例如 {prefix}订阅推送设置 群聊 123456789"
+  push_setting_example: "请指定群号，例如 :订阅推送设置 群聊 123456789"
   unsubscribe_ok: "已取消订阅理智推送"
   not_subscribed: "当前未订阅理智推送"
   loading: "正在获取理智信息..."
@@ -153,13 +152,13 @@ gacha:
   current_up_failed: "获取本期 UP 信息失败，请稍后再试"
   current_up_empty: "暂无本期 UP 活动数据"
   no_accounts: "未找到可用账号，请确认已绑定角色"
-  no_records: "暂无抽卡记录。若需同步请发送「{prefix}同步抽卡记录」"
-  records_sync_hint: "若需同步请发送「{prefix}同步抽卡记录」"
-  analysis_need_sync: "暂无抽卡数据，请先使用「{prefix}抽卡记录同步」或「{prefix}同步抽卡记录」同步后再查看抽卡分析"
+  no_records: "暂无抽卡记录。若需同步请发送「:同步抽卡记录」"
+  records_sync_hint: "若需同步请发送「:同步抽卡记录」"
+  analysis_need_sync: "暂无抽卡数据，请先使用「:抽卡记录同步」或「:同步抽卡记录」同步后再查看抽卡分析"
   analysis_auto_sync_hint: "检测到未进行过同步，米糕已为你自动开启同步，请稍候～"
   analysis_incremental_hint: "正在拉取最新记录，请稍候…"
   select_account: "请选择要同步的账号："
-  reply_index: "请回复序号，示例：'{prefix}1'"
+  reply_index: "请回复序号，示例：':1'"
   invalid_index: "序号无效，请回复列表中的数字"
   sync_start: "开始同步抽卡记录…"
   sync_busy: "同步任务进行中，请稍后再试"
@@ -189,11 +188,11 @@ enduid:
     ──────────────
     推荐方法：
     1. 访问官网：end.shallow.ink 完成绑定
-    2. 发送 {prefix}授权登陆 开启网页授权
+    2. 发送 :授权登陆 开启网页授权
     ──────────────
     其他绑定方式：
-    • {prefix}扫码绑定 - App扫码登录
-    • {prefix}手机绑定 [手机号] - 需私聊使用
+    • :扫码绑定 - App扫码登录
+    • :手机绑定 [手机号] - 需私聊使用
   auth_link_intro: "请复制下方链接至浏览器，在终末地-协议终端完成授权："
   auth_link_expiry: "⏰ 链接有效期至：{time}"
   auth_link_wait: "授权完成后将自动绑定，请稍候..."
@@ -231,7 +230,7 @@ enduid:
   qr_login_ok: "✅ 登录成功，正在创建绑定..."
   qr_error: "扫码登录过程出现错误"
   please_private_op: "此操作需私聊进行"
-  unbind_hint: "尚未绑定账号，请先使用「{prefix}绑定帮助」查看绑定方式"
+  unbind_hint: "尚未绑定账号，请先使用「:绑定帮助」查看绑定方式"
   token_show: |
     🔑 当前激活账号的Framework Token：
     {token}
@@ -239,10 +238,10 @@ enduid:
   read_bind_failed: "读取绑定信息失败"
   delete_ok: "✅ 删除成功"
   not_logged_in: "当前未登录任何账号"
-  delete_index_hint: "请输入有效序号，示例：{prefix}删除登陆 1"
+  delete_index_hint: "请输入有效序号，示例：:删除登陆 1"
   index_out_of_range: "序号超出范围，当前共有 {count} 个账号"
   deleted_role: "已删除绑定：{roleName}{suffix}"
-  unbind_auth_hint: "该绑定为网页授权，请前往官网解除绑定（官网链接可通过{prefix}帮助查看）"
+  unbind_auth_hint: "该绑定为网页授权，请前往官网解除绑定（官网链接可通过 :帮助 查看）"
   unbind_auth_polling: "该绑定为网页授权，正在轮询授权状态...请在官网解除绑定后，系统将自动删除本地记录"
   unbind_auth_revoked: "✅ 检测到授权已解除，已删除绑定：{roleName}"
   unbind_auth_poll_timeout: "轮询超时（约2分钟），确认解除授权后可重试"
@@ -258,17 +257,17 @@ enduid:
   delete_failed: "删除失败"
   sync_result: "账号列表同步完成：保留 {kept}，删除 {removed}，新增 {added}"
   sync_result_all: "全用户同步完成：{users} 个用户，保留 {kept}，删除 {removed}，新增 {added}"
-  sync_confirm: "将删除 {removed} 条仅本地记录，发送 {prefix}确认 执行操作"
+  sync_confirm: "将删除 {removed} 条仅本地记录，发送 :确认 执行操作"
   sync_confirm_all: |
     ⚠️ 同步确认
     ──────────────
     将删除 {removed} 条仅本地记录（共 {users} 个用户）
-    发送 {prefix}确认 执行操作
+    发送 :确认 执行操作
     
     删除列表（用户名 - QQ号 - UID - 时间）：
     {removed_detail}
   sync_no_pending: "没有待确认的同步操作"
-  switch_index_hint: "请输入有效序号，示例 {prefix}切换登陆 1"
+  switch_index_hint: "请输入有效序号，示例 :切换登陆 1"
   switched: |
     🔄 已切换至账号：
     角色名：{nickname}
@@ -276,7 +275,7 @@ enduid:
   switch_failed: "切换账号失败"
   phone_please_private: "手机登录需私聊进行"
   phone_ask: "请输入11位手机号码："
-  phone_ask_example: "格式 {prefix}手机登陆 13800138000"
+  phone_ask_example: "格式 :手机登陆 13800138000"
   phone_code_verify_example: "请直接发送收到的 6 位验证码"
   phone_invalid: "请输入有效的11位手机号码"
   phone_send_failed: "验证码发送失败"
@@ -290,14 +289,14 @@ enduid:
   get_token_failed: "获取token失败"
 
 strategy:
-  provide_name: "请指定要查询的攻略名称。示例 {prefix}xx攻略"
+  provide_name: "请指定要查询的攻略名称。示例 :xx攻略"
   not_found: "未找到「{name}」相关攻略"
   not_found_suffix: "（支持 Wiki 干员攻略或用户上传：干员名/队伍名如 火队，可发 火队攻略 查看队伍攻略）"
   query_failed: "查询失败：{error}"
   need_api_key: "攻略查询需要配置 api_key，请在 config/common.yaml 中填写（终末地协议终端获取）"
   detail_failed: "未获取到「{name}」的攻略详情"
-  list_empty: "暂无攻略条目。可发送 {prefix}上传攻略 [干员/队伍名] [作者] [图片/链接] 上传"
-  list_header: "攻略列表（发送「{prefix}<名称>攻略」查询）："
+  list_empty: "暂无攻略条目。可发送 :上传攻略 [干员/队伍名] [作者] [图片/链接] 上传"
+  list_header: "攻略列表（发送「:<名称>攻略」查询）："
   upload_format: "格式：上传攻略 [干员/队伍名] [作者] [图片/链接]"
   upload_need_image: "请提供图片链接，或在发送「上传攻略 [干员/队伍名] [作者] [图片/链接]」时附带一张图片"
   upload_mkdir_failed: "创建存储目录失败"

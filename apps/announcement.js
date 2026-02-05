@@ -1,8 +1,8 @@
 /**
- * 终末地公告：公告 / 公告最新 / 公告 <序号> / 订阅公告 群聊 等（前缀见 common 配置）
+ * 终末地公告：公告 / 公告最新 / 公告 <序号> / 订阅公告 群聊 等（前缀：: ： #zmd #终末地）
  * 调用公告 API（GET /api/announcements、/api/announcements/latest），需配置 api_key
  */
-import { getMessage, ruleReg } from '../utils/common.js'
+import { getMessage } from '../utils/common.js'
 import { getCopyright } from '../utils/copyright.js'
 import EndfieldRequest from '../model/endfieldReq.js'
 import setting from '../utils/setting.js'
@@ -46,6 +46,22 @@ function getContentText(data) {
   return ''
 }
 
+/** 按 texts 数组顺序渲染所有文本内容（用于详情模板） */
+function buildCaptionContent(item) {
+  if (!item) return ''
+  const { texts = [] } = item
+  if (!Array.isArray(texts) || !texts.length) return ''
+  
+  const parts = []
+  for (const text of texts) {
+    if (text.content) {
+      parts.push(`<div class="detail-text-block">${contentToDetailHtml(text.content)}</div>`)
+    }
+  }
+  
+  return parts.join('')
+}
+
 /** 正文转 HTML 用于详情模板（转义防止 XSS，保留换行由 CSS pre-wrap 展示） */
 function contentToDetailHtml(text) {
   if (text == null || text === '') return ''
@@ -56,7 +72,7 @@ function contentToDetailHtml(text) {
     .replace(/"/g, '&quot;')
 }
 
-const PAGE_WIDTH = 560
+const PAGE_WIDTH = 720
 
 /** 构建单条公告详情的渲染数据与视口配置（推送与命令共用）；pluResPath 可选，不传时由 runtime 按路径计算 */
 function buildDetailRenderData(item, pluResPath) {
@@ -66,6 +82,7 @@ function buildDetailRenderData(item, pluResPath) {
   const timeStr = formatPublishTime(item.published_at_ts)
   const timeLabel = getMessage('announcement.time_label')
   const contentHtml = contentToDetailHtml(getContentText(item)) || '（暂无正文）'
+  const captionHtml = buildCaptionContent(item) || contentHtml
   const { copyright, sys } = getCopyright()
   const renderData = {
     title,
@@ -73,6 +90,7 @@ function buildDetailRenderData(item, pluResPath) {
     timeLabel,
     coverUrl: coverUrl || undefined,
     contentHtml,
+    captionHtml,
     copyright,
     sys,
     pageWidth: PAGE_WIDTH,
@@ -103,29 +121,39 @@ export class announcement extends plugin {
       event: 'message',
       priority: 50,
       task: {
-        name: '[endfield-plugin]公告订阅推送',
-        cron: '*/2 * * * *',
+        name: '[endfield-plugin]公告推送',
+        cron: '*/10 * * * *',
         fnc: () => this.pushNewAnnouncement()
       },
       rule: [
-        ruleReg('公告最新$', 'latest'),
-        ruleReg('公告\\s*(\\d+)$', 'detailByIndex'),
-        ruleReg('公告$', 'list'),
-        ruleReg('(订阅公告|公告订阅)\\s*群聊$', 'subscribeGroup'),
-        ruleReg('(取消订阅公告|公告取消订阅)$', 'unsubscribeGroup')
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)公告最新$',
+          fnc: 'latest'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)公告\\s*(\\d+)$',
+          fnc: 'detailByIndex'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)公告$',
+          fnc: 'list'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)(订阅公告|公告订阅)\\s*群聊$',
+          fnc: 'subscribeGroup'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)(取消订阅公告|公告取消订阅)$',
+          fnc: 'unsubscribeGroup'
+        }
       ]
     })
-    this.common_setting = setting.getConfig('common')
-  }
-
-  getCmdPrefix() {
-    const mode = Number(this.common_setting?.prefix_mode) || 1
-    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
   }
 
   /** 检查 api_key 并返回请求实例 */
   getReq() {
-    if (!this.common_setting?.api_key || String(this.common_setting.api_key).trim() === '') {
+    const commonSetting = setting.getConfig('common') || {}
+    if (!commonSetting.api_key || String(commonSetting.api_key).trim() === '') {
       return null
     }
     return new EndfieldRequest(0, null, '', { log: false })
@@ -259,10 +287,19 @@ export class announcement extends plugin {
       return true
     }
     const { list = [] } = res.data
-    const item = list[index - 1]
-    if (!item) {
+    const listItem = list[index - 1]
+    if (!listItem) {
       await this.reply(getMessage('announcement.detail_index_out', { count: list.length }))
       return true
+    }
+    // 使用 item_id 获取完整详情
+    const itemId = listItem.item_id
+    let item = listItem
+    if (itemId) {
+      const detailRes = await req.getAnnouncementsData('announcement_detail', { id: itemId })
+      if (detailRes?.code === 0 && detailRes.data) {
+        item = { ...listItem, ...detailRes.data }
+      }
     }
     const imgSegment = await renderAnnouncementDetail(this.e, item)
     if (imgSegment) {

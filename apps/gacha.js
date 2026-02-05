@@ -1,4 +1,4 @@
-import { getUnbindMessage, getMessage, ruleReg } from '../utils/common.js'
+import { getUnbindMessage, getMessage } from '../utils/common.js'
 import EndfieldUser from '../model/endfieldUser.js'
 import { REDIS_KEY } from '../model/endfieldUser.js'
 import EndfieldRequest from '../model/endfieldReq.js'
@@ -11,7 +11,7 @@ const GACHA_KEYS = {
   pending: (userId) => `ENDFIELD:GACHA_PENDING:${userId}`,
   lastAnalysis: (userId) => `ENDFIELD:GACHA_LAST_ANALYSIS:${userId}`
 }
-const SYNC_MS = { pollInterval: 1500, pollTimeout: 120000, hourlyDelayMin: 5000, hourlyDelayMax: 10000 }
+const SYNC_MS = { pollInterval: 1500, pollTimeout: Infinity, hourlyDelayMin: 5000, hourlyDelayMax: 10000 }
 
 /** 卡池唯一配置：抽卡记录分类与全服统计共用；用户输入按 label 模糊匹配（含“常驻”“新手池”等） */
 const GACHA_POOLS = [
@@ -56,11 +56,26 @@ export class EndfieldGacha extends plugin {
         log: true
       },
       rule: [
-        ruleReg('(抽卡记录同步|同步抽卡记录)$', 'syncGacha'),
-        ruleReg('抽卡记录(?:\\s*(.+))?$', 'viewGachaRecords'),
-        ruleReg('抽卡分析$', 'viewGachaAnalysis'),
-        ruleReg('全服抽卡统计$', 'globalGachaStats'),
-        ruleReg('\\d+$', 'receiveGachaSelect')
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)(抽卡记录同步|同步抽卡记录)(?:\\s*@?([0-9]+))?\\s*$',
+          fnc: 'syncGacha'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)抽卡记录(?:\\s*(.+))?$',
+          fnc: 'viewGachaRecords'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)抽卡分析(?:\\s+.*)?$',
+          fnc: 'viewGachaAnalysis'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)全服抽卡统计$',
+          fnc: 'globalGachaStats'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)\\d+$',
+          fnc: 'receiveGachaSelect'
+        }
       ]
     })
   }
@@ -281,7 +296,14 @@ export class EndfieldGacha extends plugin {
 
   /** 抽卡分析：首次/无数据时自动同步并出图；已有数据时仅出图不自动同步 */
   async viewGachaAnalysis() {
-    const sklUser = new EndfieldUser(this.e.user_id)
+    const targetInfo = await this.resolveSyncTarget()
+    if (!targetInfo) return true
+    if (targetInfo.error) {
+      await this.reply(targetInfo.error)
+      return true
+    }
+    if (targetInfo.requiresMaster && !this.e?.isMaster) return false
+    const sklUser = new EndfieldUser(targetInfo.userId)
     if (!(await sklUser.getUser())) {
       await this.reply(getUnbindMessage())
       return true
@@ -838,9 +860,7 @@ export class EndfieldGacha extends plugin {
   }
 
   getCmdPrefix() {
-    const commonConfig = setting.getConfig('common') || {}
-    const mode = Number(commonConfig.prefix_mode) || 1
-    return mode === 1 ? `#${commonConfig.keywords?.[0] || 'zmd'}` : ':'
+    return ':'
   }
 
   /** 将后端返回的 {qqname}、{qq号} 替换为当前用户昵称与 QQ 号，用于控制台日志 */
@@ -1017,7 +1037,17 @@ export class EndfieldGacha extends plugin {
 
   /** 抽卡记录同步入口：获取账号列表 → 多账号则让用户选择 → 启动同步 → 轮询状态（群聊/私聊均可）；options.afterSyncSendAnalysis 为 true 时同步完成后会制图发送抽卡分析 */
   async syncGacha(options = {}) {
-    const sklUser = new EndfieldUser(this.e.user_id)
+    const targetInfo = await this.resolveSyncTarget(options)
+    if (!targetInfo) return true
+    if (targetInfo.error) {
+      await this.reply(targetInfo.error)
+      return true
+    }
+    if (targetInfo.requiresMaster && !this.e?.isMaster) {
+      return false
+    }
+    const targetUserId = targetInfo.userId
+    const sklUser = new EndfieldUser(targetUserId)
     if (!(await sklUser.getUser())) {
       await this.reply(getUnbindMessage())
       return true
@@ -1059,6 +1089,7 @@ export class EndfieldGacha extends plugin {
       await redis.set(GACHA_KEYS.pending(this.e.user_id), JSON.stringify({
         accounts,
         token,
+        target_user_id: String(targetUserId),
         timestamp: Date.now(),
         afterSyncSendAnalysis: options?.afterSyncSendAnalysis,
         fromAnalysis: options?.fromAnalysis
@@ -1069,11 +1100,51 @@ export class EndfieldGacha extends plugin {
     const selectedUid = accounts[0]?.uid || null
     const roleId = sklUser.endfield_uid ? String(sklUser.endfield_uid) : null
     const qqName = this.e.sender?.nickname || this.e.sender?.card || String(this.e.user_id)
-    await this.startFetchAndPoll(token, selectedUid, roleId, this.e.user_id, qqName, {
+    await this.startFetchAndPoll(token, selectedUid, roleId, targetUserId, qqName, {
       afterSyncSendAnalysis: options?.afterSyncSendAnalysis,
       fromAnalysis: options?.fromAnalysis
     })
     return true
+  }
+
+  async resolveSyncTarget(options = {}) {
+    if (options?.fromAnalysis) {
+      return { userId: String(this.e.user_id), requiresMaster: false }
+    }
+    const atUser = this.e?.at
+    const msg = (this.e.msg || '').trim()
+    const match = msg.match(/(?:抽卡记录同步|同步抽卡记录|抽卡分析)\s*(\d+)/)
+    if (!atUser && !match) {
+      return { userId: String(this.e.user_id), requiresMaster: false }
+    }
+    if (!this.e?.isMaster) {
+      return { error: getMessage('gacha.sync_master_only') }
+    }
+    if (atUser) {
+      return { userId: String(atUser), requiresMaster: true }
+    }
+    const roleId = match[1]
+    if (!redis) return { error: getMessage('gacha.no_accounts') }
+    try {
+      const keys = await redis.keys('ENDFIELD:USER:*')
+      for (const key of keys) {
+        const raw = await redis.get(key)
+        if (!raw) continue
+        let accounts = []
+        try {
+          const parsed = JSON.parse(raw)
+          accounts = Array.isArray(parsed) ? parsed : [parsed]
+        } catch {
+          continue
+        }
+        if (accounts.some((acc) => String(acc?.role_id || '') === roleId)) {
+          return { userId: key.replace('ENDFIELD:USER:', ''), requiresMaster: true }
+        }
+      }
+    } catch (err) {
+      logger.error(`[终末地插件][抽卡同步] 解析平台 userid 失败: ${err}`)
+    }
+    return { error: getMessage('gacha.no_accounts') }
   }
 
   /** 用户回复序号选择账号后启动同步并轮询（以 Redis pending 为准，群聊/私聊均可） */
@@ -1096,10 +1167,11 @@ export class EndfieldGacha extends plugin {
     await redis.del(GACHA_KEYS.pending(this.e.user_id))
     const account = data.accounts[index - 1]
     const selectedUid = account?.uid || null
-    const sklUser = new EndfieldUser(this.e.user_id)
+    const targetUserId = data.target_user_id || this.e.user_id
+    const sklUser = new EndfieldUser(targetUserId)
     const roleId = (await sklUser.getUser()) && sklUser.endfield_uid ? String(sklUser.endfield_uid) : null
     const qqName = this.e.sender?.nickname || this.e.sender?.card || String(this.e.user_id)
-    await this.startFetchAndPoll(data.token, selectedUid, roleId, this.e.user_id, qqName, {
+    await this.startFetchAndPoll(data.token, selectedUid, roleId, targetUserId, qqName, {
       afterSyncSendAnalysis: data.afterSyncSendAnalysis,
       fromAnalysis: data.fromAnalysis
     })
@@ -1193,14 +1265,16 @@ export class EndfieldGacha extends plugin {
           return
         }
       }
-      // 本轮超时：首次则等待 5 秒后继续轮询（不提醒用户），再次超时再提醒
-      if (!timeoutRetryUsed) {
-        timeoutRetryUsed = true
-        await this.sleep(5000)
-        continue
+      if (Number.isFinite(SYNC_MS.pollTimeout)) {
+        // 本轮超时：首次则等待 5 秒后继续轮询（不提醒用户），再次超时再提醒
+        if (!timeoutRetryUsed) {
+          timeoutRetryUsed = true
+          await this.sleep(5000)
+          continue
+        }
+        await this.reply(getMessage('gacha.sync_timeout'))
+        return
       }
-      await this.reply(getMessage('gacha.sync_timeout'))
-      return
     }
   }
 

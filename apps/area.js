@@ -1,4 +1,4 @@
-import { getUnbindMessage, getMessage, ruleReg } from '../utils/common.js'
+import { getUnbindMessage, getMessage } from '../utils/common.js'
 import common from '../../../lib/common/common.js'
 import EndfieldUser from '../model/endfieldUser.js'
 import setting from '../utils/setting.js'
@@ -10,9 +10,13 @@ export class EndfieldArea extends plugin {
       dsc: '终末地区域建设信息',
       event: 'message',
       priority: 50,
-      rule: [ruleReg('地区建设$', 'getArea')]
+      rule: [
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)地区建设$',
+          fnc: 'getArea'
+        }
+      ]
     })
-    this.common_setting = setting.getConfig('common')
   }
 
   async getArea() {
@@ -147,10 +151,5 @@ export class EndfieldArea extends plugin {
     }
 
     return messages
-  }
-
-  getCmdPrefix() {
-    const mode = Number(this.common_setting?.prefix_mode) || 1
-    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
   }
 }

@@ -1,4 +1,4 @@
-import { getMessage, ruleReg } from '../utils/common.js'
+import { getMessage } from '../utils/common.js'
 import hypergryphAPI from '../model/hypergryphApi.js'
 import setting from '../utils/setting.js'
 
@@ -38,9 +38,19 @@ export class EndfieldGachaSimulate extends plugin {
       event: 'message',
       priority: 50,
       rule: [
-        ruleReg(SIMULATE_CMD_SUFFIX, 'simulateDispatch'),
-        ruleReg('(重置抽卡|抽卡重置)$', 'resetSimulateGacha'),
-        ruleReg('重置全员抽卡$', 'resetAllSimulateGacha', { permission: 'master' })
+        {
+          reg: `^(?:[:：]|#zmd|#终末地)${SIMULATE_CMD_SUFFIX}`,
+          fnc: 'simulateDispatch'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)(重置抽卡|抽卡重置)$',
+          fnc: 'resetSimulateGacha'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)重置全员抽卡$',
+          fnc: 'resetAllSimulateGacha',
+          permission: 'master'
+        }
       ]
     })
   }

@@ -1,4 +1,4 @@
-import { getUnbindMessage, getMessage, ruleReg } from '../utils/common.js'
+import { getUnbindMessage, getMessage } from '../utils/common.js'
 import common from '../../../lib/common/common.js'
 import EndfieldUser from '../model/endfieldUser.js'
 import setting from '../utils/setting.js'
@@ -10,9 +10,13 @@ export class EndfieldSpaceship extends plugin {
       dsc: '终末地帝江号建设信息',
       event: 'message',
       priority: 50,
-      rule: [ruleReg('帝江号建设$', 'getBase')]
+      rule: [
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)帝江号建设$',
+          fnc: 'getBase'
+        }
+      ]
     })
-    this.common_setting = setting.getConfig('common')
   }
 
   async getBase() {
@@ -119,10 +123,5 @@ export class EndfieldSpaceship extends plugin {
     }
 
     return messages
-  }
-
-  getCmdPrefix() {
-    const mode = Number(this.common_setting?.prefix_mode) || 1
-    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
   }
 }

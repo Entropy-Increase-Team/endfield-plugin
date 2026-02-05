@@ -1,35 +1,9 @@
-/** 锅巴配置：基础配置（命令前缀、授权请求、API 认证） */
+/** 锅巴配置：基础配置（授权请求、API 认证） */
 export default function getCommonSchemas() {
   return [
     {
       label: '基础配置',
       component: 'SOFT_GROUP_BEGIN'
-    },
-    {
-      component: 'Divider',
-      label: '命令前缀',
-    },
-    {
-      field: 'prefix_mode',
-      label: '命令前缀模式',
-      bottomHelpMessage: '1: # + 关键词（使用下方 keywords）| 2: 符号前缀（: 或 ：）',
-      component: 'Select',
-      componentProps: {
-        placeholder: '请选择前缀模式',
-        options: [
-          { label: '# + 关键词（使用 keywords 配置）', value: 1 },
-          { label: '符号前缀（: 或 ：）', value: 2 },
-        ],
-      },
-    },
-    {
-      field: 'keywords',
-      label: '关键词列表',
-      bottomHelpMessage: '仅模式一有效；命令为 # + 其中任意一个关键词，如 #终末地 攻略',
-      component: 'GTags',
-      componentProps: {
-        placeholder: '请输入关键词后回车',
-      },
     },
     {
       component: 'Divider',

@@ -99,10 +99,39 @@ html, body {
 
 .detail-content {
   font-size: 0.95rem;
-  line-height: 1.65;
+  line-height: 1.7;
   color: #374151;
   white-space: pre-wrap;
   word-break: break-word;
+  padding: 4px 0;
+}
+
+/* caption 顺序块样式 */
+.detail-text-block {
+  margin-bottom: 1em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.detail-image-block {
+  margin: 1.2em 0;
+  text-align: center;
+}
+.detail-content-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.detail-link-block {
+  margin: 1em 0;
+}
+.detail-content-link {
+  color: #1d4ed8;
+  text-decoration: none;
+  word-break: break-all;
+}
+.detail-content-link:hover {
+  text-decoration: underline;
 }
 
 /* 页脚：参考 help 页脚版式（居中、上边框、留白） */

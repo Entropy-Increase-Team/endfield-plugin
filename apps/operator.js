@@ -1,7 +1,7 @@
 import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { getUnbindMessage, getMessage, getPrefixStripRegex, ruleReg } from '../utils/common.js'
+import { getUnbindMessage, getMessage } from '../utils/common.js'
 import { getCopyright } from '../utils/copyright.js'
 import EndfieldUser from '../model/endfieldUser.js'
 import setting from '../utils/setting.js'
@@ -175,16 +175,21 @@ export class EndfieldOperator extends plugin {
       event: 'message',
       priority: 50,
       rule: [
-        ruleReg('干员列表$', 'getOperatorList'),
-        ruleReg('(.+?)面板$', 'getOperator')
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)干员列表$',
+          fnc: 'sendOperatorList'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)(.+?)面板$',
+          fnc: 'getOperator'
+        }
       ]
     })
-    this.common_setting = setting.getConfig('common')
   }
 
   getOperatorNameFromMsg() {
     let s = (this.e.msg || '').replace(/面板$/, '').trim()
-    s = s.replace(getPrefixStripRegex(), '').trim()
+    s = s.replace(/^([:：]|#zmd|#终末地)\s*/i, '').trim()
     return s
   }
 
@@ -199,7 +204,7 @@ export class EndfieldOperator extends plugin {
 
     const operatorName = this.getOperatorNameFromMsg()
     if (!operatorName) {
-      await this.reply(getMessage('operator.provide_name', { prefix: this.getCmdPrefix() }))
+      await this.reply(getMessage('operator.provide_name', { prefix: ':' }))
       return true
     }
 
@@ -453,10 +458,5 @@ export class EndfieldOperator extends plugin {
     }
 
     return messages
-  }
-
-  getCmdPrefix() {
-    const mode = Number(this.common_setting?.prefix_mode) || 1
-    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
   }
 }

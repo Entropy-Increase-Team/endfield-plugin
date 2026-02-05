@@ -1,4 +1,4 @@
-import { getUnbindMessage, getMessage, ruleReg } from '../utils/common.js'
+import { getUnbindMessage, getMessage } from '../utils/common.js'
 import EndfieldUser from '../model/endfieldUser.js'
 import setting from '../utils/setting.js'
 import common from '../../../lib/common/common.js'
@@ -11,13 +11,19 @@ export class EndfieldAttendance extends plugin {
       event: 'message',
       priority: 50,
       rule: [
-        ruleReg('签到$', 'attendance'),
-        ruleReg('全部签到$', 'attendance_task', { permission: 'master' })
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)签到$',
+          fnc: 'attendance'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)全部签到$',
+          fnc: 'attendance_task',
+          permission: 'master'
+        }
       ]
     })
 
     this.setting = setting.getConfig('sign')
-    this.common_setting = setting.getConfig('common')
     this.task = {
       cron: this.setting.auto_sign_cron,
       name: '终末地森空岛签到任务',

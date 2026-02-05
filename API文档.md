@@ -1,6 +1,6 @@
 # Endfield-API 接口文档
 
-版本号：1.9.9
+版本号：2.1.0
 
 ## 概述
 
@@ -1799,6 +1799,7 @@ X-API-Key: your-api-key
 | GET | `/api/announcements/:id` | 获取公告详情 |
 | POST | `/api/announcements/admin/sync` | 手动触发同步 |
 | GET | `/api/announcements/admin/sync/status` | 获取同步状态 |
+| POST | `/api/announcements/admin/resync-details` | 重新同步公告详情（补全缺失数据） |
 
 ---
 
@@ -1892,29 +1893,65 @@ X-API-Key: your-api-key
     "id": "65f1a2b3c4d5e6f7a8b9c0d1",
     "item_id": "4023334",
     "title": "「悬赏通缉」玩法已开启",
-    "subtitle": "全新活动上线",
-    "content": {
-      "blocks": [
-        {
-          "kind": "text",
-          "text": { "text": "亲爱的管理员：" }
-        },
-        {
-          "kind": "image",
-          "image": { "url": "https://bbs.hycdn.cn/..." }
-        }
-      ]
-    },
+    "texts": [
+      { "id": "t1", "content": "亲爱的管理员：\n\n活动内容详情..." }
+    ],
+    "images": [
+      {
+        "id": "i1",
+        "url": "https://bbs.hycdn.cn/...",
+        "width": 1920,
+        "height": 1080
+      }
+    ],
+    "links": [
+      { "id": "l1", "url": "https://example.com/activity" }
+    ],
+    "videos": [],
+    "caption": [
+      { "type": "text", "id": "t1" },
+      { "type": "image", "id": "i1" }
+    ],
     "format": "{\"blocks\":[...]}",
-    "published_at": "2026-02-02T12:00:00Z",
-    "user": { ... },
-    "stats": { ... },
+    "thumbnail": "https://bbs.hycdn.cn/thumb/...",
+    "published_at_ts": 1738483200,
+    "user": {
+      "id": "3737967211133",
+      "nickname": "终末地官方",
+      "avatar": "https://..."
+    },
+    "stats": {
+      "liked": 1234,
+      "collected": 89,
+      "reposted": 12,
+      "commented": 56
+    },
     "tags": [
       { "id": "tag_1", "name": "活动" }
-    ]
+    ],
+    "detail_synced": true,
+    "detail_synced_at": "2026-02-05T12:00:00Z",
+    "raw_data": "{...完整的森空岛原始响应 JSON...}"
   }
 }
 ```
+
+**字段说明**：
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| texts | array | 文本内容列表，每项包含 `id` 和 `content` |
+| images | array | 图片列表，包含尺寸信息 |
+| links | array | 链接列表，每项包含 `id` 和 `url` |
+| videos | array | 视频列表（如有） |
+| caption | array | 内容排版顺序，指定各元素的显示顺序 |
+| format | string | 详细排版格式（JSON 字符串，描述复杂布局） |
+| thumbnail | string | 缩略图 URL |
+| detail_synced | boolean | 详情是否已同步（true 表示有完整数据） |
+| detail_synced_at | string | 详情同步时间 |
+| raw_data | string | 森空岛接口返回的完整原始 JSON（用于调试或获取未解析字段） |
+
+> **注意**：`raw_data` 字段包含完整的森空岛原始响应，确保不会遗漏任何字段。
+> 如果 `detail_synced` 为 `false`，表示公告只有列表数据，可能缺少完整文本内容。
 
 ---
 
@@ -2007,6 +2044,7 @@ X-API-Key: your-api-key
   "data": {
     "is_running": false,
     "total_announcements": 100,
+    "need_detail_resync_count": 5,
     "last_sync": {
       "status": "completed",
       "started_at": "2026-02-02T12:00:00Z",
@@ -2019,6 +2057,14 @@ X-API-Key: your-api-key
 }
 ```
 
+**字段说明**：
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| is_running | boolean | 是否正在同步 |
+| total_announcements | int | 公告总数 |
+| need_detail_resync_count | int | 需要重新同步详情的公告数量（`detail_synced=false` 或 `raw_data` 为空） |
+| last_sync | object | 最近一次同步任务信息 |
+
 **同步状态说明**：
 | status | 说明 |
 |--------|------|
@@ -2028,17 +2074,66 @@ X-API-Key: your-api-key
 
 ---
 
+### 重新同步公告详情
+
+对于 `detail_synced=false` 或 `raw_data` 为空的公告，重新从森空岛获取完整详情数据。
+
+```http
+POST /api/announcements/admin/resync-details
+X-API-Key: your-api-key
+```
+
+**响应示例（成功）**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "message": "公告详情重新同步任务已启动"
+  }
+}
+```
+
+**响应示例（任务进行中）**：
+```json
+{
+  "code": 400,
+  "message": "同步任务正在执行中"
+}
+```
+
+**使用场景**：
+- 服务升级后需要补全历史公告的完整数据
+- `detail_synced=false` 的公告缺少完整文本、链接等信息
+- 需要重新获取 `raw_data` 原始数据
+
+> **注意**：此接口异步执行，每条公告请求间隔 200ms 以避免频繁请求。
+> 可通过 `/api/announcements/admin/sync/status` 的 `need_detail_resync_count` 字段查看剩余数量。
+
+---
+
 ### 数据同步机制
 
 - **同步间隔**：每 2 分钟自动检查新公告
 - **首次同步**：服务启动 15 秒后执行
 - **同步方式**：增量同步（只同步比数据库中最新公告更新的内容）
 - **数据来源**：森空岛终末地官方账号（`userId=3737967211133`）
-- **数据保留**：完整保留原始格式（`format` 字段）
+- **详情获取**：发现新公告后，自动调用详情接口获取完整数据
+- **原始数据**：完整保存森空岛返回的原始 JSON 到 `raw_data` 字段
+
+**同步流程**：
+```
+1. 调用森空岛列表接口获取最新公告
+2. 对比数据库中最新公告的时间戳，找出新公告
+3. 对每条新公告，调用详情接口获取完整数据
+4. 保存完整数据（包括原始 JSON）到数据库
+5. 请求间隔 100ms 避免频繁请求
+```
 
 **公共账号池**：
 - 使用公共账号池进行 API 调用，无需用户凭证
 - 自动处理时间戳同步和签名
+- 每次同步前强制刷新 Token 获取最新时间戳
 
 ---
 
@@ -3702,6 +3797,7 @@ GET /api/v1/auth/oauth/:provider
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | redirect_uri | string | 否 | 自定义回调地址 |
+| action | string | 否 | `bind` 表示绑定操作（已登录用户绑定 OAuth），不传则为登录/注册 |
 
 **响应示例**:
 ```json
@@ -3714,6 +3810,10 @@ GET /api/v1/auth/oauth/:provider
   }
 }
 ```
+
+> **绑定操作说明**：当 `action=bind` 时，返回的 `state` 会带有 `bind:` 前缀。
+> OAuth 回调时后端检测到此前缀，会将 `code` 直接传递给前端（而非消费它），
+> 前端再用当前用户的 JWT + code 调用 `/api/v1/auth/link-oauth` 完成绑定。
 
 ### OAuth 回调
 
@@ -4054,7 +4154,28 @@ Content-Type: application/json
 
 > ⚠️ 需要认证：`Authorization: Bearer <access_token>`
 
-将已登录的账号绑定到第三方 OAuth（QQ/GitHub）。
+将已登录的账号绑定到第三方 OAuth（QQ/GitHub）。绑定后，用户可以使用 OAuth 登录同一个账号。
+
+#### 完整绑定流程
+
+```
+1. 前端调用 GET /api/v1/auth/oauth/:provider?action=bind 获取授权 URL
+   - 返回的 state 带有 "bind:" 前缀
+2. 打开弹窗跳转到 OAuth 授权页面（QQ/GitHub）
+3. 用户授权后，OAuth 提供商回调到后端 /api/v1/auth/callback/:provider
+4. 后端检测到 state 以 "bind:" 开头：
+   - 不消费 code，不创建新用户
+   - 重定向到前端 /oauth/callback，携带 code、provider、action=bind
+5. 前端检测到 action=bind，用当前用户的 JWT + code 调用本接口
+6. 后端检查 OAuth 账号状态：
+   - 情况 A：OAuth 未被使用 → 直接绑定成功
+   - 情况 B：OAuth 已是独立账号（无邮箱密码）→ 返回 need_confirm_merge
+   - 情况 C：OAuth 已被其他用户绑定（有邮箱密码）→ 返回错误
+7. 如果需要确认合并，前端显示确认对话框，用户确认后调用 confirm_merge
+```
+
+> **重要**：绑定流程与登录流程的区别在于 `action=bind` 参数。
+> 如果不传此参数，后端会将 OAuth 账号作为独立用户处理（登录或创建新用户）。
 
 ```http
 POST /api/v1/auth/link-oauth
@@ -4063,37 +4184,93 @@ Content-Type: application/json
 
 {
   "provider": "github",
-  "code": "oauth-authorization-code",
-  "redirect_uri": "https://yoursite.com/oauth/callback"
+  "code": "oauth-authorization-code"
 }
 ```
 
-**请求参数**:
+**请求参数（首次绑定）**:
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | provider | string | 是 | OAuth 提供商：`qq` 或 `github` |
-| code | string | 是 | OAuth 授权码 |
-| redirect_uri | string | 是 | 回调地址（需与获取 code 时一致） |
+| code | string | 是 | OAuth 授权码（从回调 URL 获取） |
 
-**响应示例**:
+**请求参数（确认合并）**:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| provider | string | 是 | OAuth 提供商：`qq` 或 `github` |
+| confirm_merge | boolean | 是 | 设为 `true` 确认合并账号 |
+| oauth_id | string | 是 | 要合并的 OAuth ID（从 need_confirm_merge 响应获取） |
+
+**响应示例（绑定成功）**:
 ```json
 {
   "code": 0,
   "message": "成功",
   "data": {
     "message": "绑定成功",
-    "linked_oauth": [
-      { "provider": "github", "oauth_id": "789012" }
-    ]
+    "provider": "github",
+    "nickname": "用户昵称"
   }
 }
 ```
 
+**响应示例（需要确认合并）**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "need_confirm_merge": true,
+    "message": "该QQ账号已有独立用户，是否将其合并到当前账号？合并后原账号将被删除。",
+    "provider": "qq",
+    "oauth_id": "ABCDEF123456",
+    "oauth_nickname": "QQ用户昵称",
+    "existing_user_info": {
+      "username": "原用户名",
+      "created_at": "2026-01-01T00:00:00Z",
+      "has_api_key": true
+    }
+  }
+}
+```
+
+**响应示例（合并成功）**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "message": "账号合并成功",
+    "provider": "qq",
+    "nickname": "QQ用户昵称",
+    "merged_api_keys": 2,
+    "deleted_user_id": "60d5ec9af682fbd39a1b8c23"
+  }
+}
+```
+
+#### 账号合并说明
+
+当要绑定的 OAuth 账号已是独立用户（纯 OAuth 登录，无邮箱密码）时，支持账号合并：
+
+| 合并条件 | 说明 |
+|----------|------|
+| 原账号无邮箱 | ✅ 可合并 |
+| 原账号无密码 | ✅ 可合并 |
+| 原账号有邮箱或密码 | ❌ 无法合并，需联系管理员 |
+
+**合并操作迁移的数据**:
+- API Keys（普通 + 开发者）
+- MaaEnd 设备绑定
+- MaaEnd 任务记录
+- 原用户绑定的其他 OAuth 账号
+
 **错误情况**:
 | 错误码 | 说明 |
 |--------|------|
-| 400 | 该 OAuth 账号已被其他用户绑定 |
-| 400 | 该 OAuth 已绑定此账号 |
+| 400 | 该 OAuth 账号已关联其他用户（有邮箱或密码），无法自动合并 |
+| 400 | 已绑定该 OAuth 账号 |
+| 400 | 授权码已被使用，请重新授权 |
 
 ---
 
@@ -5027,6 +5204,38 @@ const callWithAPIKey = async (apiKey, endpoint) => {
 ---
 
 ## 更新日志
+
+### v2.1.0 (2026-02-05)
+
+- ✅ **OAuth 账号合并功能**
+  - 绑定 OAuth 时，如果该 OAuth 已是独立账号（无邮箱密码），支持账号合并
+  - 合并流程：检测 → 返回 `need_confirm_merge` → 用户确认 → 执行合并
+  - 合并时迁移的数据：API Keys、MaaEnd 设备绑定、MaaEnd 任务记录、其他已绑定的 OAuth
+  - 新增请求参数：`confirm_merge`、`oauth_id`
+  - 新增响应字段：`need_confirm_merge`、`oauth_id`、`existing_user_info`、`merged_api_keys`
+
+- ✅ **公告同步完整数据**
+  - 新增 `raw_data` 字段存储森空岛接口返回的完整原始 JSON
+  - 修复 `downloadEnable` 字段类型不一致问题（列表接口返回 bool，详情接口返回 int）
+  - 新增 `POST /api/announcements/admin/resync-details` 接口重新同步公告详情
+  - `GET /api/announcements/admin/sync/status` 新增 `need_detail_resync_count` 字段
+
+### v2.0.0 (2026-02-04)
+
+- ✅ **OAuth 绑定流程修复**
+  - **问题**：已登录用户在设置页绑定 OAuth（QQ/GitHub）时，会创建新用户而非绑定到当前账号
+  - **原因**：OAuth 回调统一走 `FindOrCreateUser`，未区分登录和绑定场景
+  - **修复**：
+    - `GET /api/v1/auth/oauth/:provider` 新增 `action=bind` 参数
+    - 绑定操作时 state 带 `bind:` 前缀
+    - OAuth 回调检测到 `bind:` 前缀时，不消费 code，直接重定向给前端
+    - 前端用 JWT + code 调用 `/api/v1/auth/link-oauth` 完成绑定
+  - **结果**：绑定后 QQ 登录和账号密码登录是同一个用户，用户 ID 相同
+
+- ✅ **文档更新**
+  - 更新 `获取 OAuth 登录 URL` 接口文档，新增 `action` 参数说明
+  - 更新 `绑定 OAuth 账号` 接口文档，详细描述完整绑定流程
+  - 更新 `ARCHITECTURE.md` 中的 OAuth 绑定流程说明
 
 ### v1.9.9 (2026-02-04)
 

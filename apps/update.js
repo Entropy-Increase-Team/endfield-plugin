@@ -1,6 +1,5 @@
 import path from 'node:path'
 import { pathToFileURL, fileURLToPath } from 'node:url'
-import { ruleReg } from '../utils/common.js'
 
 const pluginName = 'endfield-plugin'
 
@@ -25,7 +24,13 @@ export class EndfieldUpdate extends plugin {
       dsc: '终末地插件更新',
       event: 'message',
       priority: 50,
-      rule: [ruleReg('((插件)?(强制)?更新|update)$', 'update', { permission: 'master' })]
+      rule: [
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)((插件)?(强制)?更新|update)$',
+          fnc: 'update',
+          permission: 'master'
+        }
+      ]
     })
   }
 

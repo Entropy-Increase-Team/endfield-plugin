@@ -1,4 +1,4 @@
-import { getUnbindMessage, getMessage, ruleReg } from '../utils/common.js'
+import { getUnbindMessage, getMessage } from '../utils/common.js'
 import common from '../../../lib/common/common.js'
 import EndfieldUser from '../model/endfieldUser.js'
 import setting from '../utils/setting.js'
@@ -10,9 +10,13 @@ export class EndfieldNote extends plugin {
       dsc: '终末地角色便签',
       event: 'message',
       priority: 50,
-      rule: [ruleReg('便签$', 'getNote')]
+      rule: [
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)便签$',
+          fnc: 'getNote'
+        }
+      ]
     })
-    this.common_setting = setting.getConfig('common')
   }
 
   async getNote() {
