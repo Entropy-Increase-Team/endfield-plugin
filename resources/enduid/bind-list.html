@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{title}} - {{subtitle}}</title>
+  <title>{{title}}</title>
   <link rel="stylesheet" href="{{_res_path}}enduid/bind-list.css">
 </head>
 <body>
   <div class="bind-list-container">
+    <!-- 顶部栏 -->
     <div class="list-top-bar">
       <div class="list-header-middle">
         <h1 class="list-title">{{title}}</h1>
@@ -20,25 +21,55 @@
       {{/if}}
     </div>
 
-    <div class="card-wrap bind-cards">
-      {{each bindings}}
-      <div class="bind-card {{$value.isPrimary ? 'bind-card-current' : ''}}">
-        <div class="bind-card-header">
-          <span class="bind-index">[{{$value.index}}]</span>
-          <span class="bind-nickname">{{$value.nickname}}</span>
-          {{if $value.isPrimary}}
-          <span class="bind-current-mark">⭐当前</span>
+    <!-- 绑定卡片列表 -->
+    {{each bindings item idx}}
+    <div class="bind-card{{if item.isPrimary}} bind-card-active{{/if}}">
+      <div class="bind-card-left">
+        {{if item.avatarUrl}}
+        <img class="bind-avatar" src="{{item.avatarUrl}}" alt="{{item.nickname}}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="bind-avatar-fallback" style="display:none">{{item.index}}</div>
+        {{else}}
+        <div class="bind-avatar-fallback">{{item.index}}</div>
+        {{/if}}
+      </div>
+      <div class="bind-card-right">
+        <div class="bind-card-top">
+          <span class="bind-index">[{{item.index}}]</span>
+          <span class="bind-nickname">{{item.nickname}}</span>
+          {{if item.level}}
+          <span class="bind-level">Lv.{{item.level}}</span>
+          {{/if}}
+          {{if item.isPrimary}}
+          <span class="bind-primary-tag">当前使用</span>
           {{/if}}
         </div>
-        <div class="bind-card-body">
-          <div class="bind-row"><span class="bind-label">角色ID</span><span class="bind-value">{{$value.role_id}}</span></div>
-          <div class="bind-row"><span class="bind-label">服务器</span><span class="bind-value">{{$value.server_label}}</span></div>
-          <div class="bind-row"><span class="bind-label">绑定类型</span><span class="bind-value">{{$value.type_label}}</span></div>
-          <div class="bind-row"><span class="bind-label">绑定时间</span><span class="bind-value">{{$value.created_at}}</span></div>
+        <div class="bind-card-info">
+          <span class="bind-info-item">UID {{item.role_id}}</span>
+          <span class="bind-info-sep">·</span>
+          <span class="bind-info-item">{{item.server_label}}</span>
+          <span class="bind-info-sep">·</span>
+          <span class="bind-info-item">{{item.type_label}}</span>
+          <span class="bind-info-sep">·</span>
+          <span class="bind-info-item bind-time">{{item.created_at}}</span>
         </div>
       </div>
-      {{/each}}
     </div>
+    {{/each}}
+
+    <!-- 帮助提示 -->
+    <div class="tips-card">
+      <div class="tips-title">绑定 / 管理</div>
+      <div class="tips-row"><span class="tips-cmd">:授权登陆</span><span class="tips-desc">官网绑定后授权到机器人</span></div>
+      <div class="tips-row"><span class="tips-cmd">:扫码登陆</span><span class="tips-desc">森空岛 App 扫码登陆</span></div>
+      <div class="tips-row"><span class="tips-cmd">:手机登陆</span><span class="tips-desc">验证码登陆（仅私聊）</span></div>
+      <div class="tips-row"><span class="tips-cmd">:删除绑定 [序号]</span><span class="tips-desc">删除对应的绑定账号</span></div>
+      <div class="tips-row"><span class="tips-cmd">:切换绑定 [序号]</span><span class="tips-desc">切换当前使用的账号</span></div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+      <div class="footer-text">{{@copyright}}</div>
+    </footer>
   </div>
 </body>
 </html>

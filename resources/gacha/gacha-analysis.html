@@ -2,94 +2,119 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{title}} - {{subtitle}}</title>
+  <title>{{title}}</title>
   <link rel="stylesheet" href="{{_res_path}}gacha/gacha-analysis.css">
 </head>
 <body>
   <div class="gacha-analysis-container">
-    <div class="list-top-bar">
+    <!-- 顶部栏 -->
+    <div class="top-bar">
       <div class="user-info">
         {{if userAvatar}}
-        <img src="{{userAvatar}}" alt="用户头像" class="user-avatar">
+        <img src="{{userAvatar}}" alt="头像" class="user-avatar" onerror="this.style.display='none'">
         {{/if}}
         <div class="user-details">
           <div class="user-name">{{userNickname}}</div>
           <div class="user-uid">UID {{userUid}}</div>
         </div>
       </div>
-      <div class="list-header-middle">
-        <h1 class="list-title">{{title}}</h1>
-        <p class="list-count">{{subtitle}}</p>
+      <div class="top-bar-center">
+        <h1 class="top-title">{{title}}</h1>
+        <p class="top-sub">{{subtitle}}</p>
       </div>
       {{if pluResPath}}
-      <div class="logo-container list-top-bar-logo">
-        <img src="{{pluResPath}}img/ET logo.svg" alt="Logo" class="logo-image">
+      <div class="top-logo">
+        <img src="{{pluResPath}}img/ET logo.svg" alt="Logo">
       </div>
       {{/if}}
     </div>
 
-    <div class="card-wrap pools-card">
-      <div class="section-head section-head-time">
-        <span class="analysis-time">{{analysisTime}}</span>
-        {{if syncHint}}
-        <p class="sync-hint">{{syncHint}}</p>
-        {{/if}}
+    <!-- 统计概览 -->
+    <div class="stats-row">
+      <div class="stat-item">
+        <span class="stat-num">{{totalCount}}</span>
+        <span class="stat-label">总抽数</span>
       </div>
+      <div class="stat-item stat-6">
+        <span class="stat-num">{{star6}}</span>
+        <span class="stat-label">6星</span>
+      </div>
+      <div class="stat-item stat-5">
+        <span class="stat-num">{{star5}}</span>
+        <span class="stat-label">5星</span>
+      </div>
+      <div class="stat-item stat-4">
+        <span class="stat-num">{{star4}}</span>
+        <span class="stat-label">4星</span>
+      </div>
+    </div>
 
-      {{each poolGroups}}
-      <div class="pool-group-wrap">
-        <div class="pool-group-title">{{$value.label}}</div>
-        {{if !$value.pools || $value.pools.length === 0}}
-        <div class="pool-group-empty">暂无记录</div>
-        {{else}}
-        {{each $value.pools}}
-        <div class="pool-row-wrap">
-          {{if $value.poolName != '免费'}}
-          <div class="pool-row-header">
-            <span class="pool-row-pool-name">{{$value.poolName}}</span>
+    <!-- 时间 + 刷新提示 -->
+    <div class="time-bar">
+      <span class="analysis-time">{{analysisTime}}</span>
+      {{if syncHint}}<span class="sync-hint">{{syncHint}}</span>{{/if}}
+    </div>
+
+    <!-- 池组 -->
+    {{each poolGroups}}
+    <div class="pool-group">
+      <div class="pool-group-header">
+        <span class="pool-group-title">{{$value.label}}</span>
+      </div>
+      {{if !$value.pools || $value.pools.length === 0}}
+      <div class="pool-group-empty">暂无记录</div>
+      {{else}}
+      {{each $value.pools}}
+      <div class="pool-entry">
+        {{if $value.poolName != '免费'}}
+        <div class="pool-entry-header">
+          <span class="pool-entry-name">{{$value.poolName}}</span>
+        </div>
+        <div class="pool-entry-metrics">
+          <span class="metric">{{$value.total}} 抽数</span>
+          <span class="metric">{{$value.metric1Label}} {{$value.metric1}}</span>
+          <span class="metric">{{$value.metric2Label}} {{$value.metric2}}</span>
+        </div>
+        {{/if}}
+        {{if ($value.images && $value.images.length > 0) || $value.pitySinceLast6 != null}}
+        <div class="star6-list">
+          {{if $value.pitySinceLast6 != null && $value.pitySinceLast6 > 0 && $value.poolName != '免费'}}
+          <div class="star6-row pity-row">
+            <div class="star6-icon star6-icon-pity">?</div>
+            <div class="bar-wrap">
+              <div class="bar-inner bar-level-{{$value.pityBarColorLevel || 'green'}} bar-not-full" style="width: {{$value.pityBarPercent || 0}}%;">
+                <span class="bar-text">已垫 {{$value.pitySinceLast6}}</span>
+              </div>
+            </div>
+            <span class="star6-tag star6-tag-empty"></span>
           </div>
           {{/if}}
-          {{if $value.poolName != '免费'}}
-          <div class="pool-row-metrics">
-            <span class="metric-total">{{$value.total}} 抽数</span>
-            <span class="metric-a">{{$value.metric1Label}} {{$value.metric1}}</span>
-            <span class="metric-b">{{$value.metric2Label}} {{$value.metric2}}</span>
-          </div>
-          {{/if}}
-          {{if ($value.images && $value.images.length > 0) || $value.pitySinceLast6 != null}}
-          <div class="pool-star6-list">
-            {{if $value.pitySinceLast6 != null && $value.pitySinceLast6 > 0 && $value.poolName != '免费'}}
-            <div class="pool-star6-entry pool-pity-row">
-              <div class="pool-star6-icon pool-star6-icon-pity">?</div>
-              <div class="pool-star6-bar-wrap">
-                <div class="pool-star6-bar-inner pool-star6-bar-level-{{$value.pityBarColorLevel || 'green'}} pool-star6-bar-inner-not-full" style="width: {{$value.pityBarPercent || 0}}%;">
-                  <span class="pool-star6-bar-text">已垫 {{$value.pitySinceLast6}}</span>
-                </div>
+          {{if $value.images && $value.images.length > 0}}
+          {{each $value.images}}
+          <div class="star6-row">
+            {{if $value.url}}<img class="star6-icon" src="{{$value.url}}" alt="{{$value.name}}" onerror="this.style.display='none'">{{else}}<div class="star6-icon star6-icon-free">×</div>{{/if}}
+            <div class="bar-wrap">
+              {{if $value.refLinePercent != null}}<div class="bar-ref" style="left: {{$value.refLinePercent}}%;"></div>{{/if}}
+              <div class="bar-inner bar-level-{{$value.barColorLevel || 'green'}}{{if $value.barPercent < 100}} bar-not-full{{/if}}" style="width: {{$value.barPercent || 50}}%;">
+                <span class="bar-text">{{if $value.isFreeRow}}免费 - {{$value.pullCount}}抽{{else}}{{$value.pullCount}}抽{{/if}}</span>
               </div>
-              <span class="pool-star6-status pool-star6-status-empty"></span>
             </div>
-            {{/if}}
-            {{if $value.images && $value.images.length > 0}}
-            {{each $value.images}}
-            <div class="pool-star6-entry">{{if $value.url}}<img class="pool-star6-icon" src="{{$value.url}}" alt="{{$value.name}}" onerror="this.style.display='none'">{{else}}<div class="pool-star6-icon pool-star6-icon-placeholder pool-star6-icon-free">×</div>{{/if}}
-              <div class="pool-star6-bar-wrap">{{if $value.refLinePercent != null}}<div class="pool-star6-bar-ref" style="left: {{$value.refLinePercent}}%;"></div>{{/if}}
-                <div class="pool-star6-bar-inner pool-star6-bar-level-{{$value.barColorLevel || 'green'}}{{if $value.barPercent < 100}} pool-star6-bar-inner-not-full{{/if}}" style="width: {{$value.barPercent || 50}}%;">
-                  <span class="pool-star6-bar-text">{{if $value.isFreeRow}}免费 - {{$value.pullCount}}抽{{else}}{{$value.pullCount}}抽{{/if}}</span>
-                </div>
-              </div>
-              {{if $value.isFreeRow}}<span class="pool-star6-status pool-star6-status-empty"></span>{{else}}<span class="pool-star6-status pool-star6-status-{{$value.badgeColor || 'normal'}}">{{$value.tag || ''}}</span>{{/if}}
-            </div>
-            {{/each}}
-            {{/if}}
+            {{if $value.isFreeRow}}<span class="star6-tag star6-tag-empty"></span>{{else}}<span class="star6-tag star6-tag-{{$value.badgeColor || 'normal'}}">{{$value.tag || ''}}</span>{{/if}}
           </div>
+          {{/each}}
           {{/if}}
         </div>
-        {{/each}}
         {{/if}}
       </div>
       {{/each}}
+      {{/if}}
     </div>
+    {{/each}}
+
+    <!-- 页脚 -->
+    <footer class="footer">
+      <div class="footer-text">{{@copyright}}</div>
+    </footer>
   </div>
 </body>
 </html>

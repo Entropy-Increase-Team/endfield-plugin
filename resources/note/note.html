@@ -29,9 +29,13 @@
           <div class="note-basic-info">
             <p class="note-basic-game">// ARKNIGHTS: ENDFIELD</p>
             <h2 class="note-basic-name">{{base.name}}</h2>
-            {{if base.awakeningDateStr}}
-            <p class="note-basic-awake">苏醒日: {{base.awakeningDateStr}}</p>
-            {{/if}}
+            <div class="note-basic-meta">
+              <span class="note-basic-uid">UID {{base.roleId}}</span>
+              {{if base.awakeningDateStr}}
+              <span class="note-basic-meta-sep">·</span>
+              <span class="note-basic-awake">苏醒日 {{base.awakeningDateStr}}</span>
+              {{/if}}
+            </div>
           </div>
         </div>
         <div class="note-basic-data">

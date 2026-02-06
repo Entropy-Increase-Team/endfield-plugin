@@ -313,7 +313,7 @@ export class EndfieldActivity extends plugin {
           pageWidth,
           viewport: { width: pageWidth, height: viewportHeight }
         }
-        const imgSegment = await this.e.runtime.render('endfield-plugin', 'wiki/activity-list', renderData, baseOpt)
+        const imgSegment = await this.e.runtime.render('endfield-plugin', 'calendar/calendar', renderData, baseOpt)
         if (imgSegment) {
           await this.reply(imgSegment)
           return true

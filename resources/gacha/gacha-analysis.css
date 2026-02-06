@@ -1,4 +1,4 @@
-/* 抽卡分析 - 整页铺满视口，无两侧留白 */
+/* 抽卡分析 */
 @font-face {
   font-family: 'HarmonyOS Sans SC';
   src: url('../font/HarmonyOS_SansSC_Bold.ttf') format('truetype');
@@ -6,498 +6,376 @@
   font-style: normal;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-html {
-  width: 100%;
-  min-width: 100%;
-  height: 100%;
+html, body {
+  width: 580px;
   overflow-x: hidden;
-}
-
-body {
-  width: 100%;
-  min-width: 100%;
-  min-height: 100%;
-  overflow-x: hidden;
-  background: #f5f5f5;
+  background: #f0f1f3;
   font-family: 'HarmonyOS Sans SC', -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif;
   color: #1f2937;
 }
 
-/* 根容器铺满视口宽度，仅保留最小内边距 */
 .gacha-analysis-container {
-  width: 100%;
-  min-width: 100%;
-  max-width: 100vw;
-  padding: 10px 10px;
-  position: relative;
-  overflow-x: hidden;
+  width: 580px;
+  padding: 14px 16px 6px;
 }
 
-.list-top-bar {
+/* ========== 顶部栏 ========== */
+.top-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
-  margin-bottom: 10px;
-  padding: 8px 10px;
-  background: #f9fafb;
-  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: #fff;
+  border-radius: 10px;
   position: relative;
-  z-index: 2;
 }
 
-.list-top-bar .user-info {
+.user-info {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
 
-.list-top-bar .user-avatar {
+.user-avatar {
   width: 48px;
   height: 48px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 2px solid #e5e7eb;
   object-fit: cover;
 }
 
-.list-top-bar .user-details {
+.user-details {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.list-top-bar .user-name {
+.user-name {
   font-size: 1rem;
   font-weight: bold;
   color: #1f2937;
 }
 
-.list-top-bar .user-uid {
+.user-uid {
   font-size: 0.75rem;
   color: #6b7280;
 }
 
-.list-top-bar .list-header-middle {
+.top-bar-center {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   text-align: center;
 }
 
-.list-top-bar .list-title {
-  font-size: 1.45rem;
+.top-title {
+  font-size: 1.4rem;
   font-weight: bold;
   color: #1f2937;
-  margin: 0 0 2px 0;
+  margin-bottom: 2px;
 }
 
-.list-top-bar .list-count {
-  font-size: 0.85rem;
+.top-sub {
+  font-size: 0.82rem;
   color: #6b7280;
-  margin: 0;
 }
 
-.list-top-bar-logo {
+.top-logo {
   position: absolute;
-  right: 12px;
+  right: 16px;
   top: 50%;
   transform: translateY(-50%);
 }
 
-.logo-container {
-  display: flex;
-  align-items: center;
-  max-width: 100px;
-  overflow: hidden;
-}
-
-.logo-container .logo-image {
-  height: 40px;
+.top-logo img {
+  height: 42px;
   width: auto;
-  max-width: 100%;
-  object-fit: contain;
 }
 
-.card-wrap {
-  position: relative;
-  width: 100%;
-  padding: 10px 10px;
-  margin-bottom: 8px;
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-}
-
-.section-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.section-head .title {
-  font-size: 1.3rem;
-  font-weight: bold;
-  color: #1f2937;
-  border-left: 6px solid #1f2937;
-  padding-left: 8px;
-}
-
-.section-head .num {
-  font-size: 0.8rem;
-  color: #9ca3af;
-  letter-spacing: 0.05em;
-}
-
-.section-sub {
-  font-size: 0.9rem;
-  color: #9ca3af;
-  letter-spacing: 0.08em;
+/* ========== 统计概览 ========== */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
   margin-bottom: 10px;
 }
 
-/* 顶部改为时间显示（替代「按池统计」） */
-.section-head-time {
-  border-bottom: none;
-  padding-bottom: 4px;
-  margin-bottom: 8px;
+.stat-item {
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px 8px;
+  text-align: center;
+  border: 1px solid #e5e7eb;
+}
+
+.stat-num {
+  display: block;
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #1f2937;
+  line-height: 1.2;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.68rem;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.stat-6 { border-color: #fecaca; background: #fef2f2; }
+.stat-6 .stat-num { color: #dc2626; }
+.stat-5 { border-color: #fde68a; background: #fffbeb; }
+.stat-5 .stat-num { color: #d97706; }
+.stat-4 { border-color: #ddd6fe; background: #f5f3ff; }
+.stat-4 .stat-num { color: #7c3aed; }
+
+/* ========== 时间 + 提示 ========== */
+.time-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 0 2px;
 }
 
 .analysis-time {
-  font-size: 1rem;
+  font-size: 0.82rem;
   color: #6b7280;
-  letter-spacing: 0.02em;
 }
 
-/* 顶部刷新提示：若需要刷新，发送 xxx同步抽卡记录 */
-.section-head-time .sync-hint {
-  margin-top: 6px;
-  font-size: 0.875rem;
-  color: #000000;
-  letter-spacing: 0.02em;
+.sync-hint {
+  font-size: 0.75rem;
+  color: #1f2937;
 }
 
-.pools-card {
-  padding: 12px 14px;
+/* ========== 池组 ========== */
+.pool-group {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  padding: 14px 16px;
+  margin-bottom: 10px;
 }
 
-/* 角色池 / 武器池 分组 */
-.pool-group-wrap {
-  margin-bottom: 12px;
-}
-
-.pool-group-wrap:last-child {
+.pool-group:last-of-type {
   margin-bottom: 0;
 }
 
+.pool-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
 .pool-group-title {
-  font-size: 1.2rem;
+  font-size: 1.05rem;
   font-weight: bold;
   color: #1f2937;
-  margin-bottom: 6px;
-  padding-left: 4px;
-  border-left: 4px solid #6366f1;
+  padding-left: 10px;
+  border-left: 4px solid #374151;
 }
 
-/* 该池无数据时显示「暂无记录」 */
 .pool-group-empty {
-  padding: 12px 8px 10px 12px;
-  font-size: 0.95rem;
-  color: #9ca3af;
-  margin-bottom: 4px;
+  font-size: 0.85rem;
+  color: #d1d5db;
+  padding: 8px 0;
+  text-align: center;
 }
 
-.pool-row-wrap {
-  padding: 10px 0;
-  padding-left: 8px;
+/* 池条目 */
+.pool-entry {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+}
+
+.pool-group .pool-entry:last-child {
+  margin-bottom: 0;
+}
+
+.pool-entry-header {
+  margin-bottom: 6px;
+}
+
+.pool-entry-name {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.pool-entry-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-size: 0.78rem;
+  color: #9ca3af;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.pool-group-wrap .pool-row-wrap:last-child {
-  border-bottom: none;
-}
-
-.pool-row-header {
-  margin-bottom: 6px;
-}
-
-.pool-row-pool-name {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #374151;
-}
-
-.pool-row-metrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 12px;
-  font-size: 1rem;
-  color: #374151;
-}
-
-.pool-row-metrics .metric-total {
-  font-weight: 600;
+.pool-entry-metrics .metric:first-child {
+  font-weight: bold;
   color: #1f2937;
 }
 
-.pool-row-metrics .metric-a,
-.pool-row-metrics .metric-b {
-  color: #6b7280;
-}
-
-/* 六星条目展示：一行一个，左侧方形头像 + 右侧绿色徽章（抽数） */
-.pool-star6-list {
+/* ========== 六星进度条列表 ========== */
+.star6-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 6px;
+  margin-top: 6px;
 }
 
-.pool-star6-entry {
+.star6-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
 }
 
-.pool-star6-icon {
-  width: 48px;
-  height: 48px;
+.star6-icon {
+  width: 40px;
+  height: 40px;
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
   flex-shrink: 0;
 }
 
-/* 第一行：方块内部问号（已垫进度条用） */
-.pool-star6-icon-pity {
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  min-height: 48px;
+.star6-icon-pity {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
   background: #e5e7eb;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: bold;
   color: #6b7280;
   flex-shrink: 0;
 }
 
-/* 第三行：方块内部叉（10抽免费进度条用） */
-.pool-star6-icon-placeholder,
-.pool-star6-icon-free {
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  min-height: 48px;
+.star6-icon-free {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
   background: #fef3c7;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: bold;
   color: #92400e;
   flex-shrink: 0;
 }
 
-/* 进度条占满剩余宽度，仅末尾留约 30px 给歪/保底字 */
-.pool-star6-bar-wrap {
+/* 进度条 */
+.bar-wrap {
   position: relative;
   flex: 1;
-  min-width: 80px;
-  height: 32px;
-  min-height: 32px;
+  min-width: 60px;
+  height: 28px;
   background: #e5e7eb;
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
 }
 
-/* 背景参考线：角色池 80 抽处（小保底）/ 武器池 40 抽处（100%），一眼看出吃满保底或提前出货 */
-.pool-star6-bar-ref {
+.bar-ref {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 0;
   width: 0;
   border-left: 2px dashed rgba(229, 62, 62, 0.9);
   z-index: 1;
   pointer-events: none;
 }
 
-.pool-star6-bar-inner {
+.bar-inner {
   position: relative;
   z-index: 2;
   height: 100%;
-  min-width: 48px;
-  border-radius: 16px;
+  min-width: 40px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 10px;
-  transition: width 0.2s ease;
+  padding: 0 8px;
 }
 
-/* 未满时右侧为直线，不圆角 */
-.pool-star6-bar-inner-not-full {
-  border-radius: 16px 0 0 16px;
+.bar-not-full {
+  border-radius: 14px 0 0 14px;
 }
 
-.pool-star6-bar-text {
-  font-size: 0.95rem;
+.bar-text {
+  font-size: 0.82rem;
   font-weight: 600;
   color: #fff;
   white-space: nowrap;
 }
 
-.pool-star6-bar-inner.pool-star6-badge-up .pool-star6-bar-text {
-  color: #1f2937;
-}
+/* 进度条颜色 */
+.bar-level-green { background: #22c55e; }
+.bar-level-yellow { background: #eab308; }
+.bar-level-red { background: #ef4444; }
 
-.pool-star6-bar-level-yellow .pool-star6-bar-text,
-.pool-star6-bar-level-red .pool-star6-bar-text {
-  color: #fff;
-  text-shadow: 0 0 1px rgba(0,0,0,0.3);
-}
-
-/* 进度条分级颜色：角色池 0~80、武器池 0~40，绿(0-50%)-黄(50-80%)-红(80-100%) */
-.pool-star6-bar-level-green {
-  background: #22c55e;
-}
-
-.pool-star6-bar-level-yellow {
-  background: #eab308;
-}
-
-.pool-star6-bar-level-red {
-  background: #ef4444;
-}
-
-/* 原 badge 颜色保留给末尾状态字（歪/保底/UP） */
-.pool-star6-badge,
-.pool-star6-bar-inner.pool-star6-badge-normal {
-  background: #22c55e;
-}
-
-.pool-star6-bar-inner.pool-star6-badge-up {
-  background: #FFD700;
-}
-
-.pool-star6-bar-inner.pool-star6-badge-wai {
-  background: #708090;
-}
-
-.pool-star6-bar-inner.pool-star6-badge-baodi {
-  background: #00BFFF;
-}
-
-.pool-star6-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 48px;
-  padding: 6px 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #fff;
-  background: #22c55e;
-  border-radius: 8px;
-}
-
-.pool-star6-badge-up {
-  background: #FFD700;
-  color: #1f2937;
-}
-
-.pool-star6-badge-wai {
-  background: #708090;
-  color: #fff;
-}
-
-.pool-star6-badge-baodi {
-  background: #00BFFF;
-  color: #fff;
-}
-
-.pool-star6-badge-normal {
-  background: #22c55e;
-  color: #fff;
-}
-
-.pool-star6-badge-pity {
-  background: #22c55e;
-  color: #fff;
-}
-
-/* 末尾状态栏：固定宽度，UP 池非 UP 显示歪、大保底显示保底 */
-/* 行末状态字（歪/保底等）：固定占 30px，小方块，仅在有 tag 时显示 */
-.pool-star6-status {
+/* 行末状态标签 */
+.star6-tag {
   flex-shrink: 0;
-  margin-left: 6px;
-  width: 30px;
-  height: 24px;
-  min-width: 30px;
-  min-height: 24px;
+  margin-left: 4px;
+  width: 28px;
+  height: 22px;
+  min-width: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 0.68rem;
   font-weight: 600;
   border-radius: 4px;
   line-height: 1;
 }
 
-.pool-star6-status-wai {
-  color: #fff;
-  background: #64748b;
-}
+.star6-tag-wai { color: #fff; background: #64748b; }
+.star6-tag-baodi { color: #fff; background: #0284c7; }
+.star6-tag-up { color: #fff; background: #b45309; }
+.star6-tag-normal { background: transparent; }
+.star6-tag-empty { background: transparent; }
 
-.pool-star6-status-baodi {
-  color: #fff;
-  background: #0284c7;
-}
-
-.pool-star6-status-up {
-  color: #fff;
-  background: #b45309;
-}
-
-.pool-star6-status-empty {
-  background: transparent;
-}
-
-.pool-pity-row {
-  margin-top: 4px;
-  padding-top: 6px;
+.pity-row {
+  margin-top: 2px;
+  padding-top: 4px;
   border-top: 1px dashed #e5e7eb;
 }
 
-.pool-pity-label {
-  font-size: 0.9rem;
-  color: #6b7280;
-  min-width: 4em;
+/* ========== 页脚 ========== */
+.footer {
+  text-align: center;
+  margin-top: 4px;
+  padding: 6px 0 0;
 }
 
-.pool-pity-row .pool-star6-badge-pity {
-  min-width: 36px;
-  padding: 4px 10px;
-  font-size: 0.95rem;
+.footer-text {
+  font-size: 0.7rem;
+  color: #1f2937;
+  line-height: 1.4;
+}
+
+.footer-text .version {
+  margin-left: 2px;
+  color: #007180;
 }

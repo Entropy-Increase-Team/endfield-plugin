@@ -2,6 +2,7 @@ import { getUnbindMessage, getMessage } from '../utils/common.js'
 import EndfieldUser from '../model/endfieldUser.js'
 import { REDIS_KEY } from '../model/endfieldUser.js'
 import setting from '../utils/setting.js'
+import { getCopyright } from '../utils/copyright.js'
 
 export class EndfieldStamina extends plugin {
   constructor() {
@@ -105,12 +106,51 @@ export class EndfieldStamina extends plugin {
     await this.reply(getMessage('stamina.loading'))
 
     try {
-      const { ok, msg } = await this.getStaminaText(userId)
-      if (ok) {
-        await this.reply(msg.trim())
-      } else {
-        await this.reply(msg)
+      const allUsers = await EndfieldUser.getAllUsers(userId)
+      if (allUsers.length === 0) {
+        await this.reply(getUnbindMessage())
+        return true
       }
+
+      // 并行获取所有账号的理智数据
+      const accountsData = await Promise.all(allUsers.map(sklUser => this.fetchOneStamina(sklUser)))
+      const validAccounts = accountsData.filter(a => a !== null)
+
+      if (validAccounts.length === 0) {
+        await this.reply(getMessage('stamina.get_role_failed'))
+        return true
+      }
+
+      // 优先渲染图片
+      if (this.e?.runtime?.render) {
+        try {
+          const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
+          const accounts = validAccounts.map(a => ({
+            ...a,
+            staminaPercent: a.max > 0 ? a.current / a.max : 0,
+            activationPercent: a.maxActivation > 0 ? (a.activation / a.maxActivation) * 100 : 0
+          }))
+          const renderData = {
+            pluResPath,
+            accounts,
+            ...getCopyright()
+          }
+          const baseOpt = { scale: 1.6, retType: 'base64' }
+          const imgSegment = await this.e.runtime.render('endfield-plugin', 'stamina/stamina', renderData, baseOpt)
+          if (imgSegment) {
+            await this.reply(imgSegment)
+            return true
+          }
+        } catch (err) {
+          logger.error(`[终末地理智]渲染图失败: ${err?.message || err}`)
+        }
+      }
+
+      // 降级为纯文本
+      const textParts = validAccounts.map(a => {
+        return `【${a.userName}】\n理智：${a.current}/${a.max}\n回满时间：${a.fullTime}\n日常活跃：${a.activation}/${a.maxActivation}`
+      })
+      await this.reply(textParts.join('\n\n'))
       return true
     } catch (error) {
       logger.error(`[终末地理智]查询失败: ${error}`)
@@ -119,65 +159,118 @@ export class EndfieldStamina extends plugin {
     }
   }
 
+  /** 获取单个账号的理智结构化数据（含随机干员立绘） */
+  async fetchOneStamina(sklUser) {
+    try {
+      const [res, noteRes, cardRes] = await Promise.all([
+        sklUser.sklReq.getData('stamina'),
+        sklUser.sklReq.getData('note').catch(() => null),
+        sklUser.sklReq.getData('endfield_card_detail').catch(() => null)
+      ])
+
+      if (!res || res.code !== 0) return null
+
+      const stamina = res.data?.stamina || {}
+      const dailyMission = res.data?.dailyMission || {}
+      const role = res.data?.role || {}
+      const userBase = noteRes?.code === 0 ? (noteRes.data?.base || {}) : {}
+
+      const current = Number(stamina.current || 0)
+      const max = Number(stamina.max || 0)
+      const maxTs = Number(stamina.maxTs || 0)
+      const recover = Number(stamina.recover || 360)
+      const activation = Number(dailyMission.activation ?? 0)
+      const maxActivation = Number(dailyMission.maxActivation ?? 100)
+
+      let fullTime = '未知'
+      if (current >= max && max > 0) {
+        fullTime = '已满'
+      } else if (maxTs) {
+        fullTime = new Date(maxTs * 1000).toLocaleString('zh-CN')
+      } else if (current < max && recover) {
+        const remaining = max - current
+        const recoverMinutes = Math.ceil((remaining * recover) / 60)
+        const recoverTime = new Date(Date.now() + recoverMinutes * 60 * 1000)
+        fullTime = recoverTime.toLocaleString('zh-CN')
+      }
+
+      // 从干员列表中随机选一个立绘
+      let operatorImg = ''
+      if (cardRes?.code === 0) {
+        const chars = cardRes.data?.detail?.chars || []
+        const illustrations = chars
+          .map(c => (c.charData || c).illustrationUrl || '')
+          .filter(Boolean)
+        if (illustrations.length > 0) {
+          operatorImg = illustrations[Math.floor(Math.random() * illustrations.length)]
+        }
+      }
+
+      return {
+        current,
+        max,
+        fullTime,
+        activation,
+        maxActivation,
+        userAvatar: userBase.avatarUrl || '',
+        userName: userBase.name || role.name || sklUser.nickname || '未知',
+        userLevel: userBase.level ?? role.level ?? 0,
+        userUid: userBase.roleId || role.roleId || sklUser.endfield_uid || '未知',
+        operatorImg
+      }
+    } catch (err) {
+      logger.error(`[终末地理智]获取账号 ${sklUser.endfield_uid} 理智失败: ${err}`)
+      return null
+    }
+  }
+
+  /** 获取理智文本（订阅推送用，取当前选中账号） */
   async getStaminaText(userId) {
     const sklUser = new EndfieldUser(userId)
     if (!await sklUser.getUser()) {
-      return {
-        ok: false,
-        msg: getUnbindMessage()
-      }
+      return { ok: false, msg: getUnbindMessage() }
     }
-    const res = await sklUser.sklReq.getData('stamina')
-
-    if (!res || res.code !== 0) {
-      logger.error(`[终末地理智]获取理智信息失败: ${JSON.stringify(res)}`)
-      return { ok: false, msg: getMessage('stamina.get_role_failed') }
-    }
-
-    const stamina = res.data?.stamina || {}
-    const dailyMission = res.data?.dailyMission || {}
-
-    const current = Number(stamina.current || 0)
-    const max = Number(stamina.max || 0)
-    const maxTs = Number(stamina.maxTs || 0)
-    const recover = Number(stamina.recover || 360)
-    let fullTime = '未知'
-    if (current >= max && max > 0) {
-      fullTime = '已满'
-    } else if (maxTs) {
-      fullTime = new Date(maxTs * 1000).toLocaleString('zh-CN')
-    } else if (current < max && recover) {
-      const remaining = max - current
-      const recoverMinutes = Math.ceil((remaining * recover) / 60)
-      const recoverTime = new Date(Date.now() + recoverMinutes * 60 * 1000)
-      fullTime = recoverTime.toLocaleString('zh-CN')
-    }
-
-    let msg = ''
-    msg += `理智：${current}/${max}\n`
-    msg += `回满时间：${fullTime}\n`
-    msg += `日常活跃：${dailyMission.activation ?? 0}/${dailyMission.maxActivation ?? 100}\n`
-    return { ok: true, msg: msg.trim(), current, max }
+    const data = await this.fetchOneStamina(sklUser)
+    if (!data) return { ok: false, msg: getMessage('stamina.get_role_failed') }
+    const msg = `理智：${data.current}/${data.max}\n回满时间：${data.fullTime}\n日常活跃：${data.activation}/${data.maxActivation}`
+    return { ok: true, msg, current: data.current, max: data.max }
   }
 
-  /** 理智订阅推送：未设阈值时理智满推送，设阈值时达到该值推送（跨过阈值时推一次，避免重复） */
+  /** 理智订阅推送：遍历用户所有有效账号，统一阈值，跨过阈值时推送一次 */
   async pushStamina() {
     const list = await this.getStaminaSubList()
     if (!Array.isArray(list) || list.length === 0) return
     for (let i = 0; i < list.length; i++) {
       const sub = list[i]
       try {
-        const result = await this.getStaminaText(sub.user_id)
-        const { ok, msg, current = 0, max = 0 } = result
-        if (!ok) continue
-        const target = sub.threshold != null ? sub.threshold : max
-        const last = sub.last_current ?? -1
-        const shouldPush = target > 0 && current >= target && last < target
-        if (shouldPush) {
-          await this.sendStaminaMsg(sub, current)
+        const allUsers = await EndfieldUser.getAllUsers(sub.user_id)
+        if (allUsers.length === 0) continue
+
+        // last_currents 记录每个账号上次的理智值，按 role_id 索引
+        const lastMap = sub.last_currents || {}
+        const pushLines = []
+
+        for (const sklUser of allUsers) {
+          const data = await this.fetchOneStamina(sklUser)
+          if (!data) continue
+
+          const rid = String(data.userUid || sklUser.endfield_uid)
+          const threshold = sub.threshold != null ? sub.threshold : data.max
+          const last = lastMap[rid] ?? -1
+          const shouldPush = threshold > 0 && data.current >= threshold && last < threshold
+
+          if (shouldPush) {
+            pushLines.push(`【${data.userName}】理智已达 ${data.current}/${data.max}`)
+          }
+          lastMap[rid] = data.current
         }
-        sub.last_current = current
+
+        sub.last_currents = lastMap
         list[i] = sub
+
+        if (pushLines.length > 0) {
+          await this.sendStaminaMsg(sub, pushLines.join('\n'))
+        }
       } catch (error) {
         logger.error(`[终末地理智]订阅推送失败: ${error}`)
       }
@@ -185,23 +278,7 @@ export class EndfieldStamina extends plugin {
     await this.setStaminaSubList(list)
   }
 
-  /** 从 Redis 绑定数据取当前账号的游戏内名称 */
-  async getGameNickname(userId) {
-    const raw = await redis.get(REDIS_KEY(userId))
-    if (!raw) return ''
-    try {
-      const data = JSON.parse(raw)
-      const accounts = Array.isArray(data) ? data : [data]
-      const active = accounts.find((a) => a.is_active === true) || accounts[0]
-      return active?.nickname || ''
-    } catch {
-      return ''
-    }
-  }
-
-  async sendStaminaMsg(sub, current) {
-    const name = (await this.getGameNickname(sub.user_id)) || '你'
-    const pushMsg = getMessage('stamina.push_msg', { name, current })
+  async sendStaminaMsg(sub, pushMsg) {
     const type = sub.push_type ?? (sub.is_group ? 'group' : 'private')
     const target = sub.push_target ?? (sub.is_group ? sub.group_id : sub.user_id)
     if (type === 'group' && target) {

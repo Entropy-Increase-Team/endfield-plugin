@@ -332,14 +332,14 @@ export class announcement extends plugin {
     return true
   }
 
-  /** :公告 — 获取公告列表，直接发送列表图片（最多显示前 10 条，无合并转发） */
+  /** :公告 — 获取公告列表，直接发送列表图片（最多显示前 5 条，无合并转发） */
   async list() {
     const req = this.getReq()
     if (!req) {
       await this.reply(getMessage('announcement.need_api_key'))
       return true
     }
-    const res = await req.getAnnouncementsData('announcements_list', { page: 1, page_size: 10 })
+    const res = await req.getAnnouncementsData('announcements_list', { page: 1, page_size: 5 })
     if (!res || res.code !== 0 || !res.data) {
       await this.reply(res?.message || getMessage('announcement.list_failed'))
       return true
@@ -359,7 +359,7 @@ export class announcement extends plugin {
           timeStr: formatPublishTime(item.published_at_ts) || '',
           coverUrl: getCoverUrl(item) || ''
         }))
-        const listSubtitle = total > 10
+        const listSubtitle = total > 5
           ? getMessage('announcement.list_total', { total, count: list.length })
           : getMessage('announcement.list_subtitle', { count: list.length })
         const listHeader = getMessage('announcement.list_header')

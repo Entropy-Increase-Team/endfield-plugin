@@ -34,39 +34,50 @@ export class EndfieldAttendance extends plugin {
 
   async attendance() {
     const userId = this.e.at || this.e.user_id
-    const sklUser = new EndfieldUser(userId)
-    if (!await sklUser.getUser()) {
+    const allUsers = await EndfieldUser.getAllUsers(userId)
+
+    if (allUsers.length === 0) {
       await this.reply(getUnbindMessage())
       return true
     }
 
-    const res = await sklUser.sklReq.getData('endfield_attendance')
-    
-    if (!res || res.code !== 0) {
-      logger.error(`[终末地插件][签到]请求失败，响应:${JSON.stringify(res)}`)
-      await this.reply(getMessage('attendance.sign_failed'))
-      return true
-    }
+    const results = []
+    for (const sklUser of allUsers) {
+      const label = sklUser.nickname || sklUser.endfield_uid || '未知'
+      try {
+        const res = await sklUser.sklReq.getData('endfield_attendance')
 
-    if (res.data?.already_signed) {
-      await this.reply(res.data.message || getMessage('attendance.already_signed'))
-      return true
-    }
+        if (!res || res.code !== 0) {
+          logger.error(`[终末地插件][签到]账号 ${label} 请求失败: ${JSON.stringify(res)}`)
+          results.push(`【${label}】签到失败`)
+          continue
+        }
 
-    const awardIds = res.data?.awardIds || []
-    const resourceInfoMap = res.data?.resourceInfoMap || {}
-    let reply_msg = `签到完成！此次签到获得了:`
-    
-    if (!awardIds.length) {
-      reply_msg += `\n无奖励信息`
-    } else {
-      for (let award of awardIds) {
-        const item = resourceInfoMap?.[award.id] || {}
-        reply_msg += `\n${item.name || '未知'} * ${item.count ?? award.count ?? 0}`
+        if (res.data?.already_signed) {
+          results.push(`【${label}】${res.data.message || '今日已签到'}`)
+          continue
+        }
+
+        const awardIds = res.data?.awardIds || []
+        const resourceInfoMap = res.data?.resourceInfoMap || {}
+        let msg = `【${label}】签到完成！获得:`
+
+        if (!awardIds.length) {
+          msg += ` 无奖励信息`
+        } else {
+          for (let award of awardIds) {
+            const item = resourceInfoMap?.[award.id] || {}
+            msg += `\n  ${item.name || '未知'} * ${item.count ?? award.count ?? 0}`
+          }
+        }
+        results.push(msg)
+      } catch (err) {
+        logger.error(`[终末地插件][签到]账号 ${label} 异常: ${err}`)
+        results.push(`【${label}】签到异常`)
       }
     }
-    
-    await this.reply(reply_msg)
+
+    await this.reply(results.join('\n'))
     return true
   }
 
@@ -74,8 +85,9 @@ export class EndfieldAttendance extends plugin {
    * 向 sign.yaml 中 notify_list 配置的目标推送消息
    * notify_list: { friend: [QQ号], group: [群号] }
    * @param {string} msg 要发送的文本
+   * @param {string} [excludeId] 要排除的用户ID（避免手动触发时重复发送）
    */
-  async sendNotifyList(msg) {
+  async sendNotifyList(msg, excludeId) {
     const cfg = this.setting?.notify_list
     if (!cfg) return
     // 兼容旧版数组格式
@@ -93,7 +105,8 @@ export class EndfieldAttendance extends plugin {
       groupIds = Array.isArray(cfg.group) ? cfg.group : []
     }
     for (const id of friendIds) {
-      if (!id) continue
+      // 跳过空值和已排除的用户（手动触发者会通过 e.reply 接收消息）
+      if (!id || String(id) === String(excludeId)) continue
       try {
         if (Bot?.pickUser) {
           await Bot.pickUser(id).sendMsg(msg)
@@ -129,8 +142,10 @@ export class EndfieldAttendance extends plugin {
 
     // 从配置读取通知列表（notify_list），向配置的QQ号发送消息
     this.setting = setting.getConfig('sign')
+    // 手动触发时排除当前用户，避免 sendNotifyList 和 e.reply 重复发送
+    const excludeId = is_manual ? String(this.e.user_id) : null
     const startMsg = getMessage('attendance.task_start_broadcast', { count: keys.length })
-    await this.sendNotifyList(startMsg)
+    await this.sendNotifyList(startMsg, excludeId)
     
     if (is_manual) {
       await this.e.reply(getMessage('attendance.task_start'))
@@ -138,29 +153,37 @@ export class EndfieldAttendance extends plugin {
 
     for (let key of keys) {
       const user_id = key.replace(/ENDFIELD:USER:/g, '')
-      const sklUser = new EndfieldUser(user_id)
-      await common.sleep(2000)
-      
-      if (!await sklUser.getUser()) {
+      const allUsers = await EndfieldUser.getAllUsers(user_id)
+
+      if (allUsers.length === 0) {
         fail_count += 1
         fail_users.push(user_id)
         continue
       }
 
-      const res = await sklUser.sklReq.getData('endfield_attendance')
-      
-      if (!res || res.code !== 0) {
-        fail_count += 1
-        fail_users.push(user_id)
-        continue
-      }
+      // 遍历该用户绑定的所有账号逐一签到
+      for (const sklUser of allUsers) {
+        await common.sleep(2000)
+        try {
+          const res = await sklUser.sklReq.getData('endfield_attendance')
 
-      if (res.data?.already_signed) {
-        signed_count += 1
-        continue
-      }
+          if (!res || res.code !== 0) {
+            fail_count += 1
+            fail_users.push(`${user_id}(${sklUser.nickname || sklUser.endfield_uid})`)
+            continue
+          }
 
-      success_count += 1
+          if (res.data?.already_signed) {
+            signed_count += 1
+            continue
+          }
+
+          success_count += 1
+        } catch (err) {
+          fail_count += 1
+          fail_users.push(`${user_id}(${sklUser.nickname || sklUser.endfield_uid})`)
+        }
+      }
     }
 
     let completeMsg = getMessage('attendance.task_complete', {
@@ -175,16 +198,11 @@ export class EndfieldAttendance extends plugin {
 
     logger.mark(`[终末地插件][签到任务]任务完成：${keys.length}个\n已签：${signed_count}个\n成功：${success_count}个\n失败：${fail_count}个`)
 
-    await this.sendNotifyList(completeMsg)
+    await this.sendNotifyList(completeMsg, excludeId)
     
     if (is_manual) {
       await this.e.reply(completeMsg)
     }
     return true
-  }
-
-  getCmdPrefix() {
-    const mode = Number(this.common_setting?.prefix_mode) || 1
-    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
   }
 }

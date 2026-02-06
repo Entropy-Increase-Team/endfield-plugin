@@ -188,9 +188,4 @@ export class EndfieldNote extends plugin {
 
     return messages
   }
-
-  getCmdPrefix() {
-    const mode = Number(this.common_setting?.prefix_mode) || 1
-    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
-  }
 }

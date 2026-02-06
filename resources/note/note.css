@@ -123,26 +123,48 @@ body {
 .note-basic-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .note-basic-game {
-  font-size: 0.7rem;
-  color: #6b7280;
-  margin-bottom: 2px;
-  letter-spacing: 0.02em;
+  font-size: 0.68rem;
+  color: #9ca3af;
+  letter-spacing: 0.04em;
 }
 
 .note-basic-name {
-  font-size: 1.5rem;
+  font-size: 1.55rem;
   font-weight: bold;
   color: #1f2937;
-  margin: 0 0 4px 0;
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* UID + 苏醒日 同行 */
+.note-basic-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.note-basic-uid {
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.note-basic-meta-sep {
+  font-size: 0.75rem;
+  color: #d1d5db;
 }
 
 .note-basic-awake {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: #6b7280;
-  margin: 0;
 }
 
 /* 第一行：任务 + 权限等阶 + 探索等级；第二行：干员/武器/档案/理智/活跃度 */

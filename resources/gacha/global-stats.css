@@ -1,4 +1,4 @@
-/* 全服抽卡统计 - 风格对齐 operator/list：浅色、HarmonyOS Sans SC、圆角卡片 */
+/* 全服抽卡统计 - 多池合一 */
 @font-face {
   font-family: 'HarmonyOS Sans SC';
   src: url('../font/HarmonyOS_SansSC_Bold.ttf') format('truetype');
@@ -6,647 +6,501 @@
   font-style: normal;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-body {
-  background: #f5f5f5;
+html, body {
+  width: 720px;
+  overflow-x: hidden;
+  background: #f0f1f3;
   font-family: 'HarmonyOS Sans SC', -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif;
-  min-height: 100vh;
-  padding: 20px;
   color: #1f2937;
 }
 
-.gacha-stats-container {
-  margin: 0 auto;
-  padding: 24px;
-  max-width: 920px;
-  position: relative;
+.gs-container {
+  width: 720px;
+  padding: 14px 16px 6px;
 }
 
-/* 顶栏：标题居中、Logo 靠右 */
-.list-top-bar {
+/* ========== 顶部栏 ========== */
+.top-bar {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 24px;
-  padding: 16px 20px;
-  background: #f9fafb;
-  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: #fff;
+  border-radius: 10px;
   position: relative;
-  z-index: 2;
 }
 
-.list-top-bar .list-header-middle {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
+.top-bar-center { text-align: center; }
 
-.list-top-bar .list-title {
-  font-size: 2rem;
+.top-title {
+  font-size: 1.5rem;
   font-weight: bold;
   color: #1f2937;
-  margin: 0 0 4px 0;
+  margin-bottom: 2px;
 }
 
-.list-top-bar .list-count {
-  font-size: 1.3rem;
+.top-sub {
+  font-size: 0.82rem;
   color: #6b7280;
-  margin: 0;
 }
 
-.list-top-bar-logo {
+.top-logo {
   position: absolute;
-  right: 20px;
+  right: 16px;
   top: 50%;
   transform: translateY(-50%);
 }
 
-.logo-container {
-  display: flex;
-  align-items: center;
-  max-width: 140px;
-  overflow: hidden;
-}
-
-.logo-container .logo-image {
-  height: 55px;
+.top-logo img {
+  height: 42px;
   width: auto;
-  max-width: 100%;
-  object-fit: contain;
 }
 
-/* 卡片通用：白底、圆角、阴影（对齐 operator） */
-.card-wrap {
-  position: relative;
-  padding: 20px;
-  margin-bottom: 16px;
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-}
-
-/* 四宫格总览 */
-.overview-grid {
+/* ========== 全局概览 ========== */
+.stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-.overview-item {
-  padding: 16px;
+.stat-item {
   background: #fff;
   border-radius: 8px;
+  padding: 10px 8px;
+  text-align: center;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.overview-item .label {
-  font-size: 0.75rem;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 6px;
-}
-
-.overview-item .value {
-  font-size: 1.5rem;
+.stat-num {
+  display: block;
+  font-size: 1.3rem;
   font-weight: bold;
   color: #1f2937;
+  line-height: 1.2;
 }
 
-/* 六星-红色 */
-.overview-item .value.amber {
-  color: #dc2626;
+.stat-label {
+  display: block;
+  font-size: 0.68rem;
+  color: #9ca3af;
+  margin-top: 2px;
 }
 
-/* 当前 UP 区块（六星-红色） */
-.up-block {
+.stat-6 { border-color: #fecaca; background: #fef2f2; }
+.stat-6 .stat-num { color: #dc2626; }
+
+/* ========== UP 区块 ========== */
+.up-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.up-card {
+  border-radius: 10px;
+  padding: 12px 14px;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.up-card-char {
   background: #fef2f2;
   border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 16px 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08);
 }
 
-.up-block-left {
-  flex: 1;
-  min-width: 0;
+.up-card-weapon {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
 }
 
-.up-block .up-tag {
-  font-size: 0.7rem;
+.up-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.up-tag {
+  font-size: 0.68rem;
   font-weight: bold;
   background: #dc2626;
   color: #fff;
   padding: 2px 8px;
-  margin-right: 8px;
   border-radius: 4px;
-  letter-spacing: 0.05em;
-}
-
-.up-block .up-name {
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #b91c1c;
-}
-
-.up-block .up-title {
-  font-size: 1rem;
-  font-weight: bold;
-  color: #1f2937;
-  margin: 10px 0 4px 0;
-}
-
-.up-block .up-desc {
-  font-size: 0.85rem;
-  color: #6b7280;
-  margin: 0;
-}
-
-.up-block-right {
-  display: flex;
-  align-items: center;
-  gap: 14px;
   flex-shrink: 0;
 }
 
-.up-block-right .up-rate-text {
-  text-align: right;
+.up-tag-weapon {
+  background: #d97706;
 }
 
-.up-block .up-rate-value {
-  font-size: 2rem;
+.up-name {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #b91c1c;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.up-weapon-name {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #92400e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.up-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.up-rate-label {
+  font-size: 0.65rem;
+  color: #9ca3af;
+}
+
+.up-rate-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.up-rate {
+  font-size: 1.4rem;
   font-weight: bold;
   color: #dc2626;
   line-height: 1.1;
 }
 
-.up-rate-vertical-wrap {
-  width: 10px;
-  height: 56px;
+.up-rate-weapon {
+  color: #d97706;
+}
+
+.up-bar-wrap {
+  width: 8px;
+  height: 36px;
   background: #fee2e2;
   border-radius: 4px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  flex-shrink: 0;
 }
 
-.up-rate-vertical-fill {
+.up-card-weapon .up-bar-wrap {
+  background: #fef3c7;
+}
+
+.up-bar-fill {
   width: 100%;
   min-height: 2px;
-  background: #dc2626;
   border-radius: 4px;
 }
 
-/* 官服/B服 两列 */
-.channel-grid {
+.up-bar-char { background: #dc2626; }
+.up-bar-weapon { background: #d97706; }
+
+/* ========== 官服/B服 ========== */
+.channel-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .channel-card {
-  padding: 0;
-  overflow: hidden;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 10px 14px;
 }
 
-.channel-card .card-head {
-  padding: 14px 16px 0 16px;
-  font-size: 0.95rem;
+.channel-title {
+  font-size: 0.82rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.channel-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+}
+
+.ch-label {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  margin-right: 4px;
+}
+
+.ch-val {
+  font-size: 0.85rem;
   font-weight: bold;
   color: #1f2937;
 }
 
-.channel-card .card-sub {
-  padding: 4px 16px 10px 16px;
-  font-size: 0.7rem;
-  color: #9ca3af;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e5e7eb;
-}
+.ch-red { color: #dc2626; }
 
-.channel-card .card-body {
-  padding: 16px;
+/* ========== 卡池网格：2列 + 全宽 ========== */
+.pool-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px 16px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  align-items: start;
 }
 
-.channel-card .item-label {
-  font-size: 0.85rem;
-  color: #6b7280;
+.pool-section {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  padding: 12px 14px;
+  overflow: hidden;
+  min-width: 0;
 }
 
-.channel-card .item-value {
+/* 全宽池子 */
+.pool-section.pool-full {
+  grid-column: 1 / -1;
+}
+
+/* 新手池全宽优化 */
+.pool-beginner .pool-stats {
+  gap: 16px;
+}
+
+
+.pool-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.pool-name {
   font-size: 1rem;
   font-weight: bold;
   color: #1f2937;
 }
 
-.channel-card .item-value.amber {
-  color: #dc2626;
-}
-
-/* 区块标题：对齐 operator section-title */
-.section-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.section-head .title {
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: #1f2937;
-  border-left: 6px solid #1f2937;
-  padding-left: 12px;
-}
-
-.section-head .num {
+.pool-total {
   font-size: 0.75rem;
   color: #9ca3af;
-  letter-spacing: 0.05em;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
-.section-sub {
-  font-size: 0.7rem;
-  color: #9ca3af;
-  letter-spacing: 0.08em;
-  margin-bottom: 12px;
-}
-
-/* 两列布局：强制左右等高 */
-.two-col-layout {
-  display: grid;
-  grid-template-columns: 1fr 1.2fr;
-  grid-template-rows: minmax(300px, auto);
-  gap: 16px;
-  margin-top: 4px;
-  align-items: stretch;
-}
-
-.col-left,
-.col-right {
+/* 池内统计 */
+.pool-stats {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 0;
-  align-self: stretch;
-}
-
-/* 左右两列内的卡片等高：拉伸填满列高 */
-.col-left > .card-wrap,
-.col-right > .card-wrap {
-  flex: 1 1 0;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-/* 卡池列表 */
-.pool-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.pool-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
-  font-size: 0.95rem;
-  background: #f9fafb;
-  border-radius: 6px;
-  border: 1px solid transparent;
-}
-
-.pool-row.primary {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #1f2937;
-}
-
-.pool-row .pool-name {
-  font-weight: 600;
-  color: #374151;
-}
-
-.pool-row .pool-count {
-  font-weight: 600;
-  color: #1f2937;
-}
-
-/* 数据概览：进度条 */
-.stats-overview .stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.9rem;
+  gap: 8px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
-.stats-overview .stat-row .label {
-  color: #6b7280;
-}
-
-.stats-overview .stat-row .value {
-  font-weight: bold;
-  color: #1f2937;
-}
-
-.stats-overview .bar-wrap {
-  height: 8px;
-  background: #e5e7eb;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 14px;
-}
-
-.stats-overview .bar-fill {
-  height: 100%;
-  background: #6366f1;
-  border-radius: 4px;
-}
-
-.stats-overview .bar-fill.primary {
-  background: #dc2626;
-}
-
-.stats-overview .two-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
-}
-
-.stats-overview .two-col .label {
-  font-size: 0.8rem;
-  color: #6b7280;
-}
-
-.stats-overview .two-col .label.block {
-  display: block;
-}
-
-.stats-overview .two-col .value {
-  font-size: 1.1rem;
-  font-weight: bold;
-}
-
-/* 五星-黄色 */
-.stats-overview .two-col .value.purple {
-  color: #ca8a04;
-}
-
-/* 四星-紫色 */
-.stats-overview .two-col .value.blue {
-  color: #7c3aed;
-}
-
-/* 6星出货分布柱状图 */
-.dist-chart {
+.ps-item {
   display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  height: 140px;
-  padding: 0 14px 14px 14px;
-}
-
-.dist-bar-row {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  min-width: 0;
-  height: 100%;
-}
-
-.dist-bar-outer {
-  width: 100%;
-  flex: 1;
-  min-height: 60px;
-  max-height: 110px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
+  align-items: baseline;
   gap: 2px;
 }
 
-.dist-count {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #374151;
-  line-height: 1;
-  flex-shrink: 0;
+.ps-val {
+  font-size: 0.82rem;
+  font-weight: bold;
+  color: #1f2937;
 }
 
-.dist-bar {
-  width: 100%;
-  min-height: 4px;
-  max-height: 100%;
+.ps-label {
+  font-size: 0.6rem;
+  color: #9ca3af;
+}
+
+.ps-red { color: #dc2626; }
+.ps-yellow { color: #d97706; }
+.ps-purple { color: #7c3aed; }
+
+/* 出货分布（横向） */
+.dist-chart-h {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 0 0;
+  margin-bottom: 6px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.dist-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dist-row .dist-label {
+  width: 32px;
+  font-size: 0.6rem;
+  color: #9ca3af;
+  text-align: right;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.dist-bar-h-outer {
+  flex: 1;
+  height: 10px;
+  background: #f3f4f6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dist-bar-h {
+  height: 100%;
+  min-width: 2px;
   background: #f97316;
   border-radius: 4px;
 }
 
-.dist-bar-row:nth-child(n+7) .dist-bar {
+.dist-row:nth-child(n+7) .dist-bar-h {
   background: #eab308;
 }
 
-/* 柱状图区间标签：横排显示，不旋转 */
-.dist-label {
-  font-size: 0.65rem;
+.dist-row .dist-count {
+  width: 28px;
+  font-size: 0.6rem;
+  font-weight: bold;
   color: #6b7280;
-  white-space: nowrap;
-  text-align: center;
+  flex-shrink: 0;
 }
 
-.dist-legend {
-  display: flex;
-  gap: 16px;
-  padding: 0 14px 14px 14px;
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.dist-legend .dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  margin-right: 6px;
-  vertical-align: middle;
-}
-
-.dist-legend .dot.normal {
-  background: #f97316;
-}
-
-.dist-legend .dot.high {
-  background: #eab308;
-}
-
-/* 出货排名：整行全宽，左列六星、右列五星，各前 10 */
-.ranking-card-full {
-  width: 100%;
-  margin-top: 16px;
-}
-
-.ranking-two-cols {
+/* 出货排名 */
+.pool-ranking {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 6px;
   margin-top: 8px;
-  width: 100%;
-  min-width: 0;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
 }
 
 .ranking-col {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-width: 0;
+  gap: 3px;
 }
 
-.ranking-col-title {
-  font-size: 0.95rem;
+.ranking-title {
+  font-size: 0.7rem;
   font-weight: bold;
-  padding-bottom: 6px;
+  padding-bottom: 3px;
+  margin-bottom: 2px;
   border-bottom: 2px solid #e5e7eb;
 }
 
-.ranking-col-title.star6 {
+.ranking-title.rk-6 {
   color: #dc2626;
-  border-bottom-color: rgba(220, 38, 38, 0.3);
+  border-bottom-color: rgba(220, 38, 38, 0.25);
 }
 
-.ranking-col-title.star5 {
-  color: #ca8a04;
-  border-bottom-color: rgba(202, 138, 4, 0.3);
+.ranking-title.rk-5 {
+  color: #d97706;
+  border-bottom-color: rgba(217, 119, 6, 0.25);
 }
 
-.ranking-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.ranking-item {
+.ranking-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  font-size: 0.9rem;
+  gap: 4px;
+  padding: 3px 5px;
+  font-size: 0.72rem;
   background: #f9fafb;
-  border-radius: 6px;
-  border: 1px solid #f3f4f6;
+  border-radius: 4px;
+  min-width: 0;
 }
 
-.ranking-item .rank {
-  width: 24px;
+.rk-rank {
+  width: 16px;
   text-align: center;
   font-weight: bold;
+  color: #9ca3af;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+}
+
+.rk-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: bold;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rk-up {
+  font-size: 0.6rem;
+  background: #dc2626;
+  color: #fff;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 3px;
+}
+
+.rk-count {
+  font-size: 0.72rem;
   color: #6b7280;
   flex-shrink: 0;
 }
 
-.ranking-item .name {
-  flex: 1;
-  min-width: 0;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.ranking-item .name .up-tag {
-  font-size: 0.65rem;
-  background: #dc2626;
-  color: #fff;
-  padding: 2px 6px;
-  margin-left: 6px;
-  border-radius: 4px;
-  font-weight: bold;
-}
-
-.ranking-item .count {
-  font-size: 0.9rem;
-  color: #374151;
-}
-
-.ranking-item .count .percent {
-  font-size: 0.85rem;
-  color: #6b7280;
-  margin-left: 2px;
-}
-
-.ranking-item .bar-wrap {
-  width: 80px;
-  height: 6px;
+.rk-bar {
+  width: 36px;
+  height: 4px;
   background: #e5e7eb;
-  border-radius: 3px;
+  border-radius: 2px;
   overflow: hidden;
   flex-shrink: 0;
 }
 
-.ranking-item .bar-fill {
+.rk-bar-fill {
   height: 100%;
-  background: #dc2626;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
-.ranking-item .bar-fill.star6 {
-  background: #dc2626;
-}
+.rk-fill-6 { background: #dc2626; }
+.rk-fill-5 { background: #d97706; }
 
-.ranking-item .bar-fill.star5 {
-  background: #ca8a04;
-}
-
-/* 页脚：与 help 统一版式 */
-.gacha-stats-container .footer {
+/* ========== 页脚 ========== */
+.footer {
   text-align: center;
-  margin-top: 40px;
-  padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
+  margin-top: 4px;
+  padding: 6px 0 0;
 }
 
-.gacha-stats-container .footer .copyright {
-  font-size: 0.95rem;
-  color: #888888;
-  line-height: 1.5;
-  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 8px;
+.footer-note {
+  font-size: 0.65rem;
+  color: #9ca3af;
+  margin-bottom: 2px;
 }
 
-.gacha-stats-container .footer .footer-icon {
-  color: #0284c7;
-  flex-shrink: 0;
+.footer-text {
+  font-size: 0.7rem;
+  color: #1f2937;
+  line-height: 1.4;
+}
+
+.footer-text .version {
+  margin-left: 2px;
+  color: #007180;
 }

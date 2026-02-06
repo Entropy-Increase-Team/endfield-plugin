@@ -4,6 +4,7 @@ import EndfieldRequest from '../model/endfieldReq.js'
 import setting from '../utils/setting.js'
 import hypergryphAPI from '../model/hypergryphApi.js'
 import { EndfieldOperator } from './operator.js'
+import { getCopyright } from '../utils/copyright.js'
 
 // 网页授权绑定后台轮询任务
 let authPollingTimer = null
@@ -104,8 +105,9 @@ async function checkAllAuthBindings() {
 }
 
 /**
- * 检查单个用户的网页授权绑定状态
- * 使用 GET /api/v1/authorization/clients/:client_id/status，client_id 传对应用户的 user_id（绑定者ID）
+ * 检查单个用户的绑定状态（统一清理）
+ * 1. 清理本地 is_active === false 的记录，并按 role_id 去重
+ * 2. 检查网页授权类型账号的远程授权状态，授权撤销则移除
  * @param {string} userId 用户ID（绑定者 QQ）
  */
 async function checkUserAuthBindings(userId) {
@@ -120,11 +122,18 @@ async function checkUserAuthBindings(userId) {
     return
   }
 
-  // 筛选网页授权类型的账号
+  // 1. 先清理本地无效记录（is_active=false、role_id 重复）
+  const cleaned = cleanAccounts(accounts)
+  if (cleaned.length !== accounts.length) {
+    accounts = cleaned
+    await saveUserBindings(userId, accounts)
+    logger.mark(`[终末地插件][授权轮询]用户 ${userId} 已清理 ${accounts.length - cleaned.length} 条无效本地记录`)
+  }
+
+  // 2. 检查网页授权类型的远程状态
   const authAccounts = accounts.filter(acc => acc.login_type === 'auth' || acc.login_type === 'cred')
   if (authAccounts.length === 0) return
 
-  // 使用「检查客户端授权状态」接口，传入对应用户的 user_id 作为 client_id
   const status = await hypergryphAPI.getAuthorizationClientStatus(userId)
   // 网络/服务错误返回 null，不判定为撤销，跳过本次
   if (status === null) return
@@ -148,65 +157,7 @@ async function checkUserAuthBindings(userId) {
   }
 }
 
-/**
- * 启动时检查所有用户的绑定数据：移除 is_active === false 的记录，并按 role_id 去重
- * 若清理后与存储不一致则写回 Redis
- */
-async function cleanAllUserBindingsOnStartup() {
-  if (!redis) {
-    logger.warn('[终末地插件][启动清理]redis 不可用，跳过')
-    return
-  }
-  let keys = []
-  try {
-    keys = await redis.keys('ENDFIELD:USER:*')
-  } catch (err) {
-    logger.error(`[终末地插件][启动清理]redis.keys 失败: ${err}`)
-    return
-  }
-  if (!keys || keys.length === 0) return
-
-  let cleanedCount = 0
-  for (const key of keys) {
-    try {
-      const txt = await redis.get(key)
-      if (!txt) continue
-      let accounts = []
-      try {
-        let parsed
-        try {
-          parsed = JSON.parse(txt)
-        } catch (e) {
-          // 兼容 Redis 中可能存在的非法 JSON（如数组/对象末尾多余逗号）
-          const fixed = txt.replace(/,\s*([}\]])/g, '$1')
-          parsed = JSON.parse(fixed)
-        }
-        accounts = Array.isArray(parsed) ? parsed : [parsed]
-      } catch (e) {
-        logger.warn(`[终末地插件][启动清理]解析 ${key} 失败，跳过: ${e?.message || e}`)
-        continue
-      }
-      const cleaned = cleanAccounts(accounts)
-      const needSave = cleaned.length !== accounts.length || accounts.some(acc => acc.is_active === false)
-      if (needSave) {
-        const userId = key.replace(/^ENDFIELD:USER:/, '')
-        await saveUserBindings(userId, cleaned)
-        cleanedCount += 1
-      }
-    } catch (err) {
-      logger.error(`[终末地插件][启动清理]处理 ${key} 失败: ${err}`)
-    }
-  }
-  if (cleanedCount > 0) {
-    logger.mark(`[终末地插件][启动清理]完成，已修正 ${cleanedCount} 个用户的绑定数据（去重/移除 is_active=false）`)
-  } else {
-    logger.mark(`[终末地插件][启动清理]完成，共检查 ${keys.length} 个用户，无需修正`)
-  }
-}
-
-// 启动时执行一次绑定数据清理，再启动授权轮询
-cleanAllUserBindingsOnStartup().catch((err) => logger.error(`[终末地插件][启动清理]异常: ${err}`))
-// 启动后台轮询任务
+// 启动后台轮询任务（首次轮询即包含本地清理 + 远程授权检查，无需单独启动清理）
 startAuthPollingTask()
 
 export class EndfieldUid extends plugin {
@@ -263,8 +214,8 @@ export class EndfieldUid extends plugin {
       role_id: String(bindingData.role_id || ''),
       nickname: bindingData.nickname || '',
       server_id: String(bindingData.server_id || 1),
-      is_active: bindingData.is_primary || false,
-      is_primary: bindingData.is_primary || false,
+      is_active: true,
+      is_primary: true,
       client_type: 'bot',
       login_type: loginType,
       bind_time: Date.now(),
@@ -284,38 +235,27 @@ export class EndfieldUid extends plugin {
       }
     }
 
-    const existingIndex = accounts.findIndex(acc => acc.binding_id === bindingData.id)
+    // 按 role_id 匹配：同一游戏角色则更新，不同角色则新增
+    // is_active = true 表示账号有效，is_primary = true 表示当前选中
+    const newRoleId = String(bindingData.role_id || '')
+    const existingIndex = accounts.findIndex(acc => String(acc.role_id) === newRoleId && newRoleId !== '')
     if (existingIndex >= 0) {
+      // 同一角色：更新绑定信息，设为当前选中
       const prev = accounts[existingIndex]
-      accounts[existingIndex] = { ...prev, ...newAccount, login_type: prev.login_type || newAccount.login_type, is_active: true }
+      accounts[existingIndex] = { ...prev, ...newAccount, login_type: prev.login_type || newAccount.login_type, is_active: true, is_primary: true }
       for (let i = 0; i < accounts.length; i++) {
-        if (i !== existingIndex) accounts[i].is_active = false
+        if (i !== existingIndex) accounts[i].is_primary = false
       }
     } else {
+      // 不同角色：新增账号，所有账号保持有效，新账号设为当前选中
       newAccount.is_active = true
-      for (const a of accounts) a.is_active = false
+      newAccount.is_primary = true
+      for (const a of accounts) a.is_primary = false
       accounts.push(newAccount)
     }
 
-    // 仅保留云端仍存在的绑定；清除 is_active: false 且不在云端的记录（自动清除）
-    try {
-      const cloudBindings = await hypergryphAPI.getUnifiedBackendBindings(String(this.e.user_id))
-      const cloudIds = new Set((cloudBindings || []).map(b => b.id))
-      const before = accounts.length
-      accounts = accounts.filter(acc => cloudIds.has(acc.binding_id))
-      if (accounts.length < before) {
-        logger.mark(`[终末地插件][绑定]已清除 ${before - accounts.length} 个不在云端的本地记录`)
-      }
-    } catch (e) {
-      logger.error(`[终末地插件][绑定]拉取云端列表失败，跳过清除: ${e?.message || e}`)
-    }
-
-    // 自动清除 is_active 为 false 的记录，并按 role_id 去重，保证 Redis 中 role_id 唯一
-    const beforeClean = accounts.length
+    // 按 role_id 去重，保留所有账号
     accounts = cleanAccounts(accounts)
-    if (accounts.length < beforeClean) {
-      logger.mark(`[终末地插件][绑定]已清除无效或重复 role_id 记录，当前账号数：${accounts.length}`)
-    }
 
     if (existingIndex >= 0) {
       await this.reply(getMessage('enduid.binding_ok', { nickname: bindingData.nickname, role_id: bindingData.role_id, server_id: bindingData.server_id || 1 }))
@@ -547,32 +487,41 @@ export class EndfieldUid extends plugin {
       return serverId ? `ID=${serverId}` : '未知'
     }
 
-    const cloudIdSet = new Set(bindings.map(b => b.id))
+    // 并行获取每个绑定的游戏数据（头像、等级）
+    const gameDataMap = {}
+    const notePromises = accounts.map(async (acc) => {
+      if (!acc.framework_token || !acc.role_id) return
+      try {
+        const req = new EndfieldRequest(acc.role_id)
+        req.setFrameworkToken(acc.framework_token)
+        const res = await req.getData('note')
+        if (res?.code === 0 && res.data?.base) {
+          gameDataMap[acc.binding_id] = {
+            avatarUrl: res.data.base.avatarUrl || '',
+            level: res.data.base.level ?? 0,
+            name: res.data.base.name || ''
+          }
+        }
+      } catch (err) {
+        // 获取失败不影响列表展示
+      }
+    })
+    await Promise.all(notePromises)
+
     const bindingItems = bindings.map((binding, index) => {
       const account = accounts.find(a => a.binding_id === binding.id)
       const typeLabel = loginTypeLabel[account?.login_type] || '未知'
+      const gameData = gameDataMap[binding.id] || gameDataMap[account?.binding_id] || {}
       return {
         index: index + 1,
-        nickname: binding.nickname || '未知',
+        nickname: binding.nickname || gameData.name || '未知',
         role_id: binding.role_id || '未知',
         server_label: serverLabel(binding.server_id),
         type_label: typeLabel,
         created_at: binding.created_at ? new Date(binding.created_at).toLocaleString('zh-CN') : '未知',
-        isPrimary: !!binding.is_primary
-      }
-    })
-
-    // 当前 Redis 绑定：区分在云端列表有的 / 仅本地的
-    const redisBindings = accounts.map((acc, idx) => {
-      const inCloud = cloudIdSet.has(acc.binding_id)
-      return {
-        index: idx + 1,
-        nickname: acc.nickname || '未知',
-        role_id: acc.role_id || '未知',
-        server_label: serverLabel(acc.server_id),
-        type_label: loginTypeLabel[acc.login_type] || '未知',
-        inCloud,
-        isActive: !!acc.is_active
+        isPrimary: !!binding.is_primary,
+        avatarUrl: gameData.avatarUrl || '',
+        level: gameData.level || 0
       }
     })
 
@@ -580,14 +529,13 @@ export class EndfieldUid extends plugin {
     if (this.e?.runtime?.render) {
       try {
         const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
-        const pageWidth = 420
-        const baseOpt = { scale: 1.6, retType: 'base64', viewport: { width: pageWidth, height: 820 } }
+        const baseOpt = { scale: 1.6, retType: 'base64' }
         const renderData = {
-          title: '终末地登陆列表',
+          title: '终末地绑定列表',
           subtitle: `共 ${bindings.length} 个绑定`,
           bindings: bindingItems,
-          redisBindings,
-          pluResPath
+          pluResPath,
+          ...getCopyright()
         }
         const imgSegment = await this.e.runtime.render('endfield-plugin', 'enduid/bind-list', renderData, baseOpt)
         if (imgSegment) {
@@ -599,17 +547,15 @@ export class EndfieldUid extends plugin {
       }
     }
 
-    let msg = '【终末地登陆列表】\n\n'
-    bindings.forEach((binding, index) => {
-      const account = accounts.find(a => a.binding_id === binding.id)
-      const typeLabel = loginTypeLabel[account?.login_type] || '未知'
-      const activeMark = binding.is_primary ? ' ⭐当前' : ''
-      msg += `[${index + 1}] 角色名：${binding.nickname || '未知'}${activeMark}\n`
-      msg += `    角色ID：${binding.role_id || '未知'}\n`
-      msg += `    服务器：${serverLabel(binding.server_id)}\n`
-      msg += `    绑定类型：${typeLabel}\n`
-      msg += `    绑定时间：${binding.created_at ? new Date(binding.created_at).toLocaleString('zh-CN') : '未知'}\n`
-      if (index < bindings.length - 1) msg += '\n'
+    // 降级为纯文本
+    let msg = '【终末地绑定列表】\n\n'
+    bindingItems.forEach((item, index) => {
+      const activeMark = item.isPrimary ? ' ⭐当前' : ''
+      msg += `[${item.index}] ${item.nickname}${activeMark}${item.level ? ` Lv.${item.level}` : ''}\n`
+      msg += `    UID：${item.role_id}\n`
+      msg += `    服务器：${item.server_label} | ${item.type_label}\n`
+      msg += `    绑定时间：${item.created_at}\n`
+      if (index < bindingItems.length - 1) msg += '\n'
     })
     await this.reply(msg)
     return true
@@ -659,26 +605,17 @@ export class EndfieldUid extends plugin {
     const success = await hypergryphAPI.deleteUnifiedBackendBinding(bindingIdToDelete, String(this.e.user_id))
 
     if (success) {
-      // 验证云端是否真的删除了：再次查询绑定列表，确认该绑定不存在
-      const verifyBindings = await hypergryphAPI.getUnifiedBackendBindings(String(this.e.user_id))
-      const stillExists = verifyBindings && verifyBindings.some(b => b.id === bindingIdToDelete)
-      
-      if (stillExists) {
-        logger.error(`[终末地插件][删除绑定]云端验证失败，绑定 ${bindingIdToDelete} 仍然存在`)
-        await this.reply(getMessage('enduid.delete_failed'))
-        return true
-      }
-      
-      const txt = await redis.get(REDIS_KEY(this.e.user_id))
-      if (txt) {
+      // 清理本地 Redis 记录
+      const txt2 = await redis.get(REDIS_KEY(this.e.user_id))
+      if (txt2) {
         try {
-          const accounts = JSON.parse(txt)
-          const updatedAccounts = accounts.filter(acc => acc.binding_id !== bindingIdToDelete)
+          const accs = JSON.parse(txt2)
+          const updatedAccounts = accs.filter(acc => acc.binding_id !== bindingIdToDelete)
           await saveUserBindings(this.e.user_id, updatedAccounts)
         } catch (err) {}
       }
-      
-      await this.reply(getMessage('enduid.deleted_role', { roleName, suffix: bindings.length > 1 ? `\n剩余账号数：${bindings.length - 1}` : '' }))
+      // 删除成功后直接展示最新绑定列表
+      await this.bindList()
     } else {
       await this.reply(getMessage('enduid.delete_failed'))
     }
@@ -722,11 +659,6 @@ export class EndfieldUid extends plugin {
   }
 
   async switchBind() {
-    if (this.e.isGroup) {
-      await this.reply(getMessage('enduid.please_private_op'))
-      return true
-    }
-
     const index = parseInt(this.e.msg.match(/\d+/)?.[0] || '0')
     if (index < 1) {
       await this.reply(getMessage('enduid.switch_index_hint', { prefix: this.getCmdPrefix() }))
@@ -755,13 +687,13 @@ export class EndfieldUid extends plugin {
           const accounts = JSON.parse(txt)
           const updated = accounts.map(acc => ({
             ...acc,
-            is_active: acc.binding_id === targetBinding.id,
             is_primary: acc.binding_id === targetBinding.id
           }))
           await saveUserBindings(this.e.user_id, updated)
         } catch (err) {}
       }
-      await this.reply(getMessage('enduid.switched', { nickname: targetBinding.nickname || '未知', role_id: targetBinding.role_id || '未知' }))
+      // 切换成功后直接展示最新绑定列表
+      await this.bindList()
     } else {
       await this.reply(getMessage('enduid.switch_failed'))
     }
@@ -970,8 +902,7 @@ export class EndfieldUid extends plugin {
   }
 
   getCmdPrefix() {
-    const mode = Number(this.common_setting?.prefix_mode) || 1
-    return mode === 1 ? `#${this.common_setting?.keywords?.[0] || 'zmd'}` : ':'
+    return ':'
   }
 
   formatAuthExpiryTime(isoString) {

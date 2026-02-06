@@ -4,7 +4,7 @@ import { REDIS_KEY } from '../model/endfieldUser.js'
 import EndfieldRequest from '../model/endfieldReq.js'
 import hypergryphAPI from '../model/hypergryphApi.js'
 import setting from '../utils/setting.js'
-import common from '../../../lib/common/common.js'
+import { getCopyright } from '../utils/copyright.js'
 
 /** Redis 键：抽卡同步选择账号 pending、抽卡分析时间；模拟抽卡键在 gachaSimulate.js */
 const GACHA_KEYS = {
@@ -20,16 +20,6 @@ const GACHA_POOLS = [
   { key: 'weapon', label: '武器池' },
   { key: 'limited', label: '限定角色' }
 ]
-const GACHA_POOL_BY_INPUT = (str) => {
-  if (!str || typeof str !== 'string') return null
-  const s = str.trim()
-  if (s.length < 2) return null
-  const exact = GACHA_POOLS.find((p) => p.label === s)
-  if (exact) return { key: exact.key, label: exact.label }
-  const prefix = GACHA_POOLS.find((p) => p.label.startsWith(s) || s.startsWith(p.label))
-  return prefix ? { key: prefix.key, label: prefix.label } : null
-}
-
 /** bili-wiki 当期 UP 缓存，5 分钟有效 */
 const BILI_WIKI_UP_CACHE = { data: null, ts: 0, ttl: 5 * 60 * 1000 }
 
@@ -131,137 +121,144 @@ export class EndfieldGacha extends plugin {
     }
   }
 
-  /** 查看抽卡记录：支持分类（常驻/新手/武器/限定）与页码，如 :抽卡记录 常驻、:抽卡记录 限定 2；无参数时四个卡池第1页合并转发 */
+  /** 查看抽卡记录：四个卡池合并到一张图中展示，支持 :抽卡记录 <页码> */
   async viewGachaRecords() {
     const sklUser = new EndfieldUser(this.e.user_id)
     if (!(await sklUser.getUser())) {
       await this.reply(getUnbindMessage())
       return true
     }
+    // 解析页码参数
     const argStr = (this.e.msg || '').replace(/.*抽卡记录\s*/, '').trim()
-    const parts = argStr ? argStr.split(/\s+/).filter(Boolean) : []
-    let page = 1
-    let pool = null
-    for (const p of parts) {
-      const num = parseInt(p, 10)
-      if (Number.isFinite(num) && String(num) === p) {
-        page = num
-        break
-      }
-      pool = GACHA_POOL_BY_INPUT(p)
-      if (pool) break
-    }
-    if (parts.length >= 2 && pool && Number.isFinite(parseInt(parts[1], 10))) {
-      page = parseInt(parts[1], 10)
-    } else if (parts.length === 1 && Number.isFinite(parseInt(parts[0], 10))) {
-      page = parseInt(parts[0], 10)
-    }
-    const limit = 15
-    const prefix = this.getCmdPrefix()
+    const page = (argStr && Number.isFinite(parseInt(argStr, 10))) ? Math.max(1, parseInt(argStr, 10)) : 1
+    const limit = 10
     const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
 
-    // 无参数且支持渲染：四个卡池各第1页，合并转发发送
-    if (!argStr && this.e?.runtime?.render) {
-      try {
-        const statsData = await hypergryphAPI.getGachaStats(sklUser.framework_token)
-        if (!statsData) {
-          await this.reply(getMessage('gacha.no_records'))
-          return true
-        }
-        const stats = statsData.stats || {}
-        const userInfo = statsData.user_info || {}
-        const pageWidth = 500
-        const baseOpt = { scale: 1.6, retType: 'base64', viewport: { width: pageWidth, height: 880 } }
-        const forwardMessages = []
-        for (const { key, label } of GACHA_POOLS) {
-          const recordsData = await hypergryphAPI.getGachaRecords(sklUser.framework_token, { page: 1, limit, pools: key })
-          const records = recordsData?.records || []
-          const total = recordsData?.total ?? 0
-          const pages = recordsData?.pages ?? 1
-          const recordList = records.map((r, i) => ({
-            index: i + 1,
-            star: r.rarity === 6 ? '★6' : r.rarity === 5 ? '★5' : '★4',
-            starClass: r.rarity === 6 ? 'star6' : r.rarity === 5 ? 'star5' : 'star4',
-            name: r.char_name || r.item_name || '未知',
-            poolName: r.pool_name || ''
-          }))
-          const renderData = {
-            pageWidth,
-            title: '抽卡记录',
-            subtitle: `${userInfo.nickname || userInfo.game_uid || '未知'} · ${userInfo.channel_name || ''}`,
-            totalCount: stats.total_count ?? 0,
-            star6: stats.star6_count ?? 0,
-            star5: stats.star5_count ?? 0,
-            star4: stats.star4_count ?? 0,
-            poolLabel: label,
-            page: 1,
-            pages,
-            recordList,
-            hasRecords: total > 0,
-            pageHint: pages > 1 ? `${prefix}抽卡记录 ${label} 2` : '',
-            syncHint: getMessage('gacha.records_sync_hint'),
-            pluResPath
-          }
-          const imgSegment = await this.e.runtime.render('endfield-plugin', 'gacha/gacha-record', renderData, baseOpt)
-          if (imgSegment) forwardMessages.push([imgSegment])
-        }
-        if (forwardMessages.length > 0) {
-          const forwardMsg = common.makeForwardMsg(this.e, forwardMessages, '抽卡记录 · 常驻/新手/武器/限定 第1页')
-          await this.e.reply(forwardMsg)
-          return true
-        }
-      } catch (err) {
-        logger.error(`[终末地插件][抽卡记录]合并转发渲染失败: ${err?.message || err}`)
+    // 获取角色/武器头像映射
+    let charAvatarMap = {}
+    try {
+      const noteRes = await sklUser.sklReq.getData('note')
+      const chars = noteRes?.data?.chars || []
+      for (const c of chars) {
+        const name = (c.name || '').trim()
+        const url = c.avatarSqUrl || ''
+        if (name && url) charAvatarMap[name] = url
       }
+    } catch (e) { /* 获取失败不影响记录展示 */ }
+    try {
+      const poolCharsData = await hypergryphAPI.getGachaPoolChars()
+      const pools = poolCharsData?.pools || []
+      for (const p of pools) {
+        for (const list of [p.star6_chars, p.star5_chars, p.star4_chars]) {
+          if (!Array.isArray(list)) continue
+          for (const c of list) {
+            const name = (c.name || '').trim()
+            const cover = c.cover || ''
+            if (name && cover && !charAvatarMap[name]) charAvatarMap[name] = cover
+          }
+        }
+      }
+    } catch (e) { /* 获取失败不影响记录展示 */ }
+
+    // 获取当前 UP 角色/武器名，用于标记 UP
+    let upCharNames = []
+    let upWeaponName = ''
+    const biliUp = await this.getCurrentUpFromBiliWiki()
+    if (biliUp?.upCharNames?.length) {
+      upCharNames = biliUp.upCharNames
+      if (biliUp.upWeaponName) upWeaponName = biliUp.upWeaponName
+    }
+    if (upCharNames.length === 0) {
+      try {
+        const globalData = await hypergryphAPI.getGachaGlobalStats()
+        const gs = globalData?.stats || globalData
+        const cp = gs?.current_pool || globalData?.current_pool
+        if (cp) {
+          const n = String(cp.up_char_name ?? cp.upCharName ?? '').trim()
+          if (n) upCharNames = [n]
+          const w = String(cp.up_weapon_name ?? cp.upWeaponName ?? '').trim()
+          if (w) upWeaponName = w
+        }
+      } catch (e) { /* 获取失败不影响记录展示 */ }
     }
 
-    const params = { page, limit }
-    if (pool) params.pools = pool.key
-    const statsData = await hypergryphAPI.getGachaStats(sklUser.framework_token)
-    const recordsData = await hypergryphAPI.getGachaRecords(sklUser.framework_token, params)
-    if (!statsData && !recordsData) {
+    // 并行获取统计 + 四个池子记录 + note（用户头像）
+    const [statsData, noteRes, ...poolResults] = await Promise.all([
+      hypergryphAPI.getGachaStats(sklUser.framework_token),
+      sklUser.sklReq.getData('note').catch(() => null),
+      ...GACHA_POOLS.map(({ key }) =>
+        hypergryphAPI.getGachaRecords(sklUser.framework_token, { page, limit, pools: key }).catch(() => null)
+      )
+    ])
+
+    if (!statsData) {
       await this.reply(getMessage('gacha.no_records'))
       return true
     }
-    const stats = statsData?.stats || recordsData?.stats || {}
-    const records = recordsData?.records || []
-    const total = recordsData?.total ?? 0
-    const pages = recordsData?.pages ?? 1
-    const userInfo = statsData?.user_info || recordsData?.user_info || {}
-    const poolLabel = pool ? pool.label : ''
 
-    // 抽卡记录模板渲染（gacha-record）
+    const stats = statsData.stats || {}
+    const userInfo = statsData.user_info || {}
+    const noteBase = noteRes?.code === 0 ? (noteRes.data?.base || {}) : {}
+
+    // 判断是否为 UP 角色/武器
+    const isUpItem = (name, poolKey) => {
+      const n = String(name || '').trim()
+      if (!n) return false
+      if (poolKey === 'limited' && upCharNames.length > 0) {
+        return upCharNames.some((u) => n === u || n.includes(u) || u.includes(n))
+      }
+      if (poolKey === 'weapon' && upWeaponName) {
+        return n === upWeaponName || n.includes(upWeaponName) || upWeaponName.includes(n)
+      }
+      return false
+    }
+
+    // 构建每个池子的数据
+    const poolSections = GACHA_POOLS.map(({ key, label }, idx) => {
+      const rd = poolResults[idx]
+      const records = rd?.records || []
+      const total = rd?.total ?? 0
+      const pages = rd?.pages ?? 1
+      return {
+        label,
+        total,
+        page,
+        pages,
+        hasRecords: total > 0,
+        records: records.map((r, i) => {
+          const name = r.char_name || r.item_name || '未知'
+          const isUp = r.rarity >= 5 && isUpItem(name, key)
+          return {
+            index: (page - 1) * limit + i + 1,
+            rarity: r.rarity,
+            starClass: r.rarity === 6 ? 'star6' : r.rarity === 5 ? 'star5' : 'star4',
+            name,
+            avatar: charAvatarMap[name] || '',
+            isUp
+          }
+        })
+      }
+    })
+
+    // 渲染模板
     if (this.e?.runtime?.render) {
       try {
-        const pageWidth = 500
-        const baseOpt = { scale: 1.6, retType: 'base64', viewport: { width: pageWidth, height: 880 } }
-        const recordList = records.map((r, i) => ({
-          index: (page - 1) * limit + i + 1,
-          star: r.rarity === 6 ? '★6' : r.rarity === 5 ? '★5' : '★4',
-          starClass: r.rarity === 6 ? 'star6' : r.rarity === 5 ? 'star5' : 'star4',
-          name: r.char_name || r.item_name || '未知',
-          poolName: r.pool_name || ''
-        }))
         const renderData = {
-          pageWidth,
           title: '抽卡记录',
-          subtitle: `${userInfo.nickname || userInfo.game_uid || '未知'} · ${userInfo.channel_name || ''}`,
           totalCount: stats.total_count ?? 0,
           star6: stats.star6_count ?? 0,
           star5: stats.star5_count ?? 0,
           star4: stats.star4_count ?? 0,
-          poolLabel,
+          userAvatar: noteBase.avatarUrl || '',
+          userNickname: noteBase.name || userInfo.nickname || userInfo.game_uid || '未知',
+          userLevel: noteBase.level ?? 0,
+          userUid: userInfo.game_uid || noteBase.roleId || '',
           page,
-          pages,
-          recordList,
-          hasRecords: total > 0,
-          pageHint: pages > 1
-            ? (poolLabel ? `${prefix}抽卡记录 ${poolLabel} 2` : `${prefix}抽卡记录 2`)
-            : '',
-          syncHint: getMessage('gacha.records_sync_hint'),
-          pluResPath
+          poolSections,
+          pluResPath,
+          ...getCopyright()
         }
-        const imgSegment = await this.e.runtime.render('endfield-plugin', 'gacha/gacha-record', renderData, baseOpt)
+        const imgSegment = await this.e.runtime.render('endfield-plugin', 'gacha/gacha-record', renderData, { scale: 1.6, retType: 'base64' })
         if (imgSegment) {
           await this.reply(imgSegment)
           return true
@@ -271,24 +268,19 @@ export class EndfieldGacha extends plugin {
       }
     }
 
+    // 降级纯文本
     let msg = '【抽卡记录】\n'
     msg += `角色：${userInfo.nickname || userInfo.game_uid || '未知'} | ${userInfo.channel_name || ''}\n`
     msg += `总抽数：${stats.total_count ?? 0} | 六星：${stats.star6_count ?? 0} | 五星：${stats.star5_count ?? 0} | 四星：${stats.star4_count ?? 0}\n`
-    if (total > 0) {
-      const subTitle = poolLabel ? ` · ${poolLabel}` : ''
-      msg += `\n最近记录${subTitle}（第 ${page}/${pages} 页）：\n`
-      records.forEach((r, i) => {
-        const star = (r.rarity === 6 ? '★6' : r.rarity === 5 ? '★5' : '★4') || ''
-        const name = r.char_name || r.item_name || '未知'
-        const pool = r.pool_name ? ` [${r.pool_name}]` : ''
-        msg += `${(page - 1) * limit + i + 1}. ${star} ${name}${pool}\n`
-      })
-      if (pages > 1) {
-        const pageHint = poolLabel ? `${prefix}抽卡记录 ${poolLabel} 2` : `${prefix}抽卡记录 2`
-        msg += `\n查看其他页：${pageHint}`
+    for (const sec of poolSections) {
+      msg += `\n【${sec.label}】共 ${sec.total} 抽\n`
+      if (sec.hasRecords) {
+        sec.records.forEach((r) => {
+          msg += `${r.index}. ★${r.rarity} ${r.name}\n`
+        })
+      } else {
+        msg += '暂无记录\n'
       }
-    } else {
-      msg += `\n${getMessage('gacha.no_records')}`
     }
     await this.reply(msg)
     return true
@@ -811,20 +803,32 @@ export class EndfieldGacha extends plugin {
 
     if (this.e?.runtime?.render) {
       try {
-        const pageWidth = 520
-        const baseOpt = { scale: 1.6, retType: 'base64', viewport: { width: pageWidth, height: 900 } }
+        // 统计概览数据
+        const overallStats = statsData.stats || {}
+        const limited = getPool('limited_char', 'limited')
+        const standard = getPool('standard_char', 'standard')
+        const beginner = getPool('beginner_char', 'beginner')
+        const weapon = getPool('weapon', 'weapon')
+        const baseOpt = { scale: 1.6, retType: 'base64' }
         const renderData = {
-          pageWidth,
           title: '抽卡分析',
           subtitle: `${userNickname} · ${userInfo.channel_name || ''}`,
           userAvatar,
           userNickname,
           userUid,
           analysisTime,
+          totalCount: overallStats.total_count ?? 0,
+          star6: overallStats.star6_count ?? 0,
+          star5: overallStats.star5_count ?? 0,
+          star4: overallStats.star4_count ?? 0,
+          limitedTotal: limited.total ?? 0,
+          standardTotal: standard.total ?? 0,
+          beginnerTotal: beginner.total ?? 0,
+          weaponTotal: weapon.total ?? 0,
           poolGroups,
-          recordHint: `${prefix}抽卡记录`,
-          syncHint: `若需要刷新，发送 ${prefix}同步抽卡记录`,
-          pluResPath
+          syncHint: `若需要刷新，发送 :同步抽卡记录`,
+          pluResPath,
+          ...getCopyright()
         }
         const imgSegment = await this.e.runtime.render('endfield-plugin', 'gacha/gacha-analysis', renderData, baseOpt)
         if (imgSegment) {
@@ -873,6 +877,7 @@ export class EndfieldGacha extends plugin {
 
   /** 全服抽卡统计：4 张图合并转发，失败则回退文字；当前 UP 优先从 bili-wiki activities（is_active + description）取 */
   async globalGachaStats() {
+    const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
     const data = await hypergryphAPI.getGachaGlobalStats()
     if (!data?.stats) {
       await this.reply(getMessage('gacha.global_stats_failed'))
@@ -932,6 +937,16 @@ export class EndfieldGacha extends plugin {
     const upWinRatePercent = (upEntry?.percent != null ? Number(upEntry.percent).toFixed(1) : '--.-')
     const upWinRateNum = (upEntry?.percent != null ? Math.min(100, Math.max(0, Number(upEntry.percent))) : 0)
 
+    // 武器 UP 出货占比
+    const upWeaponNameStr = biliUp?.upWeaponName || pool?.up_weapon_name || ''
+    const rankingWeapon = s.ranking?.weapon?.six_star || []
+    const upWeaponEntry = upWeaponNameStr ? rankingWeapon.find((r) => {
+      const n = (r.char_name || '').trim()
+      return n === upWeaponNameStr || n.includes(upWeaponNameStr) || upWeaponNameStr.includes(n)
+    }) : null
+    const upWeaponWinRatePercent = (upWeaponEntry?.percent != null ? Number(upWeaponEntry.percent).toFixed(1) : '--.-')
+    const upWeaponWinRateNum = (upWeaponEntry?.percent != null ? Math.min(100, Math.max(0, Number(upWeaponEntry.percent))) : 0)
+
     const isUpChar = (r) => {
       if (upCharNames.length > 0) return upCharNames.some((n) => (r.char_name || '') === n || (r.char_name || '').includes(n))
       return !!(upCharId && r.char_id === upCharId)
@@ -959,60 +974,58 @@ export class EndfieldGacha extends plugin {
 
     if (this.e?.runtime?.render) {
       try {
-        // 页面宽度适配：750px 便于合并转发展示；viewport 与 scale 配合控制输出尺寸
-        const gachaPageWidth = 750
-        const baseOpt = {
-          scale: 1.6,
-          retType: 'base64',
-          viewport: { width: gachaPageWidth, height: 1200 }
-        }
-        const forwardMessages = []
-        for (const { key, label } of GACHA_POOLS) {
+        // 构建各池子数据（beginner 合并到 standard）
+        const buildPoolSection = (key, label, rankTop = 5) => {
           const poolData = byType[key] || {}
           const poolTotal = poolData.total ?? 0
           const poolStar6 = poolData.star6 ?? 0
-          const avgPity = poolData.avg_pity != null ? Number(poolData.avg_pity).toFixed(2) : '-'
-          const star6Rate = poolTotal > 0 ? ((poolStar6 / poolTotal) * 100).toFixed(2) + '%' : '0%'
-          const star6RatePercent = poolTotal > 0 ? Math.min(100, (poolStar6 / poolTotal) * 100 * 20) : 0
-          const avgPityPercent = avgPity !== '-' ? Math.min(100, (parseFloat(avgPity) / 90) * 100) : 0
-          const rankingTab6 = key === 'weapon' ? '6星武器' : '6星干员'
-          const rankingTab5 = key === 'weapon' ? '5星武器' : '5星干员'
-          const rankingList6 = buildRankingList(s.ranking?.[key]?.six_star || [], key === 'limited').slice(0, 10)
-          const rankingList5 = buildRankingList(s.ranking?.[key]?.five_star || [], false).slice(0, 10)
-          const renderData = {
-            title: '全服寻访统计',
-            pageWidth: gachaPageWidth,
-            syncTime,
-            totalPulls,
-            totalUsers,
-            star6,
-            globalAvgPity: s.avg_pity != null ? Number(s.avg_pity).toFixed(2) : '-',
-            showUpBlock: key === 'limited',
-            upName,
-            upWinRate: upWinRatePercent + '%',
-            upWinRateNum,
-            official,
-            bilibili,
-            poolChartTitle: label,
-            avgPity,
-            avgPityPercent,
-            star6Rate,
-            star6RatePercent,
-            star5: poolData.star5 ?? 0,
-            star4: poolData.star4 ?? 0,
+          const pAvgPity = poolData.avg_pity != null ? Number(poolData.avg_pity).toFixed(1) : '-'
+          const pStar6Rate = poolTotal > 0 ? ((poolStar6 / poolTotal) * 100).toFixed(2) + '%' : '0%'
+          const rankingList6 = buildRankingList(s.ranking?.[key]?.six_star || [], key === 'limited').slice(0, rankTop)
+          const rankingList5 = buildRankingList(s.ranking?.[key]?.five_star || [], false).slice(0, rankTop)
+          return {
+            label, key,
+            total: poolTotal, star6: poolStar6, star5: poolData.star5 ?? 0, star4: poolData.star4 ?? 0,
+            avgPity: pAvgPity, star6Rate: pStar6Rate,
             distributionList: buildDistributionList(poolData.distribution),
-            showRankingBlock: key !== 'beginner',
-            rankingList6,
-            rankingList5,
-            rankingTab6,
-            rankingTab5
+            showRanking: true, rankingList6, rankingList5,
+            rankingTab6: key === 'weapon' ? '6星武器' : '6星干员',
+            rankingTab5: key === 'weapon' ? '5星武器' : '5星干员'
           }
-          const imgSegment = await this.e.runtime.render('endfield-plugin', 'gacha/global-stats', renderData, baseOpt)
-          if (imgSegment) forwardMessages.push([imgSegment])
         }
-        if (forwardMessages.length > 0) {
-          const forwardMsg = common.makeForwardMsg(this.e, forwardMessages, '全服抽卡统计 · 常驻 / 新手 / 武器 / 限定')
-          await this.e.reply(forwardMsg)
+
+        const standardSec = buildPoolSection('standard', '常驻角色')
+        const beginnerSec = buildPoolSection('beginner', '新手池')
+        beginnerSec.showRanking = false
+        const weaponSec = buildPoolSection('weapon', '武器池')
+        const limitedSec = buildPoolSection('limited', '限定角色', 10)
+
+        // 排列：新手（全宽），常驻 | 武器（第二行），限定（全宽）
+        const poolSections = [beginnerSec, standardSec, weaponSec, limitedSec]
+
+        const renderData = {
+          title: '全服寻访统计',
+          syncTime,
+          totalPulls,
+          totalUsers,
+          star6,
+          globalAvgPity: s.avg_pity != null ? Number(s.avg_pity).toFixed(2) : '-',
+          showUpBlock: !!(upName && upName !== '-'),
+          upName,
+          upWeaponName: upWeaponNameStr,
+          upWinRate: upWinRatePercent + '%',
+          upWinRateNum,
+          upWeaponWinRate: upWeaponWinRatePercent + '%',
+          upWeaponWinRateNum,
+          official,
+          bilibili,
+          poolSections,
+          pluResPath,
+          ...getCopyright()
+        }
+        const imgSegment = await this.e.runtime.render('endfield-plugin', 'gacha/global-stats', renderData, { scale: 1.6, retType: 'base64' })
+        if (imgSegment) {
+          await this.reply(imgSegment)
           return true
         }
       } catch (err) {
@@ -1158,7 +1171,7 @@ export class EndfieldGacha extends plugin {
       await redis.del(GACHA_KEYS.pending(this.e.user_id))
       return true
     }
-    const msg = (this.e.msg || '').trim().replace(/^[:：]\s*/, '')
+    const msg = (this.e.msg || '').trim().replace(/^(?:[:：]|#zmd|#终末地)\s*/, '')
     const index = parseInt(msg, 10)
     if (!Number.isFinite(index) || index < 1 || index > (data.accounts?.length || 0)) {
       await this.reply(getMessage('gacha.invalid_index'))
