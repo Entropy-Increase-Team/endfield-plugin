@@ -24,6 +24,7 @@ export class EndfieldAttendance extends plugin {
     })
 
     this.setting = setting.getConfig('sign')
+    this.common_setting = setting.getConfig('common')
     this.task = {
       cron: this.setting.auto_sign_cron,
       name: '终末地森空岛签到任务',

@@ -252,6 +252,7 @@ export class EndfieldUid extends plugin {
       ]
     })
     this.help_setting = setting.getConfig('help')
+    this.common_setting = setting.getConfig('common')
   }
 
   async saveUnifiedBackendBinding(frameworkToken, bindingData, loginType = 'unknown') {

@@ -17,6 +17,7 @@ export class EndfieldNote extends plugin {
         }
       ]
     })
+    this.common_setting = setting.getConfig('common')
   }
 
   async getNote() {
