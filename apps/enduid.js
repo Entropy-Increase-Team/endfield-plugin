@@ -3,7 +3,7 @@ import { saveUserBindings, cleanAccounts, REDIS_KEY } from '../model/endfieldUse
 import EndfieldRequest from '../model/endfieldReq.js'
 import setting from '../utils/setting.js'
 import hypergryphAPI from '../model/hypergryphApi.js'
-import { sendOperatorList } from './operator.js'
+import { EndfieldOperator } from './operator.js'
 
 // 网页授权绑定后台轮询任务
 let authPollingTimer = null
@@ -326,7 +326,9 @@ export class EndfieldUid extends plugin {
     await saveUserBindings(this.e.user_id, accounts)
     // 绑定成功后自动发送干员列表（静默失败，不影响绑定流程）
     try {
-      await sendOperatorList(this.e, this.e.user_id, { skipLoadingReply: true })
+      const operatorInstance = new EndfieldOperator()
+      operatorInstance.e = this.e
+      await operatorInstance.getOperatorList()
     } catch (err) {
       logger.error(`[终末地插件][绑定]绑定成功后发送干员列表失败: ${err}`)
     }

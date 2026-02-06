@@ -17,140 +17,6 @@ const META_ATTRPANLE_DIR = path.join(_meta, 'attrpanle')
 const META_PHASES_DIR = path.join(_meta, 'phases')
 const LIST_BG_FILES = ['bg1.png', 'bg2.png']
 
-/**
- * 获取并发送干员列表（可被 enduid 绑定成功后调用）
- * @param {object} e 消息事件对象
- * @param {string} [userId] 用户ID，不传则用 e.at || e.user_id
- * @param {{ skipLoadingReply?: boolean }} [options] skipLoadingReply 为 true 时不发送「正在获取干员列表」
- * @returns {Promise<boolean>}
- */
-export async function sendOperatorList(e, userId, options = {}) {
-  const uid = userId !== undefined && userId !== null ? userId : (e.at || e.user_id)
-  const sklUser = new EndfieldUser(uid)
-
-  if (!(await sklUser.getUser())) {
-    await e.reply(getUnbindMessage())
-    return true
-  }
-
-  if (!options.skipLoadingReply) {
-    await e.reply(getMessage('operator.loading_list'))
-  }
-
-  try {
-    const res = await sklUser.sklReq.getData('endfield_card_detail')
-    if (!res || res.code !== 0) {
-      logger.error(`[终末地干员列表]card/detail 失败: ${JSON.stringify(res)}`)
-      await e.reply(getMessage('operator.get_role_failed'))
-      return true
-    }
-    const detail = res.data?.detail || {}
-    const base = detail.base || {}
-    const chars = detail.chars || []
-
-    if (!chars.length) {
-      await e.reply(getMessage('operator.not_found_info'))
-      return true
-    }
-
-    const operators = chars.map((char) => {
-      const c = char.charData || char
-      const imageUrl = c.avatarRtUrl || ''
-      const rarity = parseInt(c.rarity?.value || '1', 10) || 1
-      const rarityClass = `rarity_${rarity}`
-      const level = char.level ?? c.level ?? 0
-      const profession = c.profession?.value || ''
-      const property = c.property?.value || ''
-      const professionIcon = iconToDataUrl(META_CLASS_DIR, profession)
-      const propertyIcon = iconToDataUrl(META_ATTRPANLE_DIR, property)
-      const colorCodeMap = {
-        char_property_physical: 'PHY',
-        char_property_fire: 'FIRE',
-        char_property_electric: 'ELEC',
-        char_property_pulse: 'ELEC',
-        char_property_ice: 'ICE',
-        char_property_cryst: 'ICE',
-        char_property_nature: 'NATURE'
-      }
-      const colorCode = (colorCodeMap[c.property?.key] || c.colorCode || 'PHY').toUpperCase()
-      const name = String(c.name ?? '').trim() || '未知'
-      const evolvePhase = parseInt(char.evolvePhase ?? c.evolvePhase ?? '0', 10) || 0
-      const potentialLevel = parseInt(char.potentialLevel ?? c.potentialLevel ?? '0', 10) || 0
-      const phaseIcon = iconToDataUrl(META_PHASES_DIR, `phase-${evolvePhase}`)
-      return {
-        name,
-        nameChars: Array.from(name),
-        imageUrl: imageUrl,
-        rarityClass,
-        rarity,
-        level,
-        profession,
-        professionIcon,
-        property,
-        propertyIcon,
-        colorCode,
-        evolvePhase,
-        potentialLevel,
-        phaseIcon
-      }
-    })
-
-    // 按星级从高到低排序展示（六星 → 五星 → 四星）
-    operators.sort((a, b) => (b.rarity - a.rarity))
-
-    // 固定列宽、列数、间距，反算总宽；viewport 略大于内容宽避免裁切
-    const LIST_COLUMN_COUNT = 6
-    const LIST_CARD_WIDTH_PX = 300
-    const LIST_GAP_PX = 12
-    const LIST_CONTAINER_PADDING_PX = 48
-    const listContentWidth =
-      LIST_COLUMN_COUNT * LIST_CARD_WIDTH_PX + (LIST_COLUMN_COUNT - 1) * LIST_GAP_PX
-    const listPageWidth = LIST_CONTAINER_PADDING_PX + listContentWidth
-    const listCardScale = LIST_CARD_WIDTH_PX / 800
-    const viewportWidth = listPageWidth + 40
-
-    const userAvatar = base?.avatarUrl || ''
-    const userNickname = base?.name || '未知'
-    const userLevel = base?.level ?? 0
-    const listBgFile = LIST_BG_FILES[Math.floor(Math.random() * LIST_BG_FILES.length)]
-
-    const pluResPath = e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
-    const tplData = {
-      totalCount: operators.length,
-      operators,
-      userAvatar,
-      userNickname,
-      userLevel,
-      listBgFile,
-      listCardScale,
-      listColumnCount: LIST_COLUMN_COUNT,
-      listCardWidthPx: LIST_CARD_WIDTH_PX,
-      listGapPx: LIST_GAP_PX,
-      listPageWidth,
-      listContentWidth,
-      pluResPath
-    }
-
-    if (!e.runtime?.render) {
-      await e.reply(getMessage('operator.list_failed'))
-      return true
-    }
-    const img = await e.runtime.render('endfield-plugin', 'operator/list', tplData, {
-      retType: 'base64',
-      viewport: { width: viewportWidth }
-    })
-    if (img) {
-      await e.reply(img)
-    } else {
-      await e.reply(getMessage('operator.list_failed'))
-    }
-    return true
-  } catch (error) {
-    logger.error(`[终末地干员列表]查询失败: ${error}`)
-    await e.reply(getMessage('operator.query_failed', { error: error.message }))
-    return true
-  }
-}
 
 function iconToDataUrl(dir, chineseName) {
   if (!chineseName || typeof chineseName !== 'string') return ''
@@ -177,7 +43,7 @@ export class EndfieldOperator extends plugin {
       rule: [
         {
           reg: '^(?:[:：]|#zmd|#终末地)干员列表$',
-          fnc: 'sendOperatorList'
+          fnc: 'getOperatorList'
         },
         {
           reg: '^(?:[:：]|#zmd|#终末地)(.+?)面板$',
@@ -409,20 +275,131 @@ export class EndfieldOperator extends plugin {
     return { base, chars, serverName }
   }
 
-  async fetchCharacterDetailForList(sklUser) {
-    const res = await sklUser.sklReq.getData('endfield_card_detail')
-    if (!res || res.code !== 0) {
-      logger.error(`[终末地干员列表]card/detail 失败: ${JSON.stringify(res)}`)
-      return null
-    }
-    const detail = res.data?.detail || {}
-    const base = detail.base || {}
-    const chars = detail.chars || []
-    return { base, chars }
-  }
-
+  
   async getOperatorList() {
-    return sendOperatorList(this.e, this.e.at || this.e.user_id)
+    const uid = this.e.at || this.e.user_id
+    const sklUser = new EndfieldUser(uid)
+
+    if (!(await sklUser.getUser())) {
+      await this.reply(getUnbindMessage())
+      return true
+    }
+
+    await this.reply(getMessage('operator.loading_list'))
+
+    try {
+      const res = await sklUser.sklReq.getData('endfield_card_detail')
+      if (!res || res.code !== 0) {
+        logger.error(`[终末地干员列表]card/detail 失败: ${JSON.stringify(res)}`)
+        await this.reply(getMessage('operator.get_role_failed'))
+        return true
+      }
+      const detail = res.data?.detail || {}
+      const base = detail.base || {}
+      const chars = detail.chars || []
+
+      if (!chars.length) {
+        await this.reply(getMessage('operator.not_found_info'))
+        return true
+      }
+
+      const operators = chars.map((char) => {
+        const c = char.charData || char
+        const imageUrl = c.avatarRtUrl || ''
+        const rarity = parseInt(c.rarity?.value || '1', 10) || 1
+        const rarityClass = `rarity_${rarity}`
+        const level = char.level ?? c.level ?? 0
+        const profession = c.profession?.value || ''
+        const property = c.property?.value || ''
+        const professionIcon = iconToDataUrl(META_CLASS_DIR, profession)
+        const propertyIcon = iconToDataUrl(META_ATTRPANLE_DIR, property)
+        const colorCodeMap = {
+          char_property_physical: 'PHY',
+          char_property_fire: 'FIRE',
+          char_property_electric: 'ELEC',
+          char_property_pulse: 'ELEC',
+          char_property_ice: 'ICE',
+          char_property_cryst: 'ICE',
+          char_property_nature: 'NATURE'
+        }
+        const colorCode = (colorCodeMap[c.property?.key] || c.colorCode || 'PHY').toUpperCase()
+        const name = String(c.name ?? '').trim() || '未知'
+        const evolvePhase = parseInt(char.evolvePhase ?? c.evolvePhase ?? '0', 10) || 0
+        const potentialLevel = parseInt(char.potentialLevel ?? c.potentialLevel ?? '0', 10) || 0
+        const phaseIcon = iconToDataUrl(META_PHASES_DIR, `phase-${evolvePhase}`)
+        return {
+          name,
+          nameChars: Array.from(name),
+          imageUrl: imageUrl,
+          rarityClass,
+          rarity,
+          level,
+          profession,
+          professionIcon,
+          property,
+          propertyIcon,
+          colorCode,
+          evolvePhase,
+          potentialLevel,
+          phaseIcon
+        }
+      })
+
+      // 按星级从高到低排序展示（六星 → 五星 → 四星）
+      operators.sort((a, b) => (b.rarity - a.rarity))
+
+      // 固定列宽、列数、间距，反算总宽；viewport 略大于内容宽避免裁切
+      const LIST_COLUMN_COUNT = 6
+      const LIST_CARD_WIDTH_PX = 300
+      const LIST_GAP_PX = 12
+      const LIST_CONTAINER_PADDING_PX = 48
+      const listContentWidth =
+        LIST_COLUMN_COUNT * LIST_CARD_WIDTH_PX + (LIST_COLUMN_COUNT - 1) * LIST_GAP_PX
+      const listPageWidth = LIST_CONTAINER_PADDING_PX + listContentWidth
+      const listCardScale = LIST_CARD_WIDTH_PX / 800
+      const viewportWidth = listPageWidth + 40
+
+      const userAvatar = base?.avatarUrl || ''
+      const userNickname = base?.name || '未知'
+      const userLevel = base?.level ?? 0
+      const listBgFile = LIST_BG_FILES[Math.floor(Math.random() * LIST_BG_FILES.length)]
+
+      const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
+      const tplData = {
+        totalCount: operators.length,
+        operators,
+        userAvatar,
+        userNickname,
+        userLevel,
+        listBgFile,
+        listCardScale,
+        listColumnCount: LIST_COLUMN_COUNT,
+        listCardWidthPx: LIST_CARD_WIDTH_PX,
+        listGapPx: LIST_GAP_PX,
+        listPageWidth,
+        listContentWidth,
+        pluResPath
+      }
+
+      if (!this.e.runtime?.render) {
+        await this.reply(getMessage('operator.list_failed'))
+        return true
+      }
+      const img = await this.e.runtime.render('endfield-plugin', 'operator/list', tplData, {
+        retType: 'base64',
+        viewport: { width: viewportWidth }
+      })
+      if (img) {
+        await this.e.reply(img)
+      } else {
+        await this.reply(getMessage('operator.list_failed'))
+      }
+      return true
+    } catch (error) {
+      logger.error(`[终末地干员列表]查询失败: ${error}`)
+      await this.reply(getMessage('operator.query_failed', { error: error.message }))
+      return true
+    }
   }
 
   splitContent(content, maxLength = 2000) {
