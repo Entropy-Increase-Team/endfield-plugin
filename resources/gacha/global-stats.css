@@ -494,6 +494,12 @@ html, body {
   margin-bottom: 2px;
 }
 
+.footer-hint {
+  font-size: 0.7rem;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
 .footer-text {
   font-size: 0.7rem;
   color: #1f2937;

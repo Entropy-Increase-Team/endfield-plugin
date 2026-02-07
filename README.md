@@ -14,7 +14,7 @@
 
 - 一个适用于 [Yunzai 系列机器人框架](https://github.com/yhArcadia/Yunzai-Bot-plugins-index) 的明日方舟：终末地游戏数据查询插件
 
-- 支持网页授权 / 扫码 / 手机号 / Cred 绑定，支持便签、干员面板、Wiki、攻略、帝江号与地区建设等查询
+- 支持网页授权 / 扫码 / 手机号 绑定，支持便签、干员面板、Wiki、攻略、帝江号与地区建设等查询
 
 > [!TIP]
 > 终末地-协议终端交流群，欢迎加入 [160759479](https://qm.qq.com/q/zZXruW6V4Q) 交流反馈。

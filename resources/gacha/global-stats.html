@@ -10,7 +10,7 @@
     <!-- 顶部栏 -->
     <div class="top-bar">
       <div class="top-bar-center">
-        <h1 class="top-title">{{title}}</h1>
+        <h1 class="top-title">{{title}}{{if periodLabel}} · {{periodLabel}}{{/if}}</h1>
         <p class="top-sub">{{syncTime}}</p>
       </div>
       {{if pluResPath}}
@@ -164,6 +164,9 @@
     <!-- 页脚 -->
     <footer class="footer">
       <div class="footer-note">所有数据来源于已绑定账号的玩家自动同步，数据缓存 5 分钟</div>
+      {{if periodHint}}
+      <div class="footer-hint">{{periodHint}}</div>
+      {{/if}}
       <div class="footer-text">{{@copyright}}</div>
     </footer>
   </div>

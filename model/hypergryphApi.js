@@ -631,15 +631,22 @@ let hypergryphAPI = {
   /**
    * 抽卡记录：全服统计（公开接口，无需认证）
    * GET /api/endfield/gacha/global-stats
+   * @param {string} [poolPeriod] 限定池分期（卡池名称），只统计该期；不传则返回全量
+   * @param {boolean} [refresh] 是否强制刷新缓存
    * @returns {{ cached?: boolean, last_update?: string, stats?: object } | null}
    */
-  async getGachaGlobalStats() {
+  async getGachaGlobalStats(poolPeriod = '', refresh = false) {
     const config = getUnifiedBackendConfig()
     const headers = {}
     if (config.apiKey) headers['X-API-Key'] = config.apiKey
+    const qs = new URLSearchParams()
+    if (poolPeriod && String(poolPeriod).trim()) qs.set('pool_period', String(poolPeriod).trim())
+    if (refresh === true) qs.set('refresh', 'true')
+    const query = qs.toString()
+    const url = `${config.baseUrl}/api/endfield/gacha/global-stats` + (query ? `?${query}` : '')
 
     try {
-      const response = await fetch(`${config.baseUrl}/api/endfield/gacha/global-stats`, {
+      const response = await fetch(url, {
         timeout: 15000,
         method: 'get',
         headers: Object.keys(headers).length ? headers : undefined

@@ -12,17 +12,7 @@ const GACHA_KEYS = {
   lastAnalysis: (userId) => `ENDFIELD:GACHA_LAST_ANALYSIS:${userId}`,
   lastUpPool: (userId) => `ENDFIELD:GACHA_LAST_UP:${userId}`
 }
-const SYNC_MS = { pollInterval: 1500, pollTimeout: Infinity, hourlyDelayMin: 5000, hourlyDelayMax: 10000 }
-
-/** 卡池唯一配置：抽卡记录分类与全服统计共用；用户输入按 label 模糊匹配（含“常驻”“新手池”等） */
-const GACHA_POOLS = [
-  { key: 'standard', label: '常驻角色' },
-  { key: 'beginner', label: '新手池' },
-  { key: 'weapon', label: '武器池' },
-  { key: 'limited', label: '限定角色' }
-]
-/** bili-wiki 当期 UP 缓存，5 分钟有效 */
-const BILI_WIKI_UP_CACHE = { data: null, ts: 0, ttl: 5 * 60 * 1000 }
+const SYNC_MS = { pollInterval: 1500, pollTimeout: Infinity }
 
 /** 保底与进度条：角色池小保底 80、大保底 120；武器池保底 31～40、进度条满 40 */
 const PITY = {
@@ -40,12 +30,6 @@ export class EndfieldGacha extends plugin {
       dsc: '终末地抽卡记录同步',
       event: 'message',
       priority: 50,
-      task: {
-        name: '[endfield-plugin]抽卡记录定时同步',
-        cron: '0 * * * *',
-        fnc: () => this.hourlySyncAllGacha(),
-        log: true
-      },
       rule: [
         {
           reg: '^(?:[:：]|#zmd|#终末地)抽卡记录(?:\\s*(.+))?$',
@@ -56,11 +40,16 @@ export class EndfieldGacha extends plugin {
           fnc: 'viewGachaAnalysis'
         },
         {
-          reg: '^(?:[:：]|#zmd|#终末地)全服抽卡统计$',
+          reg: '^(?:[:：]|#zmd|#终末地)全服抽卡统计(?:\\s+(.+))?$',
           fnc: 'globalGachaStats'
         },
         {
-          reg: '^(?:[:：]|#zmd|#终末地)?\\d+$',
+          reg: '^(?:[:：]|#zmd|#终末地)同步全部抽卡$',
+          fnc: 'syncAllGacha',
+          permission: 'master'
+        },
+        {
+          reg: '^(?:[:：]|#zmd|#终末地)?[1-9]\\d{0,2}$',
           fnc: 'receiveGachaSelect'
         }
       ]
@@ -74,10 +63,6 @@ export class EndfieldGacha extends plugin {
    * 失败或未配置 api_key 时返回 null。
    */
   async getCurrentUpFromBiliWiki() {
-    const now = Date.now()
-    if (BILI_WIKI_UP_CACHE.data && now - BILI_WIKI_UP_CACHE.ts < BILI_WIKI_UP_CACHE.ttl) {
-      return BILI_WIKI_UP_CACHE.data
-    }
     const commonCfg = setting.getConfig('common') || {}
     if (!commonCfg.api_key || String(commonCfg.api_key).trim() === '') return null
     try {
@@ -117,10 +102,7 @@ export class EndfieldGacha extends plugin {
         if (pName && upStr) poolUpMap[pName] = upStr
       }
       const upCharName = upCharNames.length > 0 ? upCharNames.join('、') : ''
-      const data = { upCharNames, upCharName, upWeaponName, activeCharPoolName, activeWeaponPoolName, poolUpMap }
-      BILI_WIKI_UP_CACHE.data = data
-      BILI_WIKI_UP_CACHE.ts = now
-      return data
+      return { upCharNames, upCharName, upWeaponName, activeCharPoolName, activeWeaponPoolName, poolUpMap }
     } catch (e) {
       logger.error(`[终末地插件][抽卡] getCurrentUpFromBiliWiki 失败: ${e?.message || e}`)
       return null
@@ -188,11 +170,17 @@ export class EndfieldGacha extends plugin {
       } catch (e) { /* 获取失败不影响记录展示 */ }
     }
 
-    // 并行获取统计 + 四个池子记录 + note（用户头像）
+    // 抽卡记录按池子：常驻/新手/武器/限定
+    const poolList = [
+      { key: 'standard', label: '常驻角色' },
+      { key: 'beginner', label: '新手池' },
+      { key: 'weapon', label: '武器池' },
+      { key: 'limited', label: '限定角色' }
+    ]
     const [statsData, noteRes, ...poolResults] = await Promise.all([
       hypergryphAPI.getGachaStats(sklUser.framework_token),
       sklUser.sklReq.getData('note').catch(() => null),
-      ...GACHA_POOLS.map(({ key }) =>
+      ...poolList.map(({ key }) =>
         hypergryphAPI.getGachaRecords(sklUser.framework_token, { page, limit, pools: key }).catch(() => null)
       )
     ])
@@ -220,7 +208,7 @@ export class EndfieldGacha extends plugin {
     }
 
     // 构建每个池子的数据
-    const poolSections = GACHA_POOLS.map(({ key, label }, idx) => {
+    const poolSections = poolList.map(({ key, label }, idx) => {
       const rd = poolResults[idx]
       const records = rd?.records || []
       const total = rd?.total ?? 0
@@ -292,13 +280,31 @@ export class EndfieldGacha extends plugin {
     return true
   }
 
-  /** 抽卡分析：始终走同步流程（支持多账号选择、增量同步、自动出图） */
+  /** 抽卡分析：不带「同步」则仅用已有数据出图；带「同步」才走同步流程（多账号选择、增量同步、同步完成后出图） */
   async viewGachaAnalysis() {
     const wantsSync = /同步/.test(this.e.msg || '')
+    if (!wantsSync) {
+      // 不同步：直接拉取当前账号的 stats 并出图，无数据时提示先同步
+      const sklUser = new EndfieldUser(this.e.user_id)
+      if (!(await sklUser.getUser())) {
+        await this.reply(getUnbindMessage())
+        return true
+      }
+      const statsData = await hypergryphAPI.getGachaStats(sklUser.framework_token)
+      const hasRecord = statsData?.has_records === true ||
+        (statsData?.last_fetch != null && String(statsData.last_fetch).trim() !== '') ||
+        ((statsData?.stats?.total_count ?? 0) > 0)
+      if (!statsData || !hasRecord) {
+        await this.reply(getMessage('gacha.analysis_need_sync'))
+        return true
+      }
+      await this.renderGachaAnalysisAndReply(statsData)
+      return true
+    }
     return await this.syncGacha({
       afterSyncSendAnalysis: true,
       fromAnalysis: true,
-      selectPrompt: wantsSync ? getMessage('gacha.select_account_sync') : getMessage('gacha.select_account_query')
+      selectPrompt: getMessage('gacha.select_account_sync')
     })
   }
 
@@ -835,14 +841,46 @@ export class EndfieldGacha extends plugin {
     return msg.replace(/\{qq号\}/g, uid).replace(/\{qqname\}/g, name)
   }
 
-  /** 全服抽卡统计：4 张图合并转发，失败则回退文字；当前 UP 优先从 bili-wiki activities（is_active + description）取 */
+  /** 全服抽卡统计：常驻/新手/武器/限定四类卡池均展示；顶部 UP 与限定池可切换期数，发送「:全服抽卡统计 <干员名>」切换为该干员对应期 */
   async globalGachaStats() {
     const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
-    const data = await hypergryphAPI.getGachaGlobalStats()
+    const msg = (this.e.msg || '').trim()
+    const charNameMatch = msg.match(/(?:[:：]|#zmd|#终末地)全服抽卡统计\s*(.*)$/)
+    const charName = (charNameMatch && charNameMatch[1] ? charNameMatch[1].trim() : '') || ''
+
+    let data = await hypergryphAPI.getGachaGlobalStats()
     if (!data?.stats) {
       await this.reply(getMessage('gacha.global_stats_failed'))
       return true
     }
+
+    let periodLabel = '当期UP'
+    if (charName) {
+      const periods = data.stats.pool_periods || []
+      const found = periods.find((p) => {
+        const names = p.up_char_names || []
+        const poolName = (p.pool_name || '').trim()
+        return names.some((n) => (String(n || '').trim() === charName || (n || '').includes(charName) || charName.includes(n))) ||
+          poolName === charName || poolName.includes(charName) || charName.includes(poolName)
+      })
+      if (!found) {
+        await this.reply(`未找到包含「${charName}」的限定池，请检查干员名或卡池名。`)
+        return true
+      }
+      data = await hypergryphAPI.getGachaGlobalStats(found.pool_name)
+      if (!data?.stats) {
+        await this.reply(getMessage('gacha.global_stats_failed'))
+        return true
+      }
+      periodLabel = found.pool_name
+    } else {
+      const currentPoolName = data.stats.current_pool?.pool_name
+      if (currentPoolName) {
+        data = await hypergryphAPI.getGachaGlobalStats(currentPoolName)
+        if (data?.stats) periodLabel = '当期UP'
+      }
+    }
+
     const s = data.stats
     const totalPulls = s.total_pulls ?? 0
     const totalUsers = s.total_users ?? 0
@@ -852,26 +890,20 @@ export class EndfieldGacha extends plugin {
     const avgPity = s.avg_pity != null ? Number(s.avg_pity).toFixed(2) : '-'
     const pool = s.current_pool
     const biliUp = await this.getCurrentUpFromBiliWiki()
-    const upName = (biliUp?.upCharName && biliUp.upCharName.trim()) ? biliUp.upCharName.trim() : (pool?.up_char_name || '-')
-    const upCharNames = biliUp?.upCharNames || []
+    const upName = (pool?.up_char_name || (pool?.up_char_names && pool.up_char_names[0]) || (biliUp?.upCharName && biliUp.upCharName.trim()) || '-').trim()
+    const upCharNames = (pool?.up_char_names && pool.up_char_names.length) ? pool.up_char_names : (biliUp?.upCharNames?.length ? biliUp.upCharNames : [upName].filter(Boolean))
     const upCharId = pool?.up_char_id || ''
     const byChannel = s.by_channel
     const officialRaw = byChannel?.official
     const bilibiliRaw = byChannel?.bilibili
     const fmt = (v) => (v != null ? Number(v).toFixed(2) : '-')
-    // 格式化标题副标题时间：缓存显示「缓存约5分钟」，否则将 ISO 时间格式化为 YYYY-MM-DD HH:mm
     const formatSyncTime = (cached, lastUpdate) => {
       if (cached === true) return '缓存约5分钟'
       if (!lastUpdate) return '刚刚'
       try {
         const d = new Date(lastUpdate)
         if (Number.isNaN(d.getTime())) return String(lastUpdate)
-        const y = d.getFullYear()
-        const m = String(d.getMonth() + 1).padStart(2, '0')
-        const day = String(d.getDate()).padStart(2, '0')
-        const h = String(d.getHours()).padStart(2, '0')
-        const min = String(d.getMinutes()).padStart(2, '0')
-        return `${y}-${m}-${day} ${h}:${min}`
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
       } catch {
         return String(lastUpdate)
       }
@@ -896,9 +928,7 @@ export class EndfieldGacha extends plugin {
       rankingLimited.find((r) => r.char_name === upName)
     const upWinRatePercent = (upEntry?.percent != null ? Number(upEntry.percent).toFixed(1) : '--.-')
     const upWinRateNum = (upEntry?.percent != null ? Math.min(100, Math.max(0, Number(upEntry.percent))) : 0)
-
-    // 武器 UP 出货占比
-    const upWeaponNameStr = biliUp?.upWeaponName || pool?.up_weapon_name || ''
+    const upWeaponNameStr = (pool?.up_weapon_name && pool.up_weapon_name.trim()) ? pool.up_weapon_name.trim() : (biliUp?.upWeaponName && biliUp.upWeaponName.trim() ? biliUp.upWeaponName.trim() : '')
     const rankingWeapon = s.ranking?.weapon?.six_star || []
     const upWeaponEntry = upWeaponNameStr ? rankingWeapon.find((r) => {
       const n = (r.char_name || '').trim()
@@ -906,12 +936,10 @@ export class EndfieldGacha extends plugin {
     }) : null
     const upWeaponWinRatePercent = (upWeaponEntry?.percent != null ? Number(upWeaponEntry.percent).toFixed(1) : '--.-')
     const upWeaponWinRateNum = (upWeaponEntry?.percent != null ? Math.min(100, Math.max(0, Number(upWeaponEntry.percent))) : 0)
-
     const isUpChar = (r) => {
       if (upCharNames.length > 0) return upCharNames.some((n) => (r.char_name || '') === n || (r.char_name || '').includes(n))
       return !!(upCharId && r.char_id === upCharId)
     }
-
     const buildDistributionList = (distRaw) => {
       const list = distRaw || []
       const maxC = Math.max(...list.map((d) => d.count ?? 0), 1)
@@ -921,10 +949,8 @@ export class EndfieldGacha extends plugin {
         height: Math.min(100, Math.max(8, ((d.count ?? 0) / maxC) * 100))
       }))
     }
-
     const buildRankingList = (sixStar, isLimited) => {
-      const list = sixStar || []
-      return list.map((r) => ({
+      return (sixStar || []).map((r) => ({
         char_name: r.char_name || '-',
         count: r.count ?? 0,
         percent: (r.percent != null ? Number(r.percent).toFixed(1) : '0'),
@@ -934,7 +960,6 @@ export class EndfieldGacha extends plugin {
 
     if (this.e?.runtime?.render) {
       try {
-        // 构建各池子数据（beginner 合并到 standard）
         const buildPoolSection = (key, label, rankTop = 5) => {
           const poolData = byType[key] || {}
           const poolTotal = poolData.total ?? 0
@@ -953,24 +978,22 @@ export class EndfieldGacha extends plugin {
             rankingTab5: key === 'weapon' ? '5星武器' : '5星干员'
           }
         }
-
         const standardSec = buildPoolSection('standard', '常驻角色')
         const beginnerSec = buildPoolSection('beginner', '新手池')
         beginnerSec.showRanking = false
         const weaponSec = buildPoolSection('weapon', '武器池')
-        const limitedSec = buildPoolSection('limited', '限定角色', 10)
-
-        // 排列：新手（全宽），常驻 | 武器（第二行），限定（全宽）
+        const limitedSec = buildPoolSection('limited', periodLabel === '当期UP' ? '限定 · 当期UP' : `限定 · ${periodLabel}`, 10)
         const poolSections = [beginnerSec, standardSec, weaponSec, limitedSec]
 
         const renderData = {
           title: '全服寻访统计',
+          periodLabel,
           syncTime,
           totalPulls,
           totalUsers,
           star6,
           globalAvgPity: s.avg_pity != null ? Number(s.avg_pity).toFixed(2) : '-',
-          showUpBlock: !!(upName && upName !== '-'),
+          showUpBlock: !!(upName && upName !== '-') || !!(upWeaponNameStr && upWeaponNameStr !== ''),
           upName,
           upWeaponName: upWeaponNameStr,
           upWinRate: upWinRatePercent + '%',
@@ -981,6 +1004,7 @@ export class EndfieldGacha extends plugin {
           bilibili,
           poolSections,
           pluResPath,
+          periodHint: '发送 :全服抽卡统计 <干员名> 可查看其他期数',
           ...getCopyright()
         }
         const imgSegment = await this.e.runtime.render('endfield-plugin', 'gacha/global-stats', renderData, { scale: 1.6, retType: 'base64' })
@@ -993,18 +1017,87 @@ export class EndfieldGacha extends plugin {
       }
     }
 
-    let msg = '【全服抽卡统计】\n'
-    msg += `总抽数：${totalPulls} | 统计用户：${totalUsers}\n`
-    msg += `六星：${star6} | 五星：${star5} | 四星：${star4} | 平均出货：${avgPity} 抽\n`
-    msg += `当前UP：${upName}\n`
+    let text = '【全服抽卡统计】'
+    if (periodLabel !== '当期UP') text += ` · ${periodLabel}`
+    text += '\n'
+    text += `总抽数：${totalPulls} | 统计用户：${totalUsers}\n`
+    text += `六星：${star6} | 五星：${star5} | 四星：${star4} | 平均出货：${avgPity} 抽\n`
+    text += `当前UP：${upName}\n`
     if (officialRaw || bilibiliRaw) {
-      msg += '【按服务器】\n'
-      if (officialRaw) msg += `官服：${officialRaw.total_users ?? 0} 人，${officialRaw.total_pulls ?? 0} 抽，平均出货 ${fmt(officialRaw.avg_pity)}\n`
-      if (bilibiliRaw) msg += `B服：${bilibiliRaw.total_users ?? 0} 人，${bilibiliRaw.total_pulls ?? 0} 抽，平均出货 ${fmt(bilibiliRaw.avg_pity)}\n`
+      if (officialRaw) text += `官服：${officialRaw.total_users ?? 0} 人，${officialRaw.total_pulls ?? 0} 抽，均出 ${fmt(officialRaw.avg_pity)}\n`
+      if (bilibiliRaw) text += `B服：${bilibiliRaw.total_users ?? 0} 人，${bilibiliRaw.total_pulls ?? 0} 抽，均出 ${fmt(bilibiliRaw.avg_pity)}\n`
     }
-    if (data.cached === true) msg += '\n（缓存数据，约 5 分钟更新）'
-    else if (data.last_update) msg += `\n更新时间：${data.last_update}`
-    await this.reply(msg)
+    text += '\n发送 :全服抽卡统计 <干员名> 可查看其他期数\n'
+    if (data.cached === true) text += '（缓存约 5 分钟）'
+    else if (data.last_update) text += `更新时间：${data.last_update}`
+    await this.reply(text)
+    return true
+  }
+
+  /** 同步全部抽卡：管理员专用，为所有已绑定用户触发抽卡同步（仅发起请求，不轮询等待）；账号间间隔约 3 秒避免并发过高 */
+  async syncAllGacha() {
+    if (!this.e?.isMaster) return false
+    if (!redis) {
+      await this.reply(getMessage('gacha.no_accounts'))
+      return true
+    }
+    let keys = []
+    try {
+      keys = await redis.keys('ENDFIELD:USER:*')
+    } catch (err) {
+      logger.error(`[终末地插件][同步全部抽卡] redis.keys 失败: ${err?.message || err}`)
+      await this.reply('获取用户列表失败，请稍后重试。')
+      return true
+    }
+    const tasks = []
+    for (const key of keys) {
+      const userId = key.replace(/^ENDFIELD:USER:/, '')
+      const raw = await redis.get(REDIS_KEY(userId))
+      if (!raw) continue
+      let accounts = []
+      try {
+        const data = JSON.parse(raw)
+        accounts = Array.isArray(data) ? data : [{ ...data, is_active: true }]
+      } catch {
+        continue
+      }
+      const active = accounts.find((a) => a.is_active === true) || accounts[0]
+      const token = active?.framework_token
+      const roleId = active?.role_id != null ? String(active.role_id) : null
+      if (!token) continue
+      const accountsData = await hypergryphAPI.getGachaAccounts(token)
+      if (!accountsData?.accounts?.length) continue
+      const gachaAccounts = accountsData.accounts
+      if (gachaAccounts.length === 1) {
+        tasks.push({ token, accountUid: gachaAccounts[0]?.uid || null, roleId })
+      } else {
+        for (const acc of gachaAccounts) {
+          tasks.push({ token, accountUid: acc?.uid || null, roleId })
+        }
+      }
+    }
+    if (tasks.length === 0) {
+      await this.reply('暂无已绑定账号，无需同步。')
+      return true
+    }
+    let triggered = 0
+    let skipped = 0
+    for (let i = 0; i < tasks.length; i++) {
+      if (i > 0) await this.sleep(3000)
+      const { token, accountUid, roleId } = tasks[i]
+      const statusData = await hypergryphAPI.getGachaSyncStatus(token)
+      if (statusData?.status === 'syncing') {
+        skipped++
+        continue
+      }
+      const body = {}
+      if (accountUid) body.account_uid = accountUid
+      if (roleId) body.role_id = roleId
+      const res = await hypergryphAPI.postGachaFetch(token, body)
+      if (res?.status === 'conflict') skipped++
+      else if (res?.status) triggered++
+    }
+    await this.reply(`已为全部绑定账号触发抽卡同步：成功 ${triggered} 个${skipped > 0 ? `，跳过（进行中/冲突）${skipped} 个` : ''}。后台会陆续完成同步。`)
     return true
   }
 
@@ -1247,61 +1340,5 @@ export class EndfieldGacha extends plugin {
 
   sleep(ms) {
     return new Promise((r) => setTimeout(r, ms))
-  }
-
-  /** 定时任务：每小时自动同步所有账号的抽卡记录，每个账号开始时间间隔 5～10 秒随机 */
-  async hourlySyncAllGacha() {
-    let keys = []
-    try {
-      keys = await redis.keys('ENDFIELD:USER:*')
-    } catch (err) {
-      logger.error(`[终末地插件][抽卡定时同步]redis.keys 失败: ${err?.message || err}`)
-      return
-    }
-    const tasks = []
-    for (const key of keys) {
-      const userId = key.replace(/^ENDFIELD:USER:/, '')
-      const raw = await redis.get(REDIS_KEY(userId))
-      if (!raw) continue
-      let accounts = []
-      try {
-        const data = JSON.parse(raw)
-        accounts = Array.isArray(data) ? data : [{ ...data, is_active: true }]
-      } catch {
-        continue
-      }
-      const active = accounts.find((a) => a.is_active === true) || accounts[0]
-      const token = active?.framework_token
-      const roleId = active?.role_id != null ? String(active.role_id) : null
-      if (!token) continue
-      const accountsData = await hypergryphAPI.getGachaAccounts(token)
-      if (!accountsData?.accounts?.length) continue
-      const gachaAccounts = accountsData.accounts
-      if (gachaAccounts.length === 1) {
-        tasks.push({ token, accountUid: gachaAccounts[0]?.uid || null, roleId })
-      } else {
-        for (const acc of gachaAccounts) {
-          tasks.push({ token, accountUid: acc?.uid || null, roleId })
-        }
-      }
-    }
-    for (let i = 0; i < tasks.length; i++) {
-      if (i > 0) {
-        const delay = SYNC_MS.hourlyDelayMin + Math.floor(Math.random() * (SYNC_MS.hourlyDelayMax - SYNC_MS.hourlyDelayMin + 1))
-        await this.sleep(delay)
-      }
-      const { token, accountUid, roleId } = tasks[i]
-      const body = {}
-      if (accountUid) body.account_uid = accountUid
-      if (roleId) body.role_id = roleId
-      const res = await hypergryphAPI.postGachaFetch(token, body)
-      if (res?.status === 'conflict') {
-        logger.mark(`[终末地插件][抽卡定时同步] 某账号正在同步中，跳过`)
-      } else if (res?.status) {
-        logger.mark(`[终末地插件][抽卡定时同步] 已触发第 ${i + 1}/${tasks.length} 个账号同步`)
-      } else {
-        logger.warn(`[终末地插件][抽卡定时同步] 第 ${i + 1} 个账号触发失败`)
-      }
-    }
   }
 }

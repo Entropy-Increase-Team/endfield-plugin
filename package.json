@@ -1,6 +1,6 @@
 {
   "name": "endfield-plugin",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Yunzai-Bot 终末地插件（基于森空岛）",
   "type": "module",
   "module": "index.js",
