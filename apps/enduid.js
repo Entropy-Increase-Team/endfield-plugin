@@ -562,11 +562,6 @@ export class EndfieldUid extends plugin {
   }
 
   async deleteBind() {
-    if (this.e.isGroup) {
-      await this.reply(getMessage('enduid.please_private_op'))
-      return true
-    }
-
     const index = parseInt(this.e.msg.match(/\d+/)?.[0] || '0')
     if (index < 1) {
       await this.reply(getMessage('enduid.delete_index_hint', { prefix: this.getCmdPrefix() }))

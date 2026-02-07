@@ -798,11 +798,6 @@ export default function getMessageSchemas() {
       component: 'Input',
     },
     {
-      field: 'enduid.please_private_op',
-      label: '登陆 - 请私聊操作',
-      component: 'Input',
-    },
-    {
       field: 'enduid.unbind_hint',
       label: '登陆 - 未绑定提示',
       component: 'Input',

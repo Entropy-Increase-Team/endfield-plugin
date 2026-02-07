@@ -229,7 +229,6 @@ enduid:
   qr_timeout: "二维码已超时，请重新获取"
   qr_login_ok: "✅ 登录成功，正在创建绑定..."
   qr_error: "扫码登录过程出现错误"
-  please_private_op: "此操作需私聊进行"
   unbind_hint: "尚未绑定账号，请先使用「:绑定帮助」查看绑定方式"
   token_show: |
     🔑 当前激活账号的Framework Token：

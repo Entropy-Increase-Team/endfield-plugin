@@ -122,7 +122,7 @@ export class announcement extends plugin {
       priority: 50,
       task: {
         name: '[endfield-plugin]公告推送',
-        cron: '*/10 * * * *',
+        cron: '*/2 * * * *',
         fnc: () => this.pushNewAnnouncement()
       },
       rule: [
