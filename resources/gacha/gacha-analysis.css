@@ -323,6 +323,8 @@ html, body {
 }
 
 .bar-text {
+  position: relative;
+  z-index: 2;
   font-size: 0.82rem;
   font-weight: 600;
   color: #fff;
@@ -333,6 +335,18 @@ html, body {
 .bar-level-green { background: #22c55e; }
 .bar-level-yellow { background: #eab308; }
 .bar-level-red { background: #ef4444; }
+.bar-level-free { background: #f59e0b; }
+
+/* 继承垫抽蓝色覆盖层（位于 bar-inner 内部） */
+.bar-inherit-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 14px 0 0 14px;
+  z-index: 1;
+}
 
 /* 行末状态标签 */
 .star6-tag {
@@ -357,6 +371,12 @@ html, body {
 .star6-tag-empty { background: transparent; }
 
 .pity-row {
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.free-row {
   margin-top: 2px;
   padding-top: 4px;
   border-top: 1px dashed #e5e7eb;

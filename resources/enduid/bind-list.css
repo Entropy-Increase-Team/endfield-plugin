@@ -210,6 +210,30 @@ html, body {
   color: #d1d5db;
 }
 
+/* ========== 未绑定空状态卡片 ========== */
+.bind-card-empty {
+  border-style: dashed;
+  border-color: #d1d5db;
+  background: #fafafa;
+}
+
+.bind-avatar-empty {
+  background: #f0f0f0;
+  border-style: dashed;
+  border-color: #d1d5db;
+  color: #c0c4cc;
+}
+
+.bind-empty-title {
+  color: #9ca3af !important;
+  font-size: 1.05rem;
+}
+
+.bind-empty-hint {
+  color: #b0b6c0 !important;
+  font-size: 0.82rem;
+}
+
 /* ========== 帮助提示 ========== */
 .tips-card {
   background: #f9fafb;

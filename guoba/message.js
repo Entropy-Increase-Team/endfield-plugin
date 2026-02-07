@@ -559,8 +559,13 @@ export default function getMessageSchemas() {
       component: 'Input',
     },
     {
-      field: 'gacha.select_account',
-      label: '抽卡 - 选择账号',
+      field: 'gacha.select_account_query',
+      label: '抽卡 - 选择查询账号',
+      component: 'Input',
+    },
+    {
+      field: 'gacha.select_account_sync',
+      label: '抽卡 - 选择同步账号',
       component: 'Input',
     },
     {
@@ -687,14 +692,6 @@ export default function getMessageSchemas() {
       component: 'Input',
     },
     {
-      field: 'enduid.binding_ok',
-      label: '登陆 - 绑定成功',
-      component: 'InputTextArea',
-      componentProps: {
-        rows: 3,
-      },
-    },
-    {
       field: 'enduid.login_ok',
       label: '登陆 - 登陆成功',
       component: 'InputTextArea',
@@ -733,11 +730,6 @@ export default function getMessageSchemas() {
       component: 'Input',
     },
     {
-      field: 'enduid.auth_success',
-      label: '登陆 - 授权成功',
-      component: 'Input',
-    },
-    {
       field: 'enduid.bind_create_failed',
       label: '登陆 - 创建绑定失败',
       component: 'Input',
@@ -750,11 +742,6 @@ export default function getMessageSchemas() {
     {
       field: 'enduid.qr_please_private',
       label: '登陆 - 扫码请私聊',
-      component: 'Input',
-    },
-    {
-      field: 'enduid.qr_generating',
-      label: '登陆 - 生成二维码',
       component: 'Input',
     },
     {
@@ -773,23 +760,8 @@ export default function getMessageSchemas() {
       component: 'Input',
     },
     {
-      field: 'enduid.qr_confirm',
-      label: '登陆 - 扫码确认',
-      component: 'Input',
-    },
-    {
-      field: 'enduid.qr_authed',
-      label: '登陆 - 扫码已授权',
-      component: 'Input',
-    },
-    {
       field: 'enduid.qr_timeout',
       label: '登陆 - 二维码超时',
-      component: 'Input',
-    },
-    {
-      field: 'enduid.qr_login_ok',
-      label: '登陆 - 扫码登录成功',
       component: 'Input',
     },
     {
@@ -981,11 +953,6 @@ export default function getMessageSchemas() {
     {
       field: 'enduid.phone_code_wrong',
       label: '登陆 - 验证码错误',
-      component: 'Input',
-    },
-    {
-      field: 'enduid.phone_login_ok',
-      label: '登陆 - 手机登录成功',
       component: 'Input',
     },
     {

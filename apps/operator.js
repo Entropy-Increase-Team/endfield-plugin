@@ -276,16 +276,16 @@ export class EndfieldOperator extends plugin {
   }
 
   
-  async getOperatorList() {
+  async getOperatorList(options = {}) {
     const uid = this.e.at || this.e.user_id
     const sklUser = new EndfieldUser(uid)
 
     if (!(await sklUser.getUser())) {
-      await this.reply(getUnbindMessage())
+      if (!options.silent) await this.reply(getUnbindMessage())
       return true
     }
 
-    await this.reply(getMessage('operator.loading_list'))
+    if (!options.silent) await this.reply(getMessage('operator.loading_list'))
 
     try {
       const res = await sklUser.sklReq.getData('endfield_card_detail')

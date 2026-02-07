@@ -66,7 +66,6 @@
       {{else}}
       {{each $value.pools}}
       <div class="pool-entry">
-        {{if $value.poolName != '免费'}}
         <div class="pool-entry-header">
           <span class="pool-entry-name">{{$value.poolName}}</span>
         </div>
@@ -75,13 +74,15 @@
           <span class="metric">{{$value.metric1Label}} {{$value.metric1}}</span>
           <span class="metric">{{$value.metric2Label}} {{$value.metric2}}</span>
         </div>
-        {{/if}}
-        {{if ($value.images && $value.images.length > 0) || $value.pitySinceLast6 != null}}
+        {{if ($value.images && $value.images.length > 0) || ($value.pitySinceLast6 != null && $value.pitySinceLast6 > 0) || $value.freeTotal > 0}}
         <div class="star6-list">
-          {{if $value.pitySinceLast6 != null && $value.pitySinceLast6 > 0 && $value.poolName != '免费'}}
+          {{if $value.pitySinceLast6 != null && $value.pitySinceLast6 > 0}}
           <div class="star6-row pity-row">
             <div class="star6-icon star6-icon-pity">?</div>
             <div class="bar-wrap">
+              {{if $value.inheritedPity > 0}}
+              <div class="bar-inherit-overlay" style="width: {{$value.inheritedPityPercent}}%;"></div>
+              {{/if}}
               <div class="bar-inner bar-level-{{$value.pityBarColorLevel || 'green'}} bar-not-full" style="width: {{$value.pityBarPercent || 0}}%;">
                 <span class="bar-text">已垫 {{$value.pitySinceLast6}}</span>
               </div>
@@ -96,12 +97,23 @@
             <div class="bar-wrap">
               {{if $value.refLinePercent != null}}<div class="bar-ref" style="left: {{$value.refLinePercent}}%;"></div>{{/if}}
               <div class="bar-inner bar-level-{{$value.barColorLevel || 'green'}}{{if $value.barPercent < 100}} bar-not-full{{/if}}" style="width: {{$value.barPercent || 50}}%;">
-                <span class="bar-text">{{if $value.isFreeRow}}免费 - {{$value.pullCount}}抽{{else}}{{$value.pullCount}}抽{{/if}}</span>
+                <span class="bar-text">{{$value.pullCount}}抽</span>
               </div>
             </div>
-            {{if $value.isFreeRow}}<span class="star6-tag star6-tag-empty"></span>{{else}}<span class="star6-tag star6-tag-{{$value.badgeColor || 'normal'}}">{{$value.tag || ''}}</span>{{/if}}
+            <span class="star6-tag star6-tag-{{$value.badgeColor || 'normal'}}">{{$value.tag || ''}}</span>
           </div>
           {{/each}}
+          {{/if}}
+          {{if $value.freeTotal > 0}}
+          <div class="star6-row free-row">
+            <div class="star6-icon star6-icon-free">×</div>
+            <div class="bar-wrap">
+              <div class="bar-inner bar-level-free bar-not-full" style="width: {{$value.freeBarPercent}}%;">
+                <span class="bar-text">免费 - {{$value.freeTotal}}抽</span>
+              </div>
+            </div>
+            <span class="star6-tag star6-tag-empty"></span>
+          </div>
           {{/if}}
         </div>
         {{/if}}

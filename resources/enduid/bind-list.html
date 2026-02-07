@@ -22,6 +22,27 @@
     </div>
 
     <!-- 绑定卡片列表 -->
+    {{if bindings.length === 0}}
+    <!-- 未绑定占位卡片 -->
+    <div class="bind-card bind-card-empty">
+      <div class="bind-card-left">
+        <div class="bind-avatar-fallback bind-avatar-empty">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+      </div>
+      <div class="bind-card-right">
+        <div class="bind-card-top">
+          <span class="bind-nickname bind-empty-title">未绑定账号</span>
+        </div>
+        <div class="bind-card-info">
+          <span class="bind-info-item bind-empty-hint">使用下方指令绑定你的终末地账号</span>
+        </div>
+      </div>
+    </div>
+    {{else}}
     {{each bindings item idx}}
     <div class="bind-card{{if item.isPrimary}} bind-card-active{{/if}}">
       <div class="bind-card-left">
@@ -55,6 +76,7 @@
       </div>
     </div>
     {{/each}}
+    {{/if}}
 
     <!-- 帮助提示 -->
     <div class="tips-card">
