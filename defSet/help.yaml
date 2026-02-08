@@ -20,6 +20,9 @@ help_group:
       - icon: 1
         title: ":帮助"
         desc: "打开本帮助菜单"
+      - icon: 26
+        title: ":maa 教程"
+        desc: "MaaEnd 远程控制图文教程"
       - icon: 3
         title: ":授权绑定 / 授权登陆"
         desc: "网页授权绑定（需先在官网完成授权）"
