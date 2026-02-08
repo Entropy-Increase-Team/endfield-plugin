@@ -2,3 +2,5 @@ node_modules/
 config/*
 !config/.gitkeep
 data/strategy-img/
+API文档.md
+MaaEnd-API.md

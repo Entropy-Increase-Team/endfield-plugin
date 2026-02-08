@@ -134,7 +134,7 @@ export class EndfieldNote extends plugin {
       return true
     } catch (error) {
       logger.error(`[终末地便签]查询失败: ${error}`)
-      await this.reply(getMessage('note.query_failed', { error: error.message }))
+      await this.reply(getMessage('common.query_failed', { error: error.message }))
       return true
     }
   }
@@ -144,7 +144,7 @@ export class EndfieldNote extends plugin {
 
     if (!res || res.code !== 0) {
       logger.error(`[终末地便签]获取角色信息失败: ${JSON.stringify(res)}`)
-      await this.reply(getMessage('note.get_role_failed'))
+      await this.reply(getMessage('common.get_role_failed'))
       return null
     }
     const base = res.data?.base || {}

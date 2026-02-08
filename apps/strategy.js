@@ -263,7 +263,7 @@ export class EndfieldStrategy extends plugin {
     
     const commonConfig = setting.getConfig('common') || {}
     if (!commonConfig.api_key || String(commonConfig.api_key).trim() === '') {
-      await this.reply(getMessage('strategy.need_api_key'))
+      await this.reply(getMessage('common.need_api_key'))
         return true
     }
 
@@ -278,7 +278,7 @@ export class EndfieldStrategy extends plugin {
 
     if (!listRes || listRes.code !== 0) {
       logger.error(`[终末地攻略]列表失败: ${JSON.stringify(listRes)}`)
-      await this.reply(getMessage('strategy.query_failed', { error: '接口异常' }))
+      await this.reply(getMessage('common.query_failed', { error: '接口异常' }))
         return true
       }
 

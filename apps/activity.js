@@ -187,7 +187,7 @@ export class EndfieldActivity extends plugin {
   async getActivityList() {
     const config = setting.getConfig('common') || {}
     if (!config.api_key || String(config.api_key).trim() === '') {
-      await this.reply(getMessage('activity.need_api_key'))
+      await this.reply(getMessage('common.need_api_key'))
       return true
     }
 

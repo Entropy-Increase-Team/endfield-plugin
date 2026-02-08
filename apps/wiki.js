@@ -70,7 +70,7 @@ export class EndfieldWiki extends plugin {
 
     const commonConfig = setting.getConfig('common') || {}
     if (!commonConfig.api_key || String(commonConfig.api_key).trim() === '') {
-      await this.reply(getMessage('wiki.need_api_key'))
+      await this.reply(getMessage('common.need_api_key'))
       return true
     }
 

@@ -103,8 +103,8 @@ help_group:
         title: ":取消订阅理智"
         desc: "取消理智推送订阅"
       - icon: 12
-        title: ":抽卡分析<同步>"
-        desc: "查看抽卡分析（可选值同步）"
+        title: ":抽卡分析 / :抽卡分析同步"
+        desc: "查看抽卡分析（加「同步」可拉取最新记录）"
       - icon: 12
         title: ":抽卡记录 <常驻/新手/武器/限定> <页码>"
         desc: "查看抽卡记录，支持分类与分页"
@@ -131,6 +131,41 @@ help_group:
       - icon: 15
         title: ":wiki 武器 <名称>"
         desc: "武器百科"
+  - group: "MaaEnd 远程控制"
+    list:
+      - icon: 18
+        title: ":maa 设备"
+        desc: "查看已绑定的 MaaEnd 设备列表"
+      - icon: 18
+        title: ":maa 绑定"
+        desc: "生成绑定码（私聊），在 MaaEnd Client 中输入以绑定设备"
+      - icon: 18
+        title: ":maa 设置设备 <序号>"
+        desc: "设置默认设备，后续命令可省略设备序号"
+      - icon: 18
+        title: ":maa 任务列表 [序号]"
+        desc: "查看设备可用任务（省略序号则使用默认设备）"
+      - icon: 18
+        title: ":maa 执行 <任务名或序号>"
+        desc: "在默认设备上执行任务（如 :maa 执行 daily）"
+      - icon: 18
+        title: ":maa 状态 [编号]"
+        desc: "查询任务状态（默认最近一次，支持 #1~20）"
+      - icon: 18
+        title: ":maa 停止 [编号]"
+        desc: "停止任务（默认最近一次，支持 #1~20）"
+      - icon: 18
+        title: ":maa 截图 [设备序号]"
+        desc: "获取设备截图（省略序号则使用默认设备）"
+      - icon: 18
+        title: ":maa 重置 [设备序号]"
+        desc: "重置设备任务状态（省略序号则使用默认设备）"
+      - icon: 18
+        title: ":maa 删除设备 <序号>"
+        desc: "解绑并删除设备"
+      - icon: 18
+        title: ":maa 历史 [页码]"
+        desc: "查看任务执行历史"
   - group: "管理员功能"
     auth: master
     list:

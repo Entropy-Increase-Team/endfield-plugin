@@ -159,7 +159,7 @@ export class EndfieldArea extends plugin {
       return true
     } catch (error) {
       logger.error(`[终末地地区建设]查询失败: ${error}`)
-      await this.reply(getMessage('area.query_failed', { error: error.message }))
+      await this.reply(getMessage('common.query_failed', { error: error.message }))
       return true
     }
   }
@@ -313,7 +313,7 @@ export class EndfieldArea extends plugin {
       return true
     } catch (error) {
       logger.error(`[终末地帝江号建设]查询失败: ${error}`)
-      await this.reply(getMessage('spaceship.query_failed', { error: error.message }))
+      await this.reply(getMessage('common.query_failed', { error: error.message }))
       return true
     }
   }
@@ -323,7 +323,7 @@ export class EndfieldArea extends plugin {
 
     if (!res || res.code !== 0) {
       logger.error(`[终末地帝江号建设]获取建设信息失败: ${JSON.stringify(res)}`)
-      await this.reply(getMessage('spaceship.get_role_failed'))
+      await this.reply(getMessage('common.get_role_failed'))
       return null
     }
 

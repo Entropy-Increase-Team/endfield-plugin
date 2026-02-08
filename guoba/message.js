@@ -46,11 +46,6 @@ export default function getMessageSchemas() {
       label: '公告',
     },
     {
-      field: 'announcement.need_api_key',
-      label: '公告 - 需要 api_key',
-      component: 'Input',
-    },
-    {
       field: 'announcement.subscribe_use_in_group',
       label: '公告 - 订阅请在群聊',
       component: 'Input',
@@ -135,11 +130,6 @@ export default function getMessageSchemas() {
       label: '活动日历',
     },
     {
-      field: 'activity.need_api_key',
-      label: '活动 - 需要 api_key',
-      component: 'Input',
-    },
-    {
       field: 'activity.query_failed',
       label: '活动 - 查询失败',
       component: 'Input',
@@ -156,11 +146,6 @@ export default function getMessageSchemas() {
     {
       field: 'wiki.provide_content',
       label: 'Wiki - 请提供查询内容',
-      component: 'Input',
-    },
-    {
-      field: 'wiki.need_api_key',
-      label: 'Wiki - 需要 api_key',
       component: 'Input',
     },
     {
@@ -225,26 +210,6 @@ export default function getMessageSchemas() {
     {
       field: 'operator.get_detail_failed',
       label: '干员 - 获取详情失败',
-      component: 'Input',
-    },
-    {
-      field: 'operator.query_failed',
-      label: '干员 - 查询失败',
-      component: 'Input',
-    },
-    {
-      field: 'operator.get_bind_failed',
-      label: '干员 - 获取绑定失败',
-      component: 'Input',
-    },
-    {
-      field: 'operator.get_user_failed',
-      label: '干员 - 获取用户失败',
-      component: 'Input',
-    },
-    {
-      field: 'operator.get_role_failed',
-      label: '干员 - 获取角色失败',
       component: 'Input',
     },
     {
@@ -331,26 +296,6 @@ export default function getMessageSchemas() {
       component: 'Input',
     },
     {
-      field: 'spaceship.get_bind_failed',
-      label: '帝江号 - 获取绑定失败',
-      component: 'Input',
-    },
-    {
-      field: 'spaceship.get_user_failed',
-      label: '帝江号 - 获取用户失败',
-      component: 'Input',
-    },
-    {
-      field: 'spaceship.get_role_failed',
-      label: '帝江号 - 获取角色失败',
-      component: 'Input',
-    },
-    {
-      field: 'spaceship.query_failed',
-      label: '帝江号 - 查询失败',
-      component: 'Input',
-    },
-    {
       field: 'area.loading',
       label: '地区建设 - 加载中',
       component: 'Input',
@@ -361,53 +306,13 @@ export default function getMessageSchemas() {
       component: 'Input',
     },
     {
-      field: 'area.get_bind_failed',
-      label: '地区建设 - 获取绑定失败',
-      component: 'Input',
-    },
-    {
-      field: 'area.get_user_failed',
-      label: '地区建设 - 获取用户失败',
-      component: 'Input',
-    },
-    {
-      field: 'area.get_role_failed',
-      label: '地区建设 - 获取角色失败',
-      component: 'Input',
-    },
-    {
       field: 'area.get_zone_failed',
       label: '地区建设 - 获取地区失败',
       component: 'Input',
     },
     {
-      field: 'area.query_failed',
-      label: '地区建设 - 查询失败',
-      component: 'Input',
-    },
-    {
       field: 'note.loading',
       label: '便签 - 加载中',
-      component: 'Input',
-    },
-    {
-      field: 'note.get_bind_failed',
-      label: '便签 - 获取绑定失败',
-      component: 'Input',
-    },
-    {
-      field: 'note.get_user_failed',
-      label: '便签 - 获取用户失败',
-      component: 'Input',
-    },
-    {
-      field: 'note.get_role_failed',
-      label: '便签 - 获取角色失败',
-      component: 'Input',
-    },
-    {
-      field: 'note.query_failed',
-      label: '便签 - 查询失败',
       component: 'Input',
     },
     {
@@ -456,16 +361,6 @@ export default function getMessageSchemas() {
       component: 'Input',
     },
     {
-      field: 'stamina.get_role_failed',
-      label: '理智 - 获取角色失败',
-      component: 'Input',
-    },
-    {
-      field: 'stamina.query_failed',
-      label: '理智 - 查询失败',
-      component: 'Input',
-    },
-    {
       field: 'attendance.sign_failed',
       label: '签到 - 签到失败',
       component: 'Input',
@@ -511,11 +406,6 @@ export default function getMessageSchemas() {
     {
       field: 'gacha.global_stats_failed',
       label: '抽卡 - 全服统计失败',
-      component: 'Input',
-    },
-    {
-      field: 'gacha.current_up_need_api_key',
-      label: '抽卡 - 本期 UP 需 api_key',
       component: 'Input',
     },
     {
@@ -705,11 +595,6 @@ export default function getMessageSchemas() {
       component: 'Input',
     },
     {
-      field: 'enduid.auth_need_api_key',
-      label: '登陆 - 授权需要api_key',
-      component: 'Input',
-    },
-    {
       field: 'enduid.auth_create_failed',
       label: '登陆 - 创建授权失败',
       component: 'Input',
@@ -828,16 +713,6 @@ export default function getMessageSchemas() {
       component: 'Input',
     },
     {
-      field: 'enduid.unbind_auth_revoked',
-      label: '登陆 - 授权已解除已删',
-      component: 'Input',
-    },
-    {
-      field: 'enduid.unbind_auth_poll_timeout',
-      label: '登陆 - 轮询超时',
-      component: 'Input',
-    },
-    {
       field: 'enduid.unbind_auth_auto',
       label: '登陆 - 网页授权自动解除说明',
       component: 'InputTextArea',
@@ -918,11 +793,6 @@ export default function getMessageSchemas() {
       component: 'Input',
     },
     {
-      field: 'enduid.phone_invalid',
-      label: '登陆 - 手机号无效',
-      component: 'Input',
-    },
-    {
       field: 'enduid.phone_send_failed',
       label: '登陆 - 发送验证码失败',
       component: 'Input',
@@ -934,11 +804,6 @@ export default function getMessageSchemas() {
       componentProps: {
         rows: 2,
       },
-    },
-    {
-      field: 'enduid.phone_code_digit',
-      label: '登陆 - 验证码位数',
-      component: 'Input',
     },
     {
       field: 'enduid.phone_code_expired',
@@ -982,16 +847,6 @@ export default function getMessageSchemas() {
     {
       field: 'strategy.not_found_suffix',
       label: '攻略 - 未找到后缀说明',
-      component: 'Input',
-    },
-    {
-      field: 'strategy.query_failed',
-      label: '攻略 - 查询失败',
-      component: 'Input',
-    },
-    {
-      field: 'strategy.need_api_key',
-      label: '攻略 - 需要 api_key',
       component: 'Input',
     },
     {

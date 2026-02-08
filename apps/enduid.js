@@ -274,7 +274,7 @@ export class EndfieldUid extends plugin {
   async authBind() {
     const config = this.common_setting || {}
     if (!config.api_key) {
-      await this.reply(getMessage('enduid.auth_need_api_key'))
+      await this.reply(getMessage('common.need_api_key'))
       return true
     }
 

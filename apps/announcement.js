@@ -180,7 +180,7 @@ export class announcement extends plugin {
     }
     const req = this.getReq()
     if (!req) {
-      await this.reply(getMessage('announcement.need_api_key'))
+      await this.reply(getMessage('common.need_api_key'))
       return true
     }
     const groupId = String(this.e.group_id)
@@ -275,7 +275,7 @@ export class announcement extends plugin {
   async detailByIndex() {
     const req = this.getReq()
     if (!req) {
-      await this.reply(getMessage('announcement.need_api_key'))
+      await this.reply(getMessage('common.need_api_key'))
       return true
     }
     const raw = (this.e.msg || '').trim()
@@ -314,7 +314,7 @@ export class announcement extends plugin {
   async latest() {
     const req = this.getReq()
     if (!req) {
-      await this.reply(getMessage('announcement.need_api_key'))
+      await this.reply(getMessage('common.need_api_key'))
       return true
     }
     const res = await req.getAnnouncementsData('announcements_latest', {})
@@ -336,7 +336,7 @@ export class announcement extends plugin {
   async list() {
     const req = this.getReq()
     if (!req) {
-      await this.reply(getMessage('announcement.need_api_key'))
+      await this.reply(getMessage('common.need_api_key'))
       return true
     }
     const res = await req.getAnnouncementsData('announcements_list', { page: 1, page_size: 5 })

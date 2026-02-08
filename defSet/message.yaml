@@ -22,7 +22,6 @@ unbind_message: |
 
 # 公告（:公告 / :公告最新 / :公告 <序号> / 订阅公告 群聊）
 announcement:
-  need_api_key: "未配置 api_key，无法获取公告。请前往终末地协议终端获取并在 config/common.yaml 中填写。"
   subscribe_use_in_group: "请在群聊中使用本命令，订阅后新公告将推送到本群。"
   subscribe_ok: "已为本群订阅公告推送，仅会推送本次订阅之后发布的新公告。"
   already_subscribed: "本群已订阅公告推送。"
@@ -42,14 +41,12 @@ announcement:
 
 # 活动日历（:日历）
 activity:
-  need_api_key: "活动日历需要配置 api_key，请在 config/common.yaml 中填写（终末地协议终端获取）"
   query_failed: "查询「{name}」失败，请稍后重试"
   no_records: "暂无活动记录。"
 
 # Wiki 查询提示
 wiki:
   provide_content: "请输入查询内容，例 「:wiki 莱万汀」 / 「:wiki 干员 莱万汀」 / 「:wiki 武器 xxx」"
-  need_api_key: "Wiki 查询需要配置 api_key，请在 config/common.yaml 中填写（终末地协议终端获取）"
   query_failed: "查询「{name}」失败，请稍后重试"
   not_found: "未找到与「{name}」相关的{type_label}条目"
   detail_failed: "未获取到「{name}」的百科详情"
@@ -65,13 +62,11 @@ operator:
   not_found_info: "未找到该干员的详细信息"
   not_found: "未找到名为「{name}」的干员"
   get_detail_failed: "获取干员详情失败"
-  query_failed: "查询失败：{error}"
-  get_bind_failed: "获取绑定信息失败"
-  get_user_failed: "获取用户信息失败"
-  get_role_failed: "获取角色信息失败"
 
 # 通用错误提示
 common:
+  # API 秘钥（未填写时统一提示）
+  need_api_key: "未配置 API 秘钥，请在 config/common.yaml 中填写 api_key。"
   # 绑定/登陆相关
   not_found_bind_info: "未找到终末地账号绑定信息"
   not_found_role_id: "未获取到角色ID，请确认账号已创建游戏角色"
@@ -94,26 +89,14 @@ common:
 spaceship:
   loading: "正在获取帝江号建设信息..."
   not_found_info: "未找到帝江号建设信息"
-  get_bind_failed: "获取绑定信息失败"
-  get_user_failed: "获取用户信息失败"
-  get_role_failed: "获取角色信息失败"
-  query_failed: "查询失败：{error}"
 
 area:
   loading: "正在获取地区建设信息..."
   not_found_info: "未找到地区建设信息"
-  get_bind_failed: "获取绑定信息失败"
-  get_user_failed: "获取用户信息失败"
-  get_role_failed: "获取角色信息失败"
   get_zone_failed: "获取地区建设信息失败"
-  query_failed: "查询失败：{error}"
 
 note:
   loading: "正在获取角色信息..."
-  get_bind_failed: "获取绑定信息失败"
-  get_user_failed: "获取用户信息失败"
-  get_role_failed: "获取角色信息失败"
-  query_failed: "查询失败：{error}"
 
 stamina:
   subscribed: "✅ 已订阅理智推送"
@@ -125,8 +108,6 @@ stamina:
   unsubscribe_ok: "已取消订阅理智推送"
   not_subscribed: "当前未订阅理智推送"
   loading: "正在获取理智信息..."
-  get_role_failed: "获取角色信息失败"
-  query_failed: "查询失败：{error}"
 
 attendance:
   sign_failed: "签到失败，请稍后重试"
@@ -148,13 +129,12 @@ attendance:
 
 gacha:
   global_stats_failed: "获取全服抽卡统计失败"
-  current_up_need_api_key: "本期 UP 查询需要配置 api_key，请在 config/common.yaml 中填写（终末地协议终端获取）"
   current_up_failed: "获取本期 UP 信息失败，请稍后再试"
   current_up_empty: "暂无本期 UP 活动数据"
   no_accounts: "未找到可用账号，请确认已绑定角色"
-  no_records: "暂无抽卡记录。若需同步请发送「:同步抽卡记录」"
-  records_sync_hint: "若需同步请发送「:同步抽卡记录」"
-  analysis_need_sync: "暂无抽卡数据，请先使用「:抽卡记录同步」或「:同步抽卡记录」同步后再查看抽卡分析"
+  no_records: "暂无抽卡记录。若需同步请发送「:抽卡分析同步」"
+  records_sync_hint: "若需同步请发送「:抽卡分析同步」"
+  analysis_need_sync: "暂无抽卡数据，请先使用「:抽卡分析同步」同步后再查看"
   analysis_auto_sync_hint: "检测到未进行过同步，米糕已为你自动开启同步，请稍候～"
   analysis_incremental_hint: "正在拉取最新记录，请稍候…"
   select_account_query: "请选择要查询的账号："
@@ -207,7 +187,6 @@ enduid:
     服务器：{server_id}
     账号总数：{count}
   auth_please_private: "授权登录需私聊进行"
-  auth_need_api_key: "授权登录需要配置api_key，请在config/common.yaml中填写"
   auth_create_failed: "创建授权请求失败"
   auth_rejected: "授权已被拒绝，登录取消"
   auth_expired: "授权链接已过期，请重新获取"
@@ -277,8 +256,6 @@ strategy:
   provide_name: "请指定要查询的攻略名称。示例 :xx攻略"
   not_found: "未找到「{name}」相关攻略"
   not_found_suffix: "（支持 Wiki 干员攻略或用户上传：干员名/队伍名如 火队，可发 火队攻略 查看队伍攻略）"
-  query_failed: "查询失败：{error}"
-  need_api_key: "攻略查询需要配置 api_key，请在 config/common.yaml 中填写（终末地协议终端获取）"
   detail_failed: "未获取到「{name}」的攻略详情"
   list_empty: "暂无攻略条目。可发送 :上传攻略 [干员/队伍名] [作者] [图片/链接] 上传"
   list_header: "攻略列表（发送「:<名称>攻略」查询）："

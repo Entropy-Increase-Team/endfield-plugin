@@ -1176,7 +1176,7 @@ export class EndfieldGacha extends plugin {
   async resolveSyncTarget(options = {}) {
     const atUser = this.e?.at
     const msg = (this.e.msg || '').trim()
-    const match = msg.match(/(?:抽卡记录同步|同步抽卡记录|抽卡分析)(?:同步)?\s*(\d+)/)
+    const match = msg.match(/(?:抽卡分析)(?:同步)?\s*(\d+)/)
     if (!atUser && !match) {
       return { userId: String(this.e.user_id), requiresMaster: false }
     }

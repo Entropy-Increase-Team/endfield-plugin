@@ -81,7 +81,7 @@ export class EndfieldOperator extends plugin {
       
       if (!res || res.code !== 0) {
         logger.error(`[终末地干员]获取干员列表失败: ${JSON.stringify(res)}`)
-        await this.reply(getMessage('operator.get_role_failed'))
+        await this.reply(getMessage('common.get_role_failed'))
         return true
       }
 
@@ -148,7 +148,7 @@ export class EndfieldOperator extends plugin {
       return true
     } catch (error) {
       logger.error(`[终末地干员]查询失败: ${error}`)
-      await this.reply(getMessage('operator.query_failed', { error: error.message }))
+      await this.reply(getMessage('common.query_failed', { error: error.message }))
       return true
     }
   }
@@ -266,7 +266,7 @@ export class EndfieldOperator extends plugin {
     const res = await sklUser.sklReq.getData('note')
     if (!res || res.code !== 0) {
       logger.error(`[终末地干员]获取角色信息失败: ${JSON.stringify(res)}`)
-      await this.reply(getMessage('operator.get_role_failed'))
+      await this.reply(getMessage('common.get_role_failed'))
       return null
     }
     const base = res.data?.base || {}
@@ -291,7 +291,7 @@ export class EndfieldOperator extends plugin {
       const res = await sklUser.sklReq.getData('endfield_card_detail')
       if (!res || res.code !== 0) {
         logger.error(`[终末地干员列表]card/detail 失败: ${JSON.stringify(res)}`)
-        await this.reply(getMessage('operator.get_role_failed'))
+        await this.reply(getMessage('common.get_role_failed'))
         return true
       }
       const detail = res.data?.detail || {}
@@ -397,7 +397,7 @@ export class EndfieldOperator extends plugin {
       return true
     } catch (error) {
       logger.error(`[终末地干员列表]查询失败: ${error}`)
-      await this.reply(getMessage('operator.query_failed', { error: error.message }))
+      await this.reply(getMessage('common.query_failed', { error: error.message }))
       return true
     }
   }

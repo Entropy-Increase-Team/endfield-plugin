@@ -117,7 +117,7 @@ export class EndfieldStamina extends plugin {
       const validAccounts = accountsData.filter(a => a !== null)
 
       if (validAccounts.length === 0) {
-        await this.reply(getMessage('stamina.get_role_failed'))
+        await this.reply(getMessage('common.get_role_failed'))
         return true
       }
 
@@ -154,7 +154,7 @@ export class EndfieldStamina extends plugin {
       return true
     } catch (error) {
       logger.error(`[终末地理智]查询失败: ${error}`)
-      await this.reply(getMessage('stamina.query_failed', { error: error.message }))
+      await this.reply(getMessage('common.query_failed', { error: error.message }))
       return true
     }
   }
@@ -231,7 +231,7 @@ export class EndfieldStamina extends plugin {
       return { ok: false, msg: getUnbindMessage() }
     }
     const data = await this.fetchOneStamina(sklUser)
-    if (!data) return { ok: false, msg: getMessage('stamina.get_role_failed') }
+    if (!data) return { ok: false, msg: getMessage('common.get_role_failed') }
     const msg = `理智：${data.current}/${data.max}\n回满时间：${data.fullTime}\n日常活跃：${data.activation}/${data.maxActivation}`
     return { ok: true, msg, current: data.current, max: data.max }
   }
