@@ -53,6 +53,220 @@ export class EndfieldOperator extends plugin {
     })
   }
 
+  buildFriendPanelData(friendCharData) {
+    if (!friendCharData || typeof friendCharData !== 'object') return null
+    const data = friendCharData?.data || friendCharData
+    const char = data?.char || {}
+    const processed = data?.processed || {}
+    const template = char?.template || {}
+
+    const rarity = 6
+    const stars = Array.from({ length: Math.min(6, Math.max(1, rarity)) }, (_, i) => i + 1)
+
+    const coreStats = processed?.core_stats || {}
+    const agg = processed?.aggregated_attributes || []
+    const findAgg = (rawName) => {
+      const hit = Array.isArray(agg) ? agg.find((x) => x?.attr_type?.raw_name === rawName) : null
+      return hit || null
+    }
+
+    const hp = Math.round(coreStats?.hp ?? 0)
+    const atk = Math.round(coreStats?.atk ?? 0)
+    const def = Math.round(coreStats?.def ?? 0)
+
+    const hpAgg = findAgg('MaxHp')
+    const atkAgg = findAgg('Atk')
+    const defAgg = findAgg('Def')
+
+    const mini = {
+      agi: Math.round(findAgg('Agi')?.final ?? 0),
+      str: Math.round(findAgg('Str')?.final ?? 0),
+      wisd: Math.round(findAgg('Wisd')?.final ?? 0),
+      will: Math.round(findAgg('Will')?.final ?? 0),
+      crt: (() => {
+        const v = findAgg('CriticalRate')?.final
+        if (typeof v !== 'number') return ''
+        return `${(v * 100).toFixed(1)}%`
+      })(),
+      cdmg: (() => {
+        const derived = processed?.derived_stats || processed?.summary_stats || processed?.ui || {}
+        const v = derived?.critical_damage_pct ?? derived?.critical_damage
+        if (typeof v !== 'number') return ''
+        return `${v.toFixed(1)}%`
+      })()
+    }
+
+    let matrix = null
+    try {
+      const gems = Array.isArray(char?.gems) ? char.gems : []
+      const g = gems[0]
+      const gemNameCn = g?.template?.name_cn || g?.template?.name || ''
+      const termsRaw = Array.isArray(g?.terms) ? g.terms : []
+      const terms = termsRaw.map((t) => {
+        const nameCn = t?.term?.name_cn || t?.term?.name || ''
+        const cost = t?.cost
+        return {
+          nameCn,
+          cost: (typeof cost === 'number' || typeof cost === 'string') ? String(cost) : ''
+        }
+      }).filter((t) => t.nameCn)
+      if (gemNameCn || terms.length) {
+        matrix = { gemNameCn, terms }
+      }
+    } catch (err) {
+      matrix = null
+    }
+
+    const formatAffixValue = (mod, rawName = '') => {
+      const v = mod?.value
+      if (typeof v !== 'number') return ''
+
+      const raw = String(rawName || mod?.attr_name || '').trim()
+      const looksLikePercent = /Scalar|Rate|Ratio|Multiplier/i.test(raw)
+      if (mod?.mode === 'ratio' || (looksLikePercent && v > 0 && v <= 1)) {
+        return `${(v * 100).toFixed(1)}%`
+      }
+      return `${Math.round(v)}`
+    }
+    const equipAffixesBySlot = { 0: [], 1: [], 2: [], 3: [] }
+    try {
+      const attrCnMap = {}
+      try {
+        const sources = [
+          processed?.aggregated_attributes,
+          processed?.base_attributes?.attributes
+        ]
+        for (const src of sources) {
+          if (!Array.isArray(src)) continue
+          for (const it of src) {
+            const raw = it?.attr_type?.raw_name
+            const cn = it?.attr_type?.name_cn
+            if (raw && cn) attrCnMap[String(raw)] = String(cn)
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      const mods = Array.isArray(processed?.runtime_modifiers) ? processed.runtime_modifiers : []
+      for (const m of mods) {
+        const slot = m?.slot
+        if (slot === 0 || slot === 1 || slot === 2 || slot === 3) {
+          const rawName = m?.attr_name || ''
+          const displayName = String(attrCnMap[String(rawName)] || rawName || '').trim()
+          const valueText = formatAffixValue(m, rawName)
+          if (!displayName || !valueText) continue
+          equipAffixesBySlot[slot].push({ name: displayName, value: valueText })
+        }
+      }
+      for (const k of Object.keys(equipAffixesBySlot)) {
+        const list = equipAffixesBySlot[k]
+        const seen = new Set()
+        const filtered = list.filter((x) => {
+          const key = `${x.name}:${x.value}`
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        }).slice(0, 4)
+
+        while (filtered.length < 4) filtered.push({ empty: true })
+        equipAffixesBySlot[k] = filtered
+      }
+    } catch (err) {
+      // ignore
+    }
+
+    const equipAffixesBySlotArr = [
+      equipAffixesBySlot[0] || [],
+      equipAffixesBySlot[1] || [],
+      equipAffixesBySlot[2] || [],
+      equipAffixesBySlot[3] || []
+    ]
+
+    const potentialLevel = Math.min(5, Math.max(0, char?.potential_level ?? 0))
+    const potentialStars = Array.from({ length: 5 }, (_, i) => i < potentialLevel)
+
+    return {
+      nameCn: template?.name_cn || '',
+      level: char?.level ?? 0,
+      stars,
+      potentialLevel,
+      potentialStars,
+      core: {
+        hp,
+        atk,
+        def,
+        hpSub: hpAgg ? `${Math.round(hpAgg.base ?? 0)} + ${Math.round(hpAgg.flat ?? 0)}` : '',
+        atkSub: atkAgg ? `${Math.round(atkAgg.base ?? 0)} + ${Math.round((atkAgg.final ?? 0) - (atkAgg.base ?? 0))}` : '',
+        defSub: defAgg ? `${Math.round(defAgg.base ?? 0)} + ${Math.round(defAgg.flat ?? 0)}` : ''
+      },
+      mini,
+      matrix,
+      equipAffixesBySlotArr
+    }
+  }
+
+  buildGearCards(panelData, friendPanel) {
+    const cards = []
+    const padAffixes = (arr) => {
+      const list = Array.isArray(arr) ? arr.slice(0, 4) : []
+      while (list.length < 4) list.push({ empty: true })
+      return list
+    }
+
+    const weapon = panelData?.weapon || null
+    const weaponAffixes = (() => {
+      const terms = friendPanel?.matrix?.terms || []
+      const mapped = Array.isArray(terms)
+        ? terms.map((t) => ({ name: t?.nameCn || '', value: t?.cost ? `+${t.cost}` : '' })).filter((t) => t.name && t.value)
+        : []
+      return padAffixes(mapped)
+    })()
+
+    cards.push({
+      type: 'weapon',
+      name: weapon?.name || '武器',
+      level: weapon?.level ?? '',
+      iconUrl: weapon?.iconUrl || '',
+      stars: weapon?.stars || [],
+      affixes: weaponAffixes
+    })
+
+    const equipEntries = [
+      { key: 'bodyEquip', slot: 1 },
+      { key: 'armEquip', slot: 0 },
+      { key: 'firstAccessory', slot: 2 },
+      { key: 'secondAccessory', slot: 3 },
+      { key: 'tacticalItem', slot: -1 }
+    ]
+
+    for (const e of equipEntries) {
+      const raw = panelData?.[e.key] || null
+      const aff = e.slot >= 0 ? (friendPanel?.equipAffixesBySlotArr?.[e.slot] || []) : []
+      cards.push({
+        type: e.key,
+        name: raw?.name || '—',
+        level: raw?.level ?? '',
+        iconUrl: raw?.iconUrl || '',
+        stars: raw?.stars || [],
+        affixes: padAffixes(aff)
+      })
+    }
+
+    return cards
+  }
+
+  getOperatorTemplateIdByCnName(nameCn) {
+    const map = setting.getData('operatorMap') || {}
+    const entries = Object.entries(map)
+    const target = String(nameCn || '').trim()
+    if (!target) return ''
+    for (const [templateId, cn] of entries) {
+      if (String(cn || '').trim() === target) return templateId
+    }
+    return ''
+  }
+
   getOperatorNameFromMsg() {
     let s = (this.e.msg || '').replace(/面板$/, '').trim()
     s = s.replace(/^([:：]|#zmd|#终末地)\s*/i, '').trim()
@@ -109,9 +323,48 @@ export class EndfieldOperator extends plugin {
         return true
       }
 
-      const operatorRes = await sklUser.sklReq.getData('endfield_card_char', {
-        instId
-      })
+      let templateId = String(matched.templateId || matched.template_id || '').trim() || this.getOperatorTemplateIdByCnName(matched.name || operatorName)
+
+      const friendDetailRes = await sklUser.sklReq.getData('friend_detail').catch(() => false)
+      let friendRoleId = ''
+      let friendCharTemplateId = ''
+      try {
+        const payload = friendDetailRes?.data || {}
+        const friendData = friendDetailRes?.code === 0 ? payload : (payload?.data || payload)
+        friendRoleId = String(friendData?.role_profile?.role_id || friendData?.role_profile?.roleId || '').trim()
+
+        const friendChars = friendData?.role_profile?.char_data || []
+        if (Array.isArray(friendChars) && friendChars.length) {
+          const targetName = String(matched.name || operatorName || '').trim()
+          const hit = friendChars.find((x) => String(x?.template?.name_cn || '').trim() === targetName)
+          friendCharTemplateId = String(hit?.template_id || hit?.template?.id || '').trim()
+        }
+      } catch (err) {
+        friendRoleId = ''
+        friendCharTemplateId = ''
+      }
+
+      const enableFriendPanel = Boolean(friendRoleId && friendCharTemplateId)
+
+      if (enableFriendPanel) templateId = friendCharTemplateId
+
+      const [operatorRes, friendCharResRaw] = await Promise.all([
+        sklUser.sklReq.getData('endfield_card_char', { instId }),
+        (enableFriendPanel && templateId && friendRoleId)
+          ? sklUser.sklReq.getData('friend_char', { role_id: friendRoleId, template_id: templateId }).catch(() => false)
+          : Promise.resolve(false)
+      ])
+
+      let friendCharData = null
+      try {
+        if (friendCharResRaw) {
+          const payload = friendCharResRaw?.data || {}
+          friendCharData = friendCharResRaw?.code === 0 ? payload : (payload?.data || payload)
+        }
+      } catch (err) {
+        friendCharData = null
+      }
+
       if (!operatorRes || operatorRes.code !== 0) {
         logger.error(`[终末地干员]获取干员详情失败: ${JSON.stringify(operatorRes)}`)
         await this.reply(getMessage('operator.get_detail_failed'))
@@ -125,9 +378,15 @@ export class EndfieldOperator extends plugin {
       }
 
       const panelData = this.buildPanelData(operator, charData, userSkills, container)
+      const friendPanel = enableFriendPanel ? this.buildFriendPanelData(friendCharData) : null
+      const gearCards = friendPanel ? this.buildGearCards(panelData, friendPanel) : []
       const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
       const tplData = {
         ...panelData,
+        friendChar: friendCharData,
+        friendPanel,
+        gearCards,
+        friendTemplateId: templateId || '',
         userAvatar: base?.avatarUrl || '',
         userNickname: base?.name || '未知',
         userLevel: base?.level ?? 0,
@@ -288,7 +547,11 @@ export class EndfieldOperator extends plugin {
     if (!options.silent) await this.reply(getMessage('operator.loading_list'))
 
     try {
-      const res = await sklUser.sklReq.getData('endfield_card_detail')
+      const [res, friendDetailRes] = await Promise.all([
+        sklUser.sklReq.getData('endfield_card_detail'),
+        sklUser.sklReq.getData('friend_detail').catch(() => false)
+      ])
+
       if (!res || res.code !== 0) {
         logger.error(`[终末地干员列表]card/detail 失败: ${JSON.stringify(res)}`)
         await this.reply(getMessage('common.get_role_failed'))
@@ -298,6 +561,18 @@ export class EndfieldOperator extends plugin {
       const base = detail.base || {}
       const chars = detail.chars || []
 
+      let friendTemplateCnSet = new Set()
+      try {
+        const friendPayload = friendDetailRes?.data || {}
+        const friendData = friendDetailRes?.code === 0 ? friendPayload : (friendPayload?.data || friendPayload)
+        const friendList = friendData?.role_profile?.char_data || []
+        if (Array.isArray(friendList)) {
+          friendTemplateCnSet = new Set(friendList.map((x) => String(x?.template?.name_cn || '').trim()).filter(Boolean))
+        }
+      } catch (err) {
+        friendTemplateCnSet = new Set()
+      }
+
       if (!chars.length) {
         await this.reply(getMessage('operator.not_found_info'))
         return true
@@ -306,6 +581,7 @@ export class EndfieldOperator extends plugin {
       const operators = chars.map((char) => {
         const c = char.charData || char
         const imageUrl = c.avatarRtUrl || ''
+        const templateId = String(c.templateId || c.template_id || c.id || '').trim()
         const rarity = parseInt(c.rarity?.value || '1', 10) || 1
         const rarityClass = `rarity_${rarity}`
         const level = char.level ?? c.level ?? 0
@@ -324,10 +600,12 @@ export class EndfieldOperator extends plugin {
         }
         const colorCode = (colorCodeMap[c.property?.key] || c.colorCode || 'PHY').toUpperCase()
         const name = String(c.name ?? '').trim() || '未知'
+        const isFriendShowcase = friendTemplateCnSet.has(name)
         const evolvePhase = parseInt(char.evolvePhase ?? c.evolvePhase ?? '0', 10) || 0
         const potentialLevel = parseInt(char.potentialLevel ?? c.potentialLevel ?? '0', 10) || 0
         const phaseIcon = iconToDataUrl(META_PHASES_DIR, `phase-${evolvePhase}`)
         return {
+          templateId,
           name,
           nameChars: Array.from(name),
           imageUrl: imageUrl,
@@ -339,6 +617,7 @@ export class EndfieldOperator extends plugin {
           property,
           propertyIcon,
           colorCode,
+          isFriendShowcase,
           evolvePhase,
           potentialLevel,
           phaseIcon

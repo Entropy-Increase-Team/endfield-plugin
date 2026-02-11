@@ -851,3 +851,810 @@ body {
   letter-spacing: 2px;
   text-transform: uppercase;
 }
+
+.oppp-page {
+  width: 1000px;
+  min-height: 1750px;
+  margin: 0;
+  padding: 40px 20px;
+  background: #e5e7eb;
+  font-family: 'HarmonyOS Sans SC', -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif;
+  color: #1a1a1a;
+}
+
+.oppp-hero {
+  width: 100%;
+  height: 520px;
+  background-position: center 15%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  border: 1px solid #d1d5db;
+  position: relative;
+}
+
+.oppp-user-tag {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: #ffffff;
+  border: 1px solid #111827;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 10px;
+}
+
+.oppp-user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.oppp-user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.oppp-user-name {
+  font-weight: 900;
+  font-size: 16px;
+  color: #111827;
+}
+
+.oppp-user-level {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.oppp-main-card {
+  background: #ffffff;
+  border: 1px solid #111827;
+  margin-top: -70px;
+  position: relative;
+  z-index: 10;
+  padding: 40px;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 60px;
+  border-radius: 14px;
+}
+
+.oppp-top-merged {
+  background: #ffffff;
+  border: 1px solid #111827;
+  border-radius: 14px;
+  margin-top: -70px;
+  position: relative;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.oppp-top-merged .oppp-main-card {
+  border: 0;
+  margin-top: 0;
+  border-radius: 0;
+}
+
+.oppp-merged-divider {
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.oppp-merged-skill {
+  padding: 26px;
+}
+
+.oppp-left-skills {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.oppp-left-skills-title {
+  font-size: 14px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: #111827;
+}
+
+.oppp-left-skills-title span {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.oppp-skill-grid-compact {
+  gap: 14px 10px;
+}
+
+.oppp-skill-grid-compact .oppp-skill-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  overflow: visible;
+}
+
+.oppp-skill-grid-compact .oppp-skill-icon img {
+  width: 30px;
+  height: 30px;
+  filter: grayscale(1) brightness(0) contrast(1.1);
+  opacity: 0.95;
+}
+
+.oppp-skill-grid-compact .oppp-skill-rank {
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  font-size: 10px;
+  padding: 1px 8px;
+}
+
+.oppp-skill-grid-compact .oppp-skill-name {
+  font-size: 12px;
+}
+
+.oppp-level-label {
+  font-size: 12px;
+  font-weight: 900;
+  color: #9ca3af;
+  letter-spacing: 2px;
+}
+
+.oppp-level-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-top: 8px;
+}
+
+.oppp-level-num {
+  font-size: 82px;
+  font-weight: 900;
+  line-height: 0.85;
+  color: #111827;
+}
+
+.oppp-level-dots {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.oppp-dot {
+  width: 14px;
+  height: 14px;
+  background: #fbb03b;
+  border-radius: 3px;
+}
+
+.oppp-char-name {
+  font-size: 58px;
+  font-weight: 900;
+  margin: 18px 0 8px;
+  letter-spacing: -2px;
+}
+
+.oppp-stars {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 22px;
+}
+
+.oppp-star {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.oppp-tag-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.oppp-tag {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #4b5563;
+  border-radius: 10px;
+}
+
+.oppp-right {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.oppp-stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 8px;
+}
+
+.oppp-stat-label {
+  font-size: 14px;
+  color: #9ca3af;
+  font-weight: 900;
+}
+
+.oppp-stat-val {
+  text-align: right;
+}
+
+.oppp-stat-main {
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.oppp-stat-sub {
+  font-size: 11px;
+  color: #d1d5db;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.oppp-mini-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px 40px;
+  margin-top: 8px;
+}
+
+.oppp-mini-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 6px;
+}
+
+.oppp-mini-label {
+  color: #9ca3af;
+  font-weight: 900;
+}
+
+.oppp-mini-num {
+  font-weight: 900;
+  color: #111827;
+}
+
+.oppp-grid {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.oppp-skill-box {
+  margin-top: 20px;
+}
+
+.oppp-gear-section {
+  margin-top: 20px;
+}
+
+.oppp-gear-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.oppp-gear-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  height: 280px;
+  overflow: hidden;
+}
+
+.oppp-gear-name {
+  font-size: 14px;
+  font-weight: 900;
+  color: #111827;
+  line-height: 1.2;
+  margin-bottom: 10px;
+  min-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.oppp-gear-toprow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.oppp-gear-level {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.oppp-gear-level-num {
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.oppp-gear-level-label {
+  font-size: 11px;
+  font-weight: 900;
+  color: #9ca3af;
+  letter-spacing: 1px;
+}
+
+.oppp-gear-img {
+  width: 96px;
+  height: 72px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+.oppp-gear-toprow {
+  min-height: 74px;
+}
+
+.oppp-gear-img img {
+  max-width: 96px;
+  max-height: 72px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.12));
+}
+
+.oppp-gear-stars {
+  display: flex;
+  gap: 4px;
+  margin: 6px 0 8px;
+}
+
+.oppp-gear-star {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.oppp-gear-divider {
+  height: 1px;
+  background: #f3f4f6;
+  margin-bottom: 8px;
+}
+
+.oppp-gear-affixes {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.oppp-gear-affix {
+  background: #111827;
+  color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 900;
+  border-radius: 10px;
+}
+
+.oppp-gear-affix-name {
+  opacity: 0.75;
+  font-weight: 900;
+}
+
+.oppp-gear-affix-val {
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.oppp-gear-affix.empty {
+  opacity: 0.12;
+}
+
+.oppp-box {
+  background: #ffffff;
+  border: 1px solid #111827;
+  padding: 26px;
+  border-radius: 14px;
+}
+
+.oppp-box-title {
+  font-size: 20px;
+  font-weight: 900;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.oppp-box-title::before {
+  content: '';
+  width: 6px;
+  height: 24px;
+  background: #111827;
+  border-radius: 2px;
+}
+
+.oppp-box-title span {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.oppp-skill-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 26px 16px;
+}
+
+.oppp-skill-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.oppp-skill-icon {
+  width: 64px;
+  height: 64px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.oppp-skill-icon img {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  opacity: 0.9;
+}
+
+.oppp-skill-rank {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111827;
+  color: #ffffff;
+  font-size: 10px;
+  padding: 2px 10px;
+  font-weight: 900;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.oppp-skill-name {
+  font-weight: 900;
+  font-size: 14px;
+  color: #111827;
+}
+
+.oppp-skill-item.empty .oppp-skill-icon {
+  background: #f3f4f6;
+}
+
+.oppp-weapon {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.oppp-weapon-left {
+  text-align: center;
+  border-right: 2px solid #111827;
+  padding-right: 18px;
+  min-width: 72px;
+}
+
+.oppp-weapon-level {
+  font-size: 46px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.oppp-weapon-level-label {
+  font-size: 11px;
+  font-weight: 900;
+  color: #9ca3af;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+.oppp-weapon-mid {
+  flex: 1;
+  min-width: 0;
+}
+
+.oppp-weapon-stars {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.oppp-weapon-star {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.oppp-weapon-name {
+  font-size: 22px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.oppp-weapon-right {
+  width: 140px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.oppp-weapon-right img {
+  max-height: 120px;
+  max-width: 140px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15));
+}
+
+.oppp-weapon-empty {
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.oppp-matrix {
+  margin-top: 14px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.oppp-matrix-title {
+  font-size: 12px;
+  font-weight: 900;
+  color: #111827;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.oppp-matrix-title::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+
+.oppp-matrix-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  padding: 6px 10px;
+  background: #ffffff;
+  border: 1px solid #f3f4f6;
+  border-radius: 10px;
+  margin-bottom: 6px;
+}
+
+.oppp-matrix-row:last-child {
+  margin-bottom: 0;
+}
+
+.oppp-matrix-term {
+  color: #111827;
+  font-weight: 800;
+}
+
+.oppp-matrix-cost {
+  color: #ef4444;
+  font-weight: 900;
+  font-style: italic;
+}
+
+.oppp-equip-section {
+  background: #ffffff;
+  border: 1px solid #111827;
+  padding: 26px;
+  border-radius: 14px;
+  margin-top: 20px;
+}
+
+.oppp-equip-title {
+  font-size: 20px;
+  font-weight: 900;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.oppp-equip-title::before {
+  content: '';
+  width: 6px;
+  height: 24px;
+  background: #111827;
+  border-radius: 2px;
+}
+
+.oppp-equip-title span {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.oppp-equip-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 240px;
+  gap: 14px;
+}
+
+.oppp-equip-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  position: relative;
+}
+
+.oppp-equip-card.big {
+  grid-column: auto;
+  grid-row: auto;
+}
+
+.oppp-equip-name {
+  font-size: 14px;
+  font-weight: 900;
+  color: #111827;
+  line-height: 1.2;
+  margin-bottom: 10px;
+}
+
+.oppp-equip-level {
+  font-size: 22px;
+  font-weight: 900;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.oppp-equip-level span {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-left: 6px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.oppp-equip-stars {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.oppp-affix-list {
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.oppp-affix-row {
+  background: #111827;
+  color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 900;
+  border-radius: 10px;
+}
+
+.oppp-affix-row.empty {
+  opacity: 0.12;
+}
+
+.oppp-affix-name {
+  opacity: 0.75;
+  font-weight: 900;
+}
+
+.oppp-affix-val {
+  font-weight: 900;
+}
+
+.oppp-equip-star {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.oppp-equip-img {
+  flex: 0 0 110px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 8px 0 10px;
+}
+
+.oppp-equip-img img {
+  max-height: 110px;
+  max-width: 160px;
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.12));
+}
+
+.oppp-equip-card.big .oppp-equip-img {
+  justify-content: center;
+  align-items: center;
+  flex: 0 0 110px;
+  margin: 8px 0 10px;
+}
+
+.oppp-equip-card.big .oppp-equip-img img {
+  max-height: 110px;
+  max-width: 160px;
+  object-position: center bottom;
+}
+
+.oppp-equip-empty {
+  margin: auto;
+  color: #9ca3af;
+  font-weight: 800;
+  letter-spacing: 3px;
+}
+
+.oppp-tactical-tag {
+  background: #f6ad55;
+  color: #ffffff;
+  font-size: 11px;
+  padding: 2px 10px;
+  display: inline-block;
+  font-weight: 900;
+  border-radius: 999px;
+  margin-bottom: 10px;
+  width: fit-content;
+}
+
+.oppp-footer {
+  text-align: center;
+  padding: 40px;
+}

@@ -17,6 +17,22 @@ export default class EndfieldApi {
       binding: {
         url: `${baseUrl}/api/endfield/binding`
       },
+      friend_health: {
+        url: `${baseUrl}/api/friend/health`
+      },
+      friend_detail: {
+        url: `${baseUrl}/api/friend/detail`,
+        query: data.role_id ? `role_id=${data.role_id}` : ''
+      },
+      friend_char: {
+        url: `${baseUrl}/api/friend/char`,
+        query: (() => {
+          const params = []
+          if (data.role_id) params.push(`role_id=${data.role_id}`)
+          if (data.template_id) params.push(`template_id=${encodeURIComponent(data.template_id)}`)
+          return params.join('&')
+        })()
+      },
       endfield_attendance: {
         url: `${baseUrl}/api/endfield/attendance`,
         method: 'post'

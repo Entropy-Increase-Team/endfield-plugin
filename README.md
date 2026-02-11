@@ -82,6 +82,12 @@ git clone https://github.com/Entropy-Increase-Team/endfield-plugin ./plugins/end
 | `:签到` | 森空岛签到 |
 | `:日历` | 活动日历 |
 
+#### 干员面板说明
+
+命令：`:<干员名>面板`（如 `:黎风面板`）
+
+详细数据 仅能查询 在展柜的4名干员
+
 ### 公告
 
 | 命令 | 说明 |

@@ -37,7 +37,8 @@ export default class EndfieldRequest {
   }
 
   async getData(type, data = {}) {
-    if (!this.framework_token) {
+    const allowNoFrameworkToken = String(type || '').startsWith('friend_')
+    if (!this.framework_token && !allowNoFrameworkToken) {
       logger.error(`[终末地插件][统一后端]缺少 framework_token`)
       return false
     }
@@ -45,7 +46,9 @@ export default class EndfieldRequest {
     let { url, headers = {}, body, method } = this.getUrl(type, data)
     if (!url) return false
 
-    headers['X-Framework-Token'] = this.framework_token
+    if (this.framework_token) {
+      headers['X-Framework-Token'] = this.framework_token
+    }
     headers['Content-Type'] = 'application/json'
     if (this.commonConfig.api_key) {
       headers['X-API-Key'] = this.commonConfig.api_key
