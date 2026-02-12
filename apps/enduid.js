@@ -10,7 +10,7 @@ import { getCopyright } from '../utils/copyright.js'
 let authPollingTimer = null
 let healthRecoveryTimer = null // 服务器不健康时，用于检测恢复的定时器
 
-const POLL_INTERVAL_MS = 2 * 60 * 1000 // 2分钟轮询一次
+const POLL_INTERVAL_MS = 30 * 60 * 1000 // 30分钟轮询一次
 const HEALTH_RECOVERY_INTERVAL_MS = 30 * 1000 // 服务器异常时，每30秒检测一次恢复
 const AUTH_POLLING_START_DELAY_MS = 30 * 1000 // 启动后延迟 30 秒再执行第一次轮询
 
