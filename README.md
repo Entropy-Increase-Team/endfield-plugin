@@ -87,6 +87,7 @@ git clone https://github.com/Entropy-Increase-Team/endfield-plugin ./plugins/end
 命令：`:<干员名>面板`（如 `:黎风面板`）
 
 详细数据 仅能查询 在展柜的4名干员
+并且此功能需要 APIKey 为 Pro 等级
 
 ### 公告
 

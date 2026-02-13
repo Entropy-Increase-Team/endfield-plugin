@@ -32,7 +32,6 @@ export function supportGuoba() {
         const signConfig = setting.getConfig('sign') || {}
         const gachaConfig = setting.getConfig('gacha') || {}
         
-        // message：defSet 为底，config 覆盖；config 中不存在的 defSet 键会增量显示，保存时全量写入 config
         const messageConfigPath = `${_path}/plugins/endfield-plugin/config/message.yaml`
         const messageDefSetPath = `${_path}/plugins/endfield-plugin/defSet/message.yaml`
         let messageDefSet = {}

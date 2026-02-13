@@ -49,7 +49,8 @@ export class EndfieldGacha extends plugin {
         },
         {
           reg: '^(?:[:：]|#zmd|#终末地)?[1-9]\\d{0,2}$',
-          fnc: 'receiveGachaSelect'
+          fnc: 'receiveGachaSelect',
+          log: false
         }
       ]
     })
