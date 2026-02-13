@@ -3,7 +3,14 @@
  */
 import MaaendRequest from '../model/maaendReq.js'
 import setting from '../utils/setting.js'
+import { getMessage } from '../utils/common.js'
 import { getCopyright } from '../utils/copyright.js'
+
+const REDIS_KEYS = {
+  devices: (userId) => `ENDFIELD:MAAEND_DEVICES:${userId}`,
+  defaultDevice: (userId) => `ENDFIELD:MAAEND_DEFAULT:${userId}`,
+  jobs: (userId) => `ENDFIELD:MAAEND_JOBS:${userId}`,
+}
 
 /** 设备状态中文 */
 function statusText(s) {
@@ -15,17 +22,6 @@ function statusText(s) {
 function jobStatusText(s) {
   const map = { pending: '等待', running: '执行中', completed: '已完成', failed: '失败', cancelled: '已停止' }
   return map[s] || s || '—'
-}
-
-/** 格式化 ISO 时间为可读格式 */
-function formatTime(isoStr) {
-  if (!isoStr) return '—'
-  try {
-    const d = new Date(isoStr)
-    if (isNaN(d.getTime())) return isoStr
-    const pad = n => String(n).padStart(2, '0')
-    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-  } catch { return isoStr }
 }
 
 /** 格式化秒数为可读时间 */
@@ -62,71 +58,113 @@ export class maaend extends plugin {
   }
 
   getMaaendReq() {
-    const req = new MaaendRequest()
-    if (!this.commonConfig.api_key || String(this.commonConfig.api_key).trim() === '') {
-      return null
+    if (!this.commonConfig.api_key || String(this.commonConfig.api_key).trim() === '') return null
+    return new MaaendRequest()
+  }
+
+  /** 获取用户绑定的设备 ID 列表 */
+  async getUserDeviceIds(userId) {
+    const raw = await redis.get(REDIS_KEYS.devices(userId))
+    if (!raw) return []
+    try { return JSON.parse(raw) } catch { return [] }
+  }
+
+  /** 保存用户绑定的设备 ID 列表 */
+  async setUserDeviceIds(userId, deviceIds) {
+    await redis.set(REDIS_KEYS.devices(userId), JSON.stringify(deviceIds))
+  }
+
+  /** 给用户添加一个设备 */
+  async addUserDevice(userId, deviceId) {
+    const ids = await this.getUserDeviceIds(userId)
+    if (!ids.includes(deviceId)) {
+      ids.push(deviceId)
+      await this.setUserDeviceIds(userId, ids)
     }
-    return req
   }
 
-  /** 获取当前用户的默认设备 ID */
-  async getDefaultDeviceId() {
-    return await redis.get(`ENDFIELD:MAAEND_DEFAULT:${this.e.user_id}`)
+  /** 从用户移除一个设备 */
+  async removeUserDevice(userId, deviceId) {
+    const ids = await this.getUserDeviceIds(userId)
+    await this.setUserDeviceIds(userId, ids.filter(id => id !== deviceId))
+    const defaultId = await redis.get(REDIS_KEYS.defaultDevice(userId))
+    if (defaultId === deviceId) await redis.del(REDIS_KEYS.defaultDevice(userId))
   }
 
-  /** 保存 Job ID 到用户最近任务列表（最新在前，最多 20 条） */
-  async saveJobId(jobId) {
-    const key = `ENDFIELD:MAAEND_JOBS:${this.e.user_id}`
+  /** 获取用户的设备列表（API 全量 → 过滤用户绑定的） */
+  async getUserDevices(userId) {
+    const req = this.getMaaendReq()
+    if (!req) return { err: getMessage('maaend.no_api_key'), devices: [] }
+    const res = await req.getDevices()
+    if (!res || res.code !== 0) return { err: res?.message || '获取设备列表失败', devices: [] }
+    const allDevices = res.data?.devices || []
+    const userIds = await this.getUserDeviceIds(userId)
+    const existSet = new Set(allDevices.map(d => d.device_id))
+    const validIds = userIds.filter(id => existSet.has(id))
+    if (validIds.length !== userIds.length) await this.setUserDeviceIds(userId, validIds)
+    return { devices: allDevices.filter(d => validIds.includes(d.device_id)) }
+  }
+
+  async getDefaultDeviceId(userId) {
+    return await redis.get(REDIS_KEYS.defaultDevice(userId))
+  }
+
+  async saveJobId(userId, jobId) {
+    const key = REDIS_KEYS.jobs(userId)
     await redis.lPush(key, jobId)
     await redis.lTrim(key, 0, 19)
     await redis.expire(key, 86400 * 7)
   }
 
-  /** 解析用户输入的任务标识：短编号(1~20)→实际 Job ID，其余原样返回 */
-  async resolveJobId(input) {
+  async resolveJobId(userId, input) {
     const num = parseInt(input, 10)
     if (String(num) === input && num >= 1 && num <= 20) {
-      const key = `ENDFIELD:MAAEND_JOBS:${this.e.user_id}`
-      const jobId = await redis.lIndex(key, num - 1)
+      const jobId = await redis.lIndex(REDIS_KEYS.jobs(userId), num - 1)
       return jobId || null
     }
     return input
   }
 
-  /** 设置默认设备 / 查看当前默认设备 */
+  /** 尝试获取设备截图，返回 segment.image 或 null */
+  async _tryGetScreenshot(req, deviceId) {
+    try {
+      const res = await req.getScreenshot(deviceId, true)
+      if (res?.isImage && res.data) return segment.image(res.data)
+      if (res?.code === 0 && res.data?.base64_image) return segment.image(Buffer.from(res.data.base64_image, 'base64'))
+    } catch (err) {
+      logger.error(`[MaaEnd]获取截图失败: ${err?.message}`)
+    }
+    return null
+  }
+
   async setDefaultDevice() {
     const match = this.e.msg?.match(/^(?:[:：]|#zmd|#终末地)maa\s*设置设备(?:\s*(\d+))?$/)
     const idx = match?.[1] || ''
+    const userId = this.e.user_id
 
-    const req = this.getMaaendReq()
-    if (!req) return true
-
-    // 未提供序号 → 显示当前默认设备
     if (!idx) {
-      const defaultId = await this.getDefaultDeviceId()
+      const defaultId = await this.getDefaultDeviceId(userId)
       if (!defaultId) {
-        await this.reply('当前未设置默认设备。\n用法：:maa 设置设备 <序号>')
+        await this.reply(getMessage('maaend.no_default_device'))
         return true
       }
-      const res = await req.getDevices()
-      const devices = res?.data?.devices || []
+      const { devices } = await this.getUserDevices(userId)
       const pos = devices.findIndex(d => d.device_id === defaultId)
       if (pos >= 0) {
         const d = devices[pos]
         await this.reply(`当前默认设备：${pos + 1}. ${d.device_name || d.device_id} [${statusText(d.status)}]\n更换：:maa 设置设备 <新序号>`)
       } else {
-        await redis.del(`ENDFIELD:MAAEND_DEFAULT:${this.e.user_id}`)
-        await this.reply('当前默认设备已失效（可能已解绑），请重新设置。')
+        await redis.del(REDIS_KEYS.defaultDevice(userId))
+        await this.reply(getMessage('maaend.default_device_invalid'))
       }
       return true
     }
 
-    // 提供了序号 → 设置为默认设备
-    const out = await this.getDeviceByIndex(idx)
+    const out = await this.getDeviceByIndex(userId, idx)
     if (out.err) { await this.reply(out.err); return true }
     if (!out.device) return true
 
-    await redis.set(`ENDFIELD:MAAEND_DEFAULT:${this.e.user_id}`, out.device.device_id)
+    await redis.set(REDIS_KEYS.defaultDevice(userId), out.device.device_id)
     await this.reply([
       `已设置默认设备：${idx}. ${out.device.device_name || out.device.device_id} [${statusText(out.device.status)}]`,
       '',
@@ -138,32 +176,30 @@ export class maaend extends plugin {
     return true
   }
 
-  /** 获取设备列表并按序号取设备；序号为空时自动使用默认设备 */
-  async getDeviceByIndex(indexOneBased) {
-    const req = this.getMaaendReq()
-    if (!req) return { err: null, device: null }
-    const res = await req.getDevices()
-    if (!res || res.code !== 0) return { err: res?.message || '获取设备列表失败' }
-    const devices = res.data?.devices || []
-    if (devices.length === 0) return { err: '暂无绑定设备，请私聊发送「:maa 绑定」获取绑定码。' }
+  /** 按序号获取用户的设备；序号为空时使用默认设备，仅一台设备时自动选中 */
+  async getDeviceByIndex(userId, indexOneBased) {
+    const { err, devices } = await this.getUserDevices(userId)
+    if (err) return { err }
+    if (devices.length === 0) return { err: getMessage('maaend.no_devices') }
 
-    // 未提供序号，尝试使用默认设备
     if (indexOneBased == null || indexOneBased === '') {
-      const defaultId = await this.getDefaultDeviceId()
+      const defaultId = await this.getDefaultDeviceId(userId)
       if (!defaultId) {
-        return { err: '未指定设备序号，且未设置默认设备。\n请使用「:maa 设置设备 <序号>」设置默认设备，或在命令中指定序号。' }
+        if (devices.length === 1) return { device: devices[0], devices, deviceIdx: 1 }
+        return { err: getMessage('maaend.no_device_index') }
       }
       const pos = devices.findIndex(d => d.device_id === defaultId)
       if (pos < 0) {
-        await redis.del(`ENDFIELD:MAAEND_DEFAULT:${this.e.user_id}`)
-        return { err: '默认设备已失效（可能已解绑），请重新设置。' }
+        await redis.del(REDIS_KEYS.defaultDevice(userId))
+        if (devices.length === 1) return { device: devices[0], devices, deviceIdx: 1 }
+        return { err: getMessage('maaend.default_device_invalid') }
       }
       return { device: devices[pos], devices, deviceIdx: pos + 1 }
     }
 
     const i = parseInt(indexOneBased, 10)
     if (!Number.isFinite(i) || i < 1 || i > devices.length) {
-      return { err: `请输入设备序号 1～${devices.length}` }
+      return { err: getMessage('maaend.device_index_out', { max: devices.length }) }
     }
     return { device: devices[i - 1], devices, deviceIdx: i }
   }
@@ -171,30 +207,22 @@ export class maaend extends plugin {
   async deviceList() {
     const req = this.getMaaendReq()
     if (!req) return true
-    const res = await req.getDevices()
-    if (!res) {
-      await this.reply('获取设备列表失败，请检查网络或 API 配置。')
-      return true
-    }
-    if (res.code !== 0) {
-      await this.reply(res.message || `请求失败(code: ${res.code})`)
-      return true
-    }
-    const devices = res.data?.devices || []
-    const count = res.data?.count ?? devices.length
+    const userId = this.e.user_id
+    const { err, devices } = await this.getUserDevices(userId)
+    if (err) { await this.reply(err); return true }
     if (devices.length === 0) {
-      await this.reply('暂无绑定设备。请私聊发送「:maa 绑定」获取绑定码，在 MaaEnd Client 中输入后完成绑定。')
+      await this.reply(getMessage('maaend.no_devices_full'))
       return true
     }
-    const lines = ['【MaaEnd 设备列表】', `共 ${count} 台设备：`, '']
+    const defaultId = await this.getDefaultDeviceId(userId)
+    const lines = ['【我的 MaaEnd 设备】', `共 ${devices.length} 台设备：`, '']
     devices.forEach((d, i) => {
+      const isDefault = d.device_id === defaultId
       const cap = d.capabilities
       const tasks = cap?.tasks?.length ? cap.tasks.join('、') : '—'
-      const controllers = cap?.controllers?.length ? cap.controllers.join('、') : '—'
-      const resources = cap?.resources?.length ? cap.resources.join('、') : '—'
-      lines.push(`${i + 1}. ${d.device_name || d.device_id} [${statusText(d.status)}]`)
+      lines.push(`${i + 1}. ${d.device_name || d.device_id} [${statusText(d.status)}]${isDefault ? ' ★默认' : ''}`)
       lines.push(`    ID: ${d.device_id} | 版本: ${d.maaend_version || '—'} / ${d.client_version || '—'}`)
-      lines.push(`    任务: ${tasks} | 控制器: ${controllers} | 资源: ${resources}`)
+      lines.push(`    任务: ${tasks}`)
       if (d.current_job_id) lines.push(`    当前任务: ${d.current_job_id}`)
       lines.push('')
     })
@@ -204,26 +232,60 @@ export class maaend extends plugin {
 
   async bindCode() {
     if (!this.e.isPrivate) {
-      await this.reply('请私聊使用「:maa 绑定」获取绑定码')
+      await this.reply(getMessage('maaend.bind_private_only'))
       return true
     }
     const req = this.getMaaendReq()
     if (!req) return true
+
+    // 快照当前所有设备，用于后续检测新增设备
+    const beforeRes = await req.getDevices()
+    const beforeIds = new Set((beforeRes?.data?.devices || []).map(d => d.device_id))
+
     const res = await req.createBindCode()
     if (!res || res.code !== 0) {
-      await this.reply(res?.message || '生成绑定码失败。')
+      await this.reply(res?.message || getMessage('maaend.bind_failed'))
       return true
     }
-    const { bind_code, expires_in, expires_at } = res.data || {}
-    const msg = [
+    const { bind_code, expires_in } = res.data || {}
+    await this.reply([
       '【MaaEnd 绑定码】',
       `绑定码：${bind_code || '—'}`,
       `有效期：${formatDuration(expires_in || 300)}`,
-      `过期时间：${formatTime(expires_at)}`,
       '',
-      '请在 MaaEnd Client 中输入上述绑定码完成设备绑定。'
-    ].join('\n')
-    await this.reply(msg)
+      '请在 MaaEnd Client 中输入上述绑定码完成设备绑定。',
+      '绑定成功后会自动通知你。'
+    ].join('\n'))
+
+    // 后台轮询：检测新设备并自动认领给当前用户
+    const userId = this.e.user_id
+    const e = this.e
+    const maxWait = (expires_in || 300) * 1000
+    const pollInterval = 5000
+    let elapsed = 0
+
+    const poll = async () => {
+      elapsed += pollInterval
+      if (elapsed > maxWait) return
+      try {
+        const pollReq = new MaaendRequest()
+        const nowRes = await pollReq.getDevices()
+        const nowDevices = nowRes?.data?.devices || []
+        const newDevices = nowDevices.filter(d => !beforeIds.has(d.device_id))
+        if (newDevices.length > 0) {
+          for (const d of newDevices) await this.addUserDevice(userId, d.device_id)
+          const userIds = await this.getUserDeviceIds(userId)
+          if (userIds.length === 1) await redis.set(REDIS_KEYS.defaultDevice(userId), userIds[0])
+          const names = newDevices.map(d => d.device_name || d.device_id).join('、')
+          await e.reply(getMessage('maaend.bind_success', { names }))
+          return
+        }
+      } catch (err) {
+        logger.error(`[MaaEnd]绑定轮询异常: ${err?.message}`)
+      }
+      setTimeout(poll, pollInterval)
+    }
+    setTimeout(poll, pollInterval)
     return true
   }
 
@@ -233,7 +295,7 @@ export class maaend extends plugin {
     if (!match) return true
     const deviceIdx = match[1] || null  // null = 使用默认设备
 
-    const out = await this.getDeviceByIndex(deviceIdx)
+    const out = await this.getDeviceByIndex(this.e.user_id, deviceIdx)
     if (out.err) { await this.reply(out.err); return true }
     if (!out.device) return true
 
@@ -329,7 +391,7 @@ export class maaend extends plugin {
         const t = availableTasks[num - 1]
         resolvedTasks.push({ name: t.name, label: t.label || '' })
       } else if (String(num) === arg && num > availableTasks.length) {
-        await this.reply(`任务序号 ${num} 超出范围，该设备共 ${availableTasks.length} 个可用任务`)
+        await this.reply(getMessage('maaend.task_index_out', { num, max: availableTasks.length }))
         return true
       } else {
         // 按名称匹配，尝试查找对应的中文标签
@@ -342,15 +404,15 @@ export class maaend extends plugin {
     const tasks = resolvedTasks.map(t => ({ name: t.name, options: {} }))
     const res = await req.runTask(device.device_id, { controller, resource, tasks })
     if (!res) {
-      await this.reply('下发任务请求失败')
+      await this.reply(getMessage('maaend.task_run_failed'))
       return true
     }
     if (res.code === 40001) {
-      await this.reply('设备离线，无法执行任务')
+      await this.reply(getMessage('maaend.device_offline'))
       return true
     }
     if (res.code === 40002) {
-      await this.reply(res.message || '设备正在执行任务，请稍后再试')
+      await this.reply(res.message || getMessage('maaend.device_busy'))
       return true
     }
     if (res.code !== 0) {
@@ -359,20 +421,12 @@ export class maaend extends plugin {
     }
     const jobId = res.data?.job_id
     const taskDesc = resolvedTasks.map(t => t.label ? `${t.label}(${t.name})` : t.name).join('、')
-    if (jobId) await this.saveJobId(jobId)
+    if (jobId) await this.saveJobId(this.e.user_id, jobId)
 
     // 下发通知 + 截图合并为一条消息
     const msg = [`任务已下发 → ${taskDesc}\n任务编号：#1\n查询进度：:maa 状态\n停止任务：:maa 停止`]
-    try {
-      const ssRes = await req.getScreenshot(device.device_id, true)
-      if (ssRes?.isImage && ssRes.data) {
-        msg.push(segment.image(ssRes.data))
-      } else if (ssRes?.code === 0 && ssRes.data?.base64_image) {
-        msg.push(segment.image(Buffer.from(ssRes.data.base64_image, 'base64')))
-      }
-    } catch (err) {
-      logger.error(`[MaaEnd]获取下发截图失败: ${err?.message}`)
-    }
+    const ssImg = await this._tryGetScreenshot(req, device.device_id)
+    if (ssImg) msg.push(ssImg)
     await this.reply(msg)
 
     // 启动后台轮询，任务完成时自动推送通知和截图
@@ -422,16 +476,17 @@ export class maaend extends plugin {
         if (job.error) lines.push(`错误：${job.error}`)
         const msg = [lines.join('\n')]
         if (job.status === 'completed') {
-          try {
-            const ssRes = await req.getScreenshot(deviceId, true)
-            if (ssRes?.isImage && ssRes.data) {
-              msg.push(segment.image(ssRes.data))
-            } else if (ssRes?.code === 0 && ssRes.data?.base64_image) {
-              msg.push(segment.image(Buffer.from(ssRes.data.base64_image, 'base64')))
+          const ssImg = await (async () => {
+            try {
+              const ssRes = await req.getScreenshot(deviceId, true)
+              if (ssRes?.isImage && ssRes.data) return segment.image(ssRes.data)
+              if (ssRes?.code === 0 && ssRes.data?.base64_image) return segment.image(Buffer.from(ssRes.data.base64_image, 'base64'))
+            } catch (err) {
+              logger.error(`[MaaEnd]获取完成截图失败: ${err?.message}`)
             }
-          } catch (err) {
-            logger.error(`[MaaEnd]获取完成截图失败: ${err?.message}`)
-          }
+            return null
+          })()
+          if (ssImg) msg.push(ssImg)
         }
         await e.reply(msg)
       } catch (err) {
@@ -446,15 +501,15 @@ export class maaend extends plugin {
   async jobStatus() {
     const match = this.e.msg?.match(/^(?:[:：]|#zmd|#终末地)maa\s*状态(?:\s+(\S+))?$/)
     const rawInput = match?.[1]?.trim() || '1'  // 无参数默认查最近一次任务
-    const jobId = await this.resolveJobId(rawInput)
+    const jobId = await this.resolveJobId(this.e.user_id, rawInput)
     if (!jobId) {
-      await this.reply(`未找到编号 #${rawInput} 对应的任务`)
+      await this.reply(getMessage('maaend.job_not_found', { id: rawInput }))
       return true
     }
     const req = this.getMaaendReq()
     const res = await req.getJob(jobId)
     if (!res) {
-      await this.reply('查询任务状态失败')
+      await this.reply(getMessage('maaend.job_query_failed'))
       return true
     }
     if (res.code !== 0) {
@@ -484,9 +539,9 @@ export class maaend extends plugin {
   async stopJob() {
     const match = this.e.msg?.match(/^(?:[:：]|#zmd|#终末地)maa\s*停止(?:\s+(\S+))?$/)
     const rawInput = match?.[1]?.trim() || '1'  // 无参数默认停止最近一次任务
-    const jobId = await this.resolveJobId(rawInput)
+    const jobId = await this.resolveJobId(this.e.user_id, rawInput)
     if (!jobId) {
-      await this.reply(`未找到编号 #${rawInput} 对应的任务`)
+      await this.reply(getMessage('maaend.job_not_found', { id: rawInput }))
       return true
     }
     const req = this.getMaaendReq()
@@ -502,35 +557,26 @@ export class maaend extends plugin {
   async screenshot() {
     const match = this.e.msg?.match(/^(?:[:：]|#zmd|#终末地)maa\s*截图(?:\s*(\d+))?$/)
     const idx = match?.[1] || null  // null = 使用默认设备
-    const out = await this.getDeviceByIndex(idx)
+    const out = await this.getDeviceByIndex(this.e.user_id, idx)
     if (out.err) {
       await this.reply(out.err)
       return true
     }
     if (!out.device) return true
     const req = this.getMaaendReq()
-    const res = await req.getScreenshot(out.device.device_id, true)
-    if (!res) {
-      await this.reply('获取截图失败')
-      return true
+    const img = await this._tryGetScreenshot(req, out.device.device_id)
+    if (img) {
+      await this.reply(img)
+    } else {
+      await this.reply(getMessage('maaend.screenshot_failed'))
     }
-    if (res.isImage && res.data) {
-      await this.reply(segment.image(res.data))
-      return true
-    }
-    if (res.code === 0 && res.data?.base64_image) {
-      const buf = Buffer.from(res.data.base64_image, 'base64')
-      await this.reply(segment.image(buf))
-      return true
-    }
-    await this.reply(res?.message || '设备可能离线或未连接控制器，无法截图')
     return true
   }
 
   async resetDevice() {
     const match = this.e.msg?.match(/^(?:[:：]|#zmd|#终末地)maa\s*重置(?:\s*(\d+))?$/)
     const idx = match?.[1] || null  // null = 使用默认设备
-    const out = await this.getDeviceByIndex(idx)
+    const out = await this.getDeviceByIndex(this.e.user_id, idx)
     if (out.err) {
       await this.reply(out.err)
       return true
@@ -550,10 +596,10 @@ export class maaend extends plugin {
     const match = this.e.msg?.match(/^(?:[:：]|#zmd|#终末地)maa\s*删除设备\s*(\d+)$/)
     const idx = match ? match[1] : ''
     if (!idx) {
-      await this.reply('用法：:maa 删除设备 <序号>')
+      await this.reply(getMessage('maaend.delete_usage'))
       return true
     }
-    const out = await this.getDeviceByIndex(idx)
+    const out = await this.getDeviceByIndex(this.e.user_id, idx)
     if (out.err) {
       await this.reply(out.err)
       return true
@@ -565,6 +611,7 @@ export class maaend extends plugin {
       await this.reply(res?.message || '删除设备失败')
       return true
     }
+    await this.removeUserDevice(this.e.user_id, out.device.device_id)
     await this.reply(res.data?.message || '设备已删除')
     return true
   }
@@ -575,7 +622,7 @@ export class maaend extends plugin {
     const taskPart = match ? (match[1] || '').trim() : ''
 
     // 获取默认设备
-    const out = await this.getDeviceByIndex(null)
+    const out = await this.getDeviceByIndex(this.e.user_id, null)
     if (out.err) { await this.reply(out.err); return true }
     if (!out.device) return true
 
@@ -615,7 +662,7 @@ export class maaend extends plugin {
     const jobs = res.data?.jobs || []
     const total = res.data?.total ?? 0
     if (jobs.length === 0) {
-      await this.reply('暂无任务历史')
+      await this.reply(getMessage('maaend.no_job_history'))
       return true
     }
     const lines = [`【任务历史】 第 ${page} 页，共 ${total} 条`, '']

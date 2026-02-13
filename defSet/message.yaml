@@ -130,6 +130,7 @@ gacha:
   no_records: "暂无抽卡记录，请发送「:抽卡分析同步」进行同步。"
   records_sync_hint: "同步最新记录请发送「:抽卡分析同步」。"
   analysis_need_sync: "暂无本地数据，请先执行「:抽卡分析同步」。"
+  analysis_sync_start: "正在同步抽卡记录并生成分析，请稍候..."
   analysis_auto_sync_hint: "检测到未同步记录，正在为您自动同步，请稍候..."
   analysis_incremental_hint: "正在拉取新增记录..."
   select_account_query: "请选择要操作的账号"
@@ -152,6 +153,10 @@ gacha:
   auth_full_sync: "正在执行全量同步（首次同步耗时较长）..."
   sync_failed: "同步失败 {error}"
   sync_timeout: "同步超时，请稍后重试。"
+  sync_all_get_users_failed: "获取用户列表失败，请稍后重试。"
+  sync_all_no_accounts: "暂无已绑定账号，无需同步。"
+  sync_all_done: "已为全部绑定账号触发抽卡同步：成功 {triggered} 个{skipped_text}。后台会陆续完成同步。"
+  global_stats_pool_not_found: "未找到包含「{name}」的限定池，请检查干员名或卡池名。"
   simulate_failed: "抽卡失败，请稍后再试。"
   simulate_disabled: "模拟抽卡功能暂未开启。"
   simulate_group_not_allowed: "本群未开放模拟抽卡功能。"
@@ -257,6 +262,28 @@ strategy:
   upload_download_failed: "图片下载失败。"
   upload_saved: "攻略已保存至 {path}"
   upload_save_failed: "保存失败，请检查图片有效性。"
+
+# MaaEnd 远程控制
+maaend:
+  no_api_key: "未配置 api_key，请检查 config/common.yaml。"
+  bind_private_only: "请私聊使用「:maa 绑定」获取绑定码"
+  bind_failed: "生成绑定码失败。"
+  bind_success: "设备绑定成功：{names}\n已自动关联到你的账号。\n发送「:maa 设备」查看设备列表。"
+  no_devices: "你还没有绑定设备。\n请私聊发送「:maa 绑定」获取绑定码。"
+  no_devices_full: "你还没有绑定设备。\n请私聊发送「:maa 绑定」获取绑定码，在 MaaEnd Client 中输入后完成绑定。"
+  no_default_device: "当前未设置默认设备。\n用法：:maa 设置设备 <序号>"
+  default_device_invalid: "当前默认设备已失效，请重新设置。"
+  no_device_index: "未指定设备序号，且未设置默认设备。\n请使用「:maa 设置设备 <序号>」设置默认设备。"
+  device_index_out: "请输入设备序号 1～{max}"
+  task_index_out: "任务序号 {num} 超出范围，该设备共 {max} 个可用任务"
+  task_run_failed: "下发任务请求失败"
+  device_offline: "设备离线，无法执行任务"
+  device_busy: "设备正在执行任务，请稍后再试"
+  job_not_found: "未找到编号 #{id} 对应的任务"
+  job_query_failed: "查询任务状态失败"
+  screenshot_failed: "设备可能离线或未连接控制器，无法截图"
+  delete_usage: "用法：:maa 删除设备 <序号>"
+  no_job_history: "暂无任务历史"
 
 # 蓝图文档
 bluemap:
