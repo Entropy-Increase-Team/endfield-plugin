@@ -191,4 +191,12 @@ git clone https://github.com/Entropy-Increase-Team/endfield-plugin ./plugins/end
 
 有你们的贡献，endfield-plugin 才能变得越来越好~ ❤️
 
+<a href="https://www.star-history.com/?repos=Entropy-Increase-Team%2Fendfield-plugin&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=Entropy-Increase-Team/endfield-plugin&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=Entropy-Increase-Team/endfield-plugin&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=Entropy-Increase-Team/endfield-plugin&type=date&legend=top-left" />
+ </picture>
+</a>
+
 如果你喜欢这个项目，请不妨点个 Star🌟，这是对开发者最大的动力。
