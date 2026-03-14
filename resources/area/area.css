@@ -184,18 +184,25 @@ body {
 /* 地区头部：左侧名称 + 右侧收集统计 */
 .zone-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
   padding-bottom: 14px;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.zone-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .zone-title-group {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* 地区 SVG 图标 */
@@ -228,11 +235,24 @@ body {
   border: 1px solid #e5e7eb;
 }
 
+.zone-money {
+  font-size: 0.9rem;
+  color: #111827;
+  background: #eef2ff;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid #e0e7ff;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 /* 收集统计 */
 .zone-stats {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px 14px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
 }
 
 .zone-stat {
@@ -256,6 +276,7 @@ body {
   border-radius: 4px;
   box-sizing: content-box;
 }
+
 
 .zone-stat b {
   color: #374151;
@@ -374,6 +395,41 @@ body {
 .officer-empty-text {
   font-size: 0.82rem;
   color: #d1d5db;
+}
+
+.settlement-money {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.settlement-money-label {
+  color: #9ca3af;
+}
+
+.settlement-money-value {
+  color: #374151;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.settlement-money-bar {
+  margin-top: 6px;
+  width: 100%;
+  height: 6px;
+  background: rgba(229, 231, 235, 0.7);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.settlement-money-bar-fill {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 4px;
+  transition: width 0.3s ease;
 }
 
 /* ========== 页脚 ========== */

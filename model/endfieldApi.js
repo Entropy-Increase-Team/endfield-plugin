@@ -110,6 +110,10 @@ export default class EndfieldApi {
           const pageSize = Math.min(50, Math.max(1, Number(data.page_size ?? 20)))
           return `page=${page}&page_size=${pageSize}`
         })()
+      },
+      achieve: {
+        url: `${baseUrl}/api/endfield/achieve`,
+        query: data.roleId ? `roleId=${data.roleId}&serverId=${data.serverId || 1}` : ''
       }
     }
   }

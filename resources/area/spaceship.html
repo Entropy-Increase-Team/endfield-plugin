@@ -54,6 +54,12 @@
             {{/if}}
           </div>
         </div>
+        {{if room.lastReportTime}}
+        <div class="room-meta">
+          <span class="room-meta-label">最新报告</span>
+          <span class="room-meta-value">{{room.lastReportTime}}</span>
+        </div>
+        {{/if}}
 
         <!-- 派驻干员 -->
         {{if room.chars.length > 0}}

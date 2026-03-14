@@ -82,32 +82,111 @@ export class EndfieldArea extends plugin {
       const areaMap = setting.getData('areaMap') || {}
 
       // 构建各地区渲染数据
+      const getCountPair = (value) => {
+        if (value == null) return { count: 0, total: 0 }
+        if (typeof value === 'object') {
+          return {
+            count: Number(value.count ?? 0) || 0,
+            total: Number(value.total ?? 0) || 0
+          }
+        }
+        const num = Number(value) || 0
+        return { count: num, total: 0 }
+      }
+
+      const formatCountText = (count, total) => (total > 0 ? `${count}/${total}` : `${count}`)
+
+      const formatMoneyText = (moneyMgr) => {
+        if (moneyMgr == null || moneyMgr === '') return ''
+        if (typeof moneyMgr === 'object') {
+          const count = moneyMgr.count ?? ''
+          const total = moneyMgr.total ?? ''
+          if (count === '' && total === '') return ''
+          if (count !== '' && total !== '') return `${count}/${total}`
+          return String(count !== '' ? count : total)
+        }
+        return String(moneyMgr)
+      }
+
       const zoneList = zones.map((zone) => {
         const zoneName = zone.zoneName || areaMap[zone.zoneId] || zone.zoneId || '未知'
+        const charNameMap = zone.charNameMap || {}
+        const officerAvatarMap = zone.officerAvatarMap || {}
         const settlements = (zone.settlements || []).map((s) => {
-          const charId = s.officerCharIds || ''
-          // 优先用 domain 接口的 charNameMap，为空则从 card/detail 获取
-          const officerName = (charId && zone.charNameMap?.[charId]) || charInfoMap[charId]?.name || ''
-          const officerAvatar = charInfoMap[charId]?.avatar || ''
+          const rawIds = s.officerCharIds ?? ''
+          const officerIds = Array.isArray(rawIds)
+            ? rawIds.map(String).map((id) => id.trim()).filter(Boolean)
+            : String(rawIds).split(',').map((id) => id.trim()).filter(Boolean)
+          const charId = officerIds[0] || ''
+          // 优先用 domain 接口的 charNameMap/头像，为空则从 card/detail 获取
+          const officerName = (charId && charNameMap?.[charId]) || charInfoMap[charId]?.name || ''
+          const officerAvatar = s.officerCharAvatar || officerAvatarMap?.[charId] || charInfoMap[charId]?.avatar || ''
+          const remainMoney = s.remainMoney ?? ''
+          const moneyMax = s.moneyMax ?? ''
+          const remainMoneyText = (remainMoney !== '' && moneyMax !== '')
+            ? `${remainMoney}/${moneyMax}`
+            : String(remainMoney !== '' ? remainMoney : moneyMax || '')
+          const remainMoneyNum = Number(remainMoney)
+          const moneyMaxNum = Number(moneyMax)
+          const remainMoneyPercent = (Number.isFinite(remainMoneyNum) && moneyMaxNum > 0)
+            ? Math.max(0, Math.min(100, (remainMoneyNum / moneyMaxNum) * 100))
+            : 0
           return {
             name: s.name || s.id || '未知',
             level: s.level ?? 0,
             officerName,
-            officerAvatar
+            officerAvatar,
+            remainMoneyText,
+            remainMoneyPercent
           }
         })
-        const collections = zone.collections || []
-        const totalChest = collections.reduce((sum, c) => sum + (Number(c.trchestCount) || 0), 0)
-        const totalPuzzle = collections.reduce((sum, c) => sum + (Number(c.puzzleCount) || 0), 0)
-        const totalBlackbox = collections.reduce((sum, c) => sum + (Number(c.blackboxCount) || 0), 0)
+        const collectionSource = (Array.isArray(zone.collections) && zone.collections.length > 0)
+          ? zone.collections
+          : (Array.isArray(zone.levels) ? zone.levels : [])
+        let totalChest = 0
+        let totalChestAll = 0
+        let totalPuzzle = 0
+        let totalPuzzleAll = 0
+        let totalBlackbox = 0
+        let totalBlackboxAll = 0
+        let totalEquip = 0
+        let totalEquipAll = 0
+        let totalPiece = 0
+        let totalPieceAll = 0
+        for (const c of collectionSource) {
+          const chest = getCountPair(c.trchestCount)
+          const puzzle = getCountPair(c.puzzleCount)
+          const blackbox = getCountPair(c.blackboxCount)
+          const equip = getCountPair(c.equipTrchestCount)
+          const piece = getCountPair(c.pieceCount)
+          totalChest += chest.count
+          totalChestAll += chest.total
+          totalPuzzle += puzzle.count
+          totalPuzzleAll += puzzle.total
+          totalBlackbox += blackbox.count
+          totalBlackboxAll += blackbox.total
+          totalEquip += equip.count
+          totalEquipAll += equip.total
+          totalPiece += piece.count
+          totalPieceAll += piece.total
+        }
+        const moneyText = formatMoneyText(zone.moneyMgr)
         return {
           zoneName,
           level: zone.level ?? 0,
           moneyMgr: (zone.moneyMgr != null && zone.moneyMgr !== '' && String(zone.moneyMgr) !== '0') ? zone.moneyMgr : null,
+          moneyText,
           settlements,
           totalChest,
           totalPuzzle,
-          totalBlackbox
+          totalBlackbox,
+          totalEquip,
+          totalPiece,
+          totalChestText: formatCountText(totalChest, totalChestAll),
+          totalPuzzleText: formatCountText(totalPuzzle, totalPuzzleAll),
+          totalBlackboxText: formatCountText(totalBlackbox, totalBlackboxAll),
+          totalEquipText: formatCountText(totalEquip, totalEquipAll),
+          totalPieceText: formatCountText(totalPiece, totalPieceAll)
         }
       })
 
@@ -144,8 +223,8 @@ export class EndfieldArea extends plugin {
       for (const zone of zoneList) {
         msg += `\n- 地区：${zone.zoneName}\n`
         msg += `  等级：${zone.level}\n`
-        if (zone.moneyMgr != null) {
-          msg += `  资金：${zone.moneyMgr}\n`
+        if (zone.moneyText) {
+          msg += `  资金：${zone.moneyText}\n`
         }
         if (zone.settlements.length) {
           msg += `  聚落：${zone.settlements.length}个\n`
@@ -153,7 +232,7 @@ export class EndfieldArea extends plugin {
             msg += `  • ${s.name} Lv.${s.level}${s.officerName ? `（派驻：${s.officerName}）` : ''}\n`
           }
         }
-        msg += `  收集：宝箱 ${zone.totalChest}、拼图 ${zone.totalPuzzle}、协议采录桩 ${zone.totalBlackbox}\n`
+        msg += `  收集：宝箱 ${zone.totalChest}、醚质 ${zone.totalPuzzle}、协议采录桩 ${zone.totalBlackbox}、装备制造模板 ${zone.totalEquip}、维修灵感点 ${zone.totalPiece}\n`
       }
 
       const segments = this.splitContent(msg, 2000)
@@ -190,6 +269,7 @@ export class EndfieldArea extends plugin {
     // 接口返回 data.domain（GET /api/endfield/domain），无 data.zones
     const domainList = res.data?.domain || []
     const charNameMap = res.data?.charNameMap || {}
+    const officerAvatarMap = res.data?.officerAvatarMap || {}
     const zones = domainList.map((d) => ({
       zoneId: d.domainId,
       zoneName: d.name,
@@ -197,7 +277,9 @@ export class EndfieldArea extends plugin {
       moneyMgr: d.moneyMgr,
       settlements: d.settlements || [],
       collections: d.collections || [],
-      charNameMap
+      levels: d.levels || [],
+      charNameMap,
+      officerAvatarMap
     }))
     return { zones }
   }
@@ -252,23 +334,29 @@ export class EndfieldArea extends plugin {
         }
       }
 
-      // 构建房间渲染数据（过滤 guest_room）
-      const roomList = rooms.filter((room) => room.id !== 'guest_room').map((room, idx) => {
-        const roomName = roomMap[room.id] || room.id || '未知'
-        const chars = (room.chars || []).map((c) => ({
-          name: charNameMap[c.charId] || c.charId || '未知',
-          avatar: charAvatarMap[c.charId] || '',
-          physicalStrength: Math.round(c.physicalStrength ?? 0),
-          favorability: Math.round(c.favorability ?? 0),
-          moodPercent: this.calcMoodPercent(c.physicalStrength, c.moodPercent),
-          trustPercent: this.calcTrustPercent(c.favorability, c.trustPercent),
-          trustLevelName: this.resolveTrustLevelName(c.favorability, c.trustLevelName, relationLevels)
-        }))
+      // 构建房间渲染数据（API 已过滤空房间）
+      const roomList = rooms.map((room, idx) => {
+        const roomName = room.roomName || roomMap[room.id] || room.id || '未知'
+        const lastReportTs = Number(room.lastReportTs ?? 0)
+        const lastReportTime = lastReportTs ? new Date(lastReportTs * 1000).toLocaleString('zh-CN') : ''
+        const chars = (room.chars || []).map((c) => {
+          const charId = c.charId || c.id || ''
+          return {
+            name: c.name || charNameMap[charId] || charId || '未知',
+            avatar: c.avatarUrl || charAvatarMap[charId] || '',
+            physicalStrength: Math.round(c.physicalStrength ?? 0),
+            favorability: Math.round(c.favorability ?? 0),
+            moodPercent: this.calcMoodPercent(c.physicalStrength, c.moodPercent),
+            trustPercent: this.calcTrustPercent(c.favorability, c.trustPercent),
+            trustLevelName: this.resolveTrustLevelName(c.favorability, c.trustLevelName, relationLevels)
+          }
+        })
         return {
           roomName,
           roomId: room.id,
           level: room.level ?? 0,
           type: room.type ?? 0,
+          lastReportTime,
           bgIndex: (idx % 3) + 1,
           chars
         }
@@ -338,11 +426,10 @@ export class EndfieldArea extends plugin {
       return null
     }
 
-    const spaceShip = res.data?.spaceShip || {}
     const charNameMap = res.data?.charNameMap || {}
     const role = res.data?.role || {}
     const relationLevels = Array.isArray(res.data?.relationLevels) ? res.data.relationLevels : []
-    const rooms = spaceShip.rooms || []
+    const rooms = Array.isArray(res.data?.rooms) ? res.data.rooms : (res.data?.spaceShip?.rooms || [])
 
     return { rooms, charNameMap, role, relationLevels }
   }

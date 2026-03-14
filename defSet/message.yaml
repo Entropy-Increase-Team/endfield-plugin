@@ -138,10 +138,17 @@ note:
     角色数：{char_num}
     武器数：{weapon_num}
     文档数：{doc_num}
-    理智：{stamina_current}/{stamina_max}
-    活跃度：{activation}/{max_activation}
+    成就：{achieve_count}
+    通行证：{bp_cur}/{bp_max}
   text_owned_header: "【已拥有干员】({count}个)"
   text_owned_item: "• {name}"
+
+achieve:
+  title: "成就列表"
+  loading: "正在获取成就列表..."
+  text_header: "【{name} 的成就列表】"
+  not_found_info: "暂无成就数据。"
+  get_failed: "获取成就信息失败。"
 
 help:
   title: "终末地插件帮助"

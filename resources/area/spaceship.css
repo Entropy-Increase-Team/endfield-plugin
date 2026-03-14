@@ -192,6 +192,25 @@ body {
   border-bottom: 1px solid #f0f0f0;
 }
 
+.room-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.room-meta-label {
+  color: #9ca3af;
+}
+
+.room-meta-value {
+  color: #374151;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .room-title-group {
   display: flex;
   align-items: center;

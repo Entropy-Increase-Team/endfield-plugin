@@ -154,7 +154,8 @@ export class EndfieldStamina extends plugin {
           const accounts = validAccounts.map(a => ({
             ...a,
             staminaPercent: a.max > 0 ? a.current / a.max : 0,
-            activationPercent: a.maxActivation > 0 ? (a.activation / a.maxActivation) * 100 : 0
+            activationPercent: a.maxActivation > 0 ? (a.activation / a.maxActivation) * 100 : 0,
+            weeklyPercent: a.weeklyTotal > 0 ? (a.weeklyScore / a.weeklyTotal) * 100 : 0
           }))
           const renderData = {
             pluResPath,
@@ -179,7 +180,9 @@ export class EndfieldStamina extends plugin {
           max: a.max,
           fullTime: a.fullTime,
           activation: a.activation,
-          maxActivation: a.maxActivation
+          maxActivation: a.maxActivation,
+          weeklyScore: a.weeklyScore,
+          weeklyTotal: a.weeklyTotal
         })
         return getMessage('common.label_line', { label: a.userName, text })
       })
@@ -209,6 +212,7 @@ export class EndfieldStamina extends plugin {
 
       const stamina = res.data?.stamina || {}
       const dailyMission = res.data?.dailyMission || {}
+      const weeklyMission = res.data?.weeklyMission || {}
       const role = res.data?.role || {}
       const noteBase = noteRes?.code === 0 ? (noteRes.data?.base || {}) : {}
 
@@ -218,6 +222,8 @@ export class EndfieldStamina extends plugin {
       const recover = Number(stamina.recover || 360)
       const activation = Number(dailyMission.activation ?? 0)
       const maxActivation = Number(dailyMission.maxActivation ?? 100)
+      const weeklyScore = Number(weeklyMission.score ?? 0)
+      const weeklyTotal = Number(weeklyMission.total ?? 10)
       let operatorImg = ''
       if (cardRes?.code === 0) {
         const chars = cardRes.data?.detail?.chars || []
@@ -247,6 +253,8 @@ export class EndfieldStamina extends plugin {
         fullTime,
         activation,
         maxActivation,
+        weeklyScore,
+        weeklyTotal,
         userAvatar: noteBase.avatarUrl || '',
         userName: role.name || noteBase.name || sklUser.nickname || getMessage('common.unknown'),
         userLevel: role.level ?? noteBase.level ?? 0,
@@ -272,7 +280,9 @@ export class EndfieldStamina extends plugin {
       max: data.max,
       fullTime: data.fullTime,
       activation: data.activation,
-      maxActivation: data.maxActivation
+      maxActivation: data.maxActivation,
+      weeklyScore: data.weeklyScore,
+      weeklyTotal: data.weeklyTotal
     })
     return { ok: true, msg, current: data.current, max: data.max }
   }

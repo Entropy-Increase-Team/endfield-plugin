@@ -51,11 +51,29 @@
             <div class="note-stat-card"><span class="note-stat-num">{{stats.charNum}}</span><span class="note-stat-label">干员</span></div>
             <div class="note-stat-card"><span class="note-stat-num">{{stats.weaponNum}}</span><span class="note-stat-label">武器</span></div>
             <div class="note-stat-card"><span class="note-stat-num">{{stats.docNum}}</span><span class="note-stat-label">档案</span></div>
-            <div class="note-stat-card"><span class="note-stat-num">{{stats.staminaCurrent}}/{{stats.staminaMax}}</span><span class="note-stat-label">理智</span></div>
-            <div class="note-stat-card"><span class="note-stat-num">{{stats.activation}}/{{stats.maxActivation}}</span><span class="note-stat-label">活跃度</span></div>
+            <div class="note-stat-card"><span class="note-stat-num">{{stats.achieveCount}}</span><span class="note-stat-label">成就</span></div>
+            <div class="note-stat-card"><span class="note-stat-num">{{stats.bpCur}}/{{stats.bpMax}}</span><span class="note-stat-label">通行证</span></div>
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="card-wrap note-card note-achieve-card">
+      <div class="note-section-title">成就徽章（{{achieve.count}}）</div>
+      {{if achieve.medals && achieve.medals.length > 0}}
+      <div class="note-achieve-grid">
+        {{each achieve.medals medal idx}}
+        <div class="note-achieve-item {{medal.isPlated ? 'is-plated' : ''}}">
+          {{if medal.icon}}
+          <img src="{{medal.icon}}" alt="{{medal.name}}" class="note-achieve-icon" onerror="this.style.display='none'">
+          {{/if}}
+          <span class="note-achieve-name">{{medal.name}}</span>
+        </div>
+        {{/each}}
+      </div>
+      {{else}}
+      <div class="note-empty">暂无徽章</div>
+      {{/if}}
     </div>
 
     <div class="card-wrap note-card">

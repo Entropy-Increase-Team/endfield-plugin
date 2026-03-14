@@ -32,22 +32,10 @@ export class EndfieldNote extends plugin {
     await this.reply(getMessage('note.loading'))
 
     try {
-      const roleId = String(sklUser.endfield_uid || '')
-      const serverId = Number(sklUser.server_id || 1)
-      const [detailData, staminaRes] = await Promise.all([
-        this.fetchCharacterDetail(sklUser),
-        sklUser.sklReq.getData('stamina', { roleId, serverId })
-      ])
+      const detailData = await this.fetchCharacterDetail(sklUser)
       if (!detailData) return true
 
-      const { base, chars, serverName } = detailData
-      // 体力接口：理智 current/max，活跃度 activation/maxActivation
-      const stamina = staminaRes?.code === 0 ? (staminaRes.data?.stamina || {}) : {}
-      const dailyMission = staminaRes?.code === 0 ? (staminaRes.data?.dailyMission || {}) : {}
-      const staminaCurrent = stamina.current != null ? String(stamina.current) : getMessage('note.placeholder')
-      const staminaMax = stamina.max != null ? String(stamina.max) : getMessage('note.placeholder')
-      const activation = dailyMission.activation != null ? Number(dailyMission.activation) : getMessage('note.placeholder')
-      const maxActivation = dailyMission.maxActivation != null ? Number(dailyMission.maxActivation) : 100
+      const { base, chars, serverName, charCount, achieve, bpSystem } = detailData
 
       // 渲染模板所需数据
       const unknown = getMessage('common.unknown')
@@ -62,6 +50,11 @@ export class EndfieldNote extends plugin {
         name: char.name || unknown,
         sqUrl: char.avatarSqUrl || char.avatar_sq_url || ''
       }))
+      const totalCharNum = base.charNum ?? charCount ?? charsList.length
+      const placeholder = getMessage('note.placeholder')
+      const achieveCount = Number.isFinite(Number(achieve?.count)) ? Number(achieve.count) : null
+      const bpCur = Number.isFinite(Number(bpSystem?.curLevel)) ? Number(bpSystem.curLevel) : null
+      const bpMax = Number.isFinite(Number(bpSystem?.maxLevel)) ? Number(bpSystem.maxLevel) : null
 
       if (this.e?.runtime?.render) {
         try {
@@ -84,18 +77,21 @@ export class EndfieldNote extends plugin {
               awakeningDateStr
             },
             stats: {
-              charNum: base.charNum ?? 0,
+              charNum: totalCharNum ?? 0,
               weaponNum: base.weaponNum ?? 0,
               docNum: base.docNum ?? 0,
-              staminaCurrent,
-              staminaMax,
-              activation,
-              maxActivation
+              achieveCount: achieveCount ?? placeholder,
+              bpCur: bpCur ?? placeholder,
+              bpMax: bpMax ?? placeholder
+            },
+            achieve: {
+              count: achieveCount ?? placeholder,
+              medals: achieve?.medals || []
             },
             chars: charsList,
             pluResPath
           }
-          const baseOpt = { scale: 1.6, retType: 'base64', viewport: { width: pageWidth, height: 900 } }
+          const baseOpt = { scale: 1.6, retType: 'base64', viewport: { width: pageWidth, height: 1100 } }
           const imgSegment = await this.e.runtime.render('endfield-plugin', 'note/note', renderData, baseOpt)
           if (imgSegment) {
             await this.reply(imgSegment)
@@ -120,13 +116,12 @@ export class EndfieldNote extends plugin {
       })
       msg += '\n\n'
       msg += getMessage('note.text_stats', {
-        char_num: base.charNum || 0,
+        char_num: totalCharNum || 0,
         weapon_num: base.weaponNum || 0,
         doc_num: base.docNum || 0,
-        stamina_current: staminaCurrent,
-        stamina_max: staminaMax,
-        activation,
-        max_activation: maxActivation
+        achieve_count: achieveCount ?? placeholder,
+        bp_cur: bpCur ?? placeholder,
+        bp_max: bpMax ?? placeholder
       })
       msg += '\n\n'
       msg += getMessage('note.text_owned_header', { count: charsList.length }) + '\n'
@@ -157,11 +152,52 @@ export class EndfieldNote extends plugin {
       await this.reply(getMessage('common.get_role_failed'))
       return null
     }
-    const base = res.data?.base || {}
-    const chars = res.data?.chars || []
+    const data = res.data || {}
+    const base = data.base || {}
     const serverName = base.serverName?.trim() || getMessage('common.unknown')
 
-    return { base, chars, serverName }
+    const chars = Array.isArray(data.chars) ? data.chars : []
+    const charCount = Number(data.charCount ?? base.charNum ?? chars.length ?? 0)
+
+    const achieve = data.achieve || {}
+    const bpSystem = data.bpSystem || {}
+    const achieveMedals = Array.isArray(achieve.achieveMedals) ? achieve.achieveMedals : []
+    const medalMap = new Map()
+    for (const item of achieveMedals) {
+      const id = String(item?.achievementData?.id || '')
+      if (id) medalMap.set(id, item)
+    }
+    const displayIds = Object.keys(achieve.display || {})
+      .sort((a, b) => Number(a) - Number(b))
+      .map((key) => String(achieve.display[key] || ''))
+      .filter(Boolean)
+    const fallbackMedals = achieveMedals
+      .slice()
+      .sort((a, b) => Number(b?.obtainTs || 0) - Number(a?.obtainTs || 0))
+      .slice(0, 10)
+    const medalsSource = displayIds.length > 0
+      ? displayIds.map((id) => medalMap.get(id)).filter(Boolean)
+      : fallbackMedals
+
+    const medals = medalsSource.map((item) => {
+      const data = item?.achievementData || {}
+      const level = Number(item?.level ?? data.initLevel ?? 0)
+      const isPlated = !!item?.isPlated
+      const icon = (level >= 3 && data.reforge3Icon)
+        || (level >= 2 && data.reforge2Icon)
+        || (isPlated && data.platedIcon)
+        || data.initIcon
+        || ''
+      return {
+        id: data.id || '',
+        name: data.name || '',
+        icon,
+        isPlated,
+        level: Number.isFinite(level) ? level : 0
+      }
+    })
+
+    return { base, chars, serverName, charCount, achieve: { count: achieve.count, medals }, bpSystem }
   }
 
   splitContent(content, maxLength = 2000) {

@@ -5,6 +5,32 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循扩展的语义化版本规范（x.y.z 格式）。
 
+## [2.1.0] - 2026-03-14
+
+### feat
+- **新增成就列表**
+  - 新增命令 `:成就列表`，支持成就分类分组与等级展示
+  - 新增成就列表渲染模板（`resources/achieve/*`）
+- **便签扩展显示**
+  - 便签新增成就数量、通行证等级与徽章展示（按 `display` 优先）
+- **地区建设展示增强**
+  - 地图探索统计新增装备制造模板、维修灵感点
+  - 地区总调度券与聚落调度券进度条展示
+  - 统计图标改为专用图标资源
+
+### changed
+- **便签不再调用体力接口**
+  - 移除理智/活跃度展示与相关请求
+- **地区建设/帝江号接口适配**
+  - 适配 `/api/endfield/domain` 新结构（`collections/levels` 计数兼容、`charNameMap/officerAvatarMap`）
+  - 适配 `/api/endfield/spaceship` 新结构（`rooms`、`roomName`、`avatarUrl`、`lastReportTs`）
+- **体力展示补充**
+  - 理智卡片新增每周事务（weeklyMission）显示
+
+### docs
+- **帮助菜单更新**
+  - 新增 `:成就列表` 说明
+
 ## [2.0.9] - 2026-03-12
 
 ### changed

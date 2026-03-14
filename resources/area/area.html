@@ -37,15 +37,22 @@
       <div class="zone-bg-overlay"></div>
       <!-- 地区头部 -->
       <div class="zone-header">
-        <div class="zone-title-group">
-          <img class="zone-pin-icon" src="{{pluResPath}}img/{{zone.zoneName}}.svg" alt="" onerror="this.outerHTML='<span class=&quot;zone-pin-text&quot;>◎</span>'">
-          <span class="zone-name">{{zone.zoneName}}</span>
-          <span class="zone-level">Lv.{{zone.level}}</span>
+        <div class="zone-header-row">
+          <div class="zone-title-group">
+            <img class="zone-pin-icon" src="{{pluResPath}}img/{{zone.zoneName}}.svg" alt="" onerror="this.outerHTML='<span class=&quot;zone-pin-text&quot;>◎</span>'">
+            <span class="zone-name">{{zone.zoneName}}</span>
+            <span class="zone-level">Lv.{{zone.level}}</span>
+          </div>
+          {{if zone.moneyText}}
+          <div class="zone-money">总调度券 <b>{{zone.moneyText}}</b></div>
+          {{/if}}
         </div>
         <div class="zone-stats">
-          <span class="zone-stat"><img class="zone-stat-icon" src="{{pluResPath}}meta/icon/int_trchest_common.png" alt="宝箱">宝箱 <b>{{zone.totalChest}}</b></span>
-          <span class="zone-stat"><img class="zone-stat-icon" src="{{pluResPath}}meta/icon/icon_map_pazzle.png" alt="拼图">拼图 <b>{{zone.totalPuzzle}}</b></span>
-          <span class="zone-stat"><img class="zone-stat-icon" src="{{pluResPath}}meta/icon/icon_map_blackbox.png" alt="协议采录桩">协议采录桩 <b>{{zone.totalBlackbox}}</b></span>
+          <span class="zone-stat"><img class="zone-stat-icon" src="{{pluResPath}}meta/icon/trchestCount.png" alt="宝箱">宝箱 <b>{{zone.totalChestText}}</b></span>
+          <span class="zone-stat"><img class="zone-stat-icon" src="{{pluResPath}}meta/icon/puzzleCount.png" alt="醚质">醚质 <b>{{zone.totalPuzzleText}}</b></span>
+          <span class="zone-stat"><img class="zone-stat-icon" src="{{pluResPath}}meta/icon/blackboxCount.png" alt="协议采录桩">协议采录桩 <b>{{zone.totalBlackboxText}}</b></span>
+          <span class="zone-stat"><img class="zone-stat-icon" src="{{pluResPath}}meta/icon/equipTrchestCount.png" alt="装备制造模板">装备制造模板 <b>{{zone.totalEquipText}}</b></span>
+          <span class="zone-stat"><img class="zone-stat-icon" src="{{pluResPath}}meta/icon/pieceCount.png" alt="维修灵感点">维修灵感点 <b>{{zone.totalPieceText}}</b></span>
         </div>
       </div>
 
@@ -73,6 +80,15 @@
             <div class="officer-card officer-empty">
               <div class="officer-empty-icon">＋</div>
               <span class="officer-empty-text">未派驻</span>
+            </div>
+            {{/if}}
+            {{if s.remainMoneyText}}
+            <div class="settlement-money">
+              <span class="settlement-money-label">基地调度券</span>
+              <span class="settlement-money-value">{{s.remainMoneyText}}</span>
+            </div>
+            <div class="settlement-money-bar">
+              <div class="settlement-money-bar-fill" style="width: {{s.remainMoneyPercent}}%;"></div>
             </div>
             {{/if}}
           </div>

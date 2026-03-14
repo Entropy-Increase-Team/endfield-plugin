@@ -1,0 +1,249 @@
+/* 成就列表 */
+@font-face {
+  font-family: 'HarmonyOS Sans SC';
+  src: url('../font/HarmonyOS_SansSC_Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  width: 100%;
+  min-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  width: 100%;
+  min-width: 100%;
+  overflow-x: hidden;
+  background: #f5f5f5;
+  font-family: 'HarmonyOS Sans SC', -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif;
+  color: #1f2937;
+}
+
+.achieve-container {
+  width: 100%;
+  min-width: 100%;
+  max-width: 100vw;
+  padding: 14px 16px 6px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* 顶部栏 */
+.list-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-radius: 10px;
+  position: relative;
+  z-index: 2;
+}
+
+.list-top-bar .user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.list-top-bar .user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.list-top-bar .user-name {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.list-top-bar .user-uid {
+  font-size: 0.82rem;
+  color: #6b7280;
+}
+
+.list-top-bar .list-header-middle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.list-top-bar .list-title {
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin: 0 0 2px 0;
+}
+
+.list-top-bar .list-count {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.list-top-bar-logo {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  max-width: 100px;
+  overflow: hidden;
+}
+
+.logo-container .logo-image {
+  height: 46px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+/* 成就网格 */
+.achieve-section {
+  margin-bottom: 14px;
+}
+
+.achieve-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.5rem;
+  color: #4b5563;
+  margin: 4px 0 10px;
+  font-weight: 700;
+}
+
+.achieve-section-name {
+  padding-left: 8px;
+  border-left: 4px solid #6366f1;
+}
+
+.achieve-section-count {
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.achieve-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(100px, 1fr));
+  gap: 14px;
+}
+
+.achieve-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  padding: 12px 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  min-height: 120px;
+  text-align: center;
+  grid-column: span 2;
+}
+
+.achieve-item.span-half {
+  grid-column: span 3;
+}
+
+.achieve-item.is-plated {
+  border-color: #f5d99c;
+  box-shadow: inset 0 0 0 1px rgba(245, 217, 156, 0.6);
+}
+
+.achieve-icon {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.achieve-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  align-items: center;
+}
+
+.achieve-name {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  line-height: 1.25;
+  min-height: 2.4em;
+}
+
+.achieve-level {
+  font-size: 0.7rem;
+  color: #4338ca;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  border-radius: 999px;
+  padding: 2px 8px;
+  width: fit-content;
+}
+
+.achieve-item.level-1 .achieve-level {
+  color: #374151;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+
+.achieve-item.level-2 .achieve-level {
+  color: #0f766e;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.26);
+}
+
+.achieve-item.level-3 .achieve-level {
+  color: #92400e;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+}
+
+/* 页脚 */
+.footer {
+  text-align: center;
+  margin-top: 4px;
+  padding: 6px 0 0;
+}
+
+.footer-text {
+  font-size: 1.4rem;
+  color: #9ca3af;
+  line-height: 1.4;
+}
+
+.footer-text .version {
+  margin-left: 2px;
+  color: #007180;
+}

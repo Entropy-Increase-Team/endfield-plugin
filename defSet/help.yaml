@@ -80,6 +80,9 @@ help_group:
       - icon: 6
         title: ":便签"
         desc: "查询角色便签"
+      - icon: 6
+        title: ":成就列表"
+        desc: "查看成就徽章列表（全量）"
       - icon: 8
         title: ":更新面板"
         desc: "同步展柜面板后返回全量干员列表（同步角色优先）"

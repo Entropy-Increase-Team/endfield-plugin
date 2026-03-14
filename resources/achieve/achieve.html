@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}}</title>
+  <link rel="stylesheet" href="{{_res_path}}achieve/achieve.css">
+</head>
+<body>
+  <div class="achieve-container">
+    <div class="list-top-bar">
+      <div class="user-info">
+        <div class="user-details">
+          <div class="user-name">{{role.name}}</div>
+          <div class="user-uid">Lv.{{role.level}} · UID {{role.roleId}}</div>
+        </div>
+      </div>
+      <div class="list-header-middle">
+        <h1 class="list-title">{{title}}</h1>
+        <p class="list-count">共 {{count}} 个成就</p>
+      </div>
+      {{if pluResPath}}
+      <div class="logo-container list-top-bar-logo">
+        <img src="{{pluResPath}}img/ET logo.svg" alt="Logo" class="logo-image">
+      </div>
+      {{/if}}
+    </div>
+
+    {{each categories group gIdx}}
+    <div class="achieve-section">
+      <div class="achieve-section-title">
+        <span class="achieve-section-name">{{group.cateName}}</span>
+        <span class="achieve-section-count">({{group.items.length}})</span>
+      </div>
+      <div class="achieve-grid">
+        {{each group.items medal idx}}
+        <div class="achieve-item {{medal.isPlated ? 'is-plated' : ''}} {{medal.levelClass}} {{medal.spanHalf ? 'span-half' : ''}}">
+          {{if medal.icon}}
+          <img src="{{medal.icon}}" alt="{{medal.name}}" class="achieve-icon" onerror="this.style.display='none'">
+          {{/if}}
+          <div class="achieve-info">
+            <div class="achieve-name">{{medal.name}}</div>
+            {{if medal.level}}
+            <div class="achieve-level">Lv.{{medal.level}}</div>
+            {{/if}}
+          </div>
+        </div>
+        {{/each}}
+      </div>
+    </div>
+    {{/each}}
+
+    <footer class="footer">
+      <div class="footer-text">{{@copyright}}</div>
+    </footer>
+  </div>
+</body>
+</html>

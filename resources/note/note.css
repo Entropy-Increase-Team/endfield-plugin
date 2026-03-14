@@ -167,7 +167,7 @@ body {
   color: #6b7280;
 }
 
-/* 第一行：任务 + 权限等阶 + 探索等级；第二行：干员/武器/档案/理智/活跃度 */
+/* 第一行：任务 + 权限等阶 + 探索等级；第二行：干员/武器/档案/成就/通行证 */
 .note-basic-data {
   display: flex;
   flex-direction: column;
@@ -225,6 +225,51 @@ body {
   color: #6b7280;
   text-align: center;
   line-height: 1.2;
+}
+
+/* 成就徽章 */
+.note-achieve-card {
+  margin-bottom: 12px;
+}
+
+.note-achieve-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(56px, 1fr));
+  gap: 10px;
+}
+
+.note-achieve-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #eef2f7;
+  min-width: 0;
+}
+
+.note-achieve-item.is-plated {
+  border-color: #f5d99c;
+  box-shadow: inset 0 0 0 1px rgba(245, 217, 156, 0.6);
+}
+
+.note-achieve-icon {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.note-achieve-name {
+  font-size: 0.68rem;
+  color: #4b5563;
+  text-align: center;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 已拥有干员卡片 - 白色 */

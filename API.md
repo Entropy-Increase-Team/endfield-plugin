@@ -1,6 +1,6 @@
 # Endfield-API 接口文档
 
-版本号：3.1.2
+版本号：3.4.0
 
 ## 概述
 
@@ -1049,6 +1049,10 @@ X-Framework-Token: your-framework-token
 | serverId / server_id | int | 否 | 指定服务器 ID，建议与 roleId 一起传 |
 
 > 角色选择优先级：`roleId`/`role_id` 显式指定 > `framework_token` 对应主绑定（`is_primary=true`）> 任意有效绑定（兜底）> 登录会话默认角色。
+
+- 2026-03-13 版本后，后端会尝试自动修补 `tacticalItem.iconUrl`：先用缓存补全，仍缺失时回源 `search/tactical-items` 建立目录映射后再补全。
+- 兼容两类结构：`tacticalItem` 直接对象，以及 `tacticalItem.tacticalItemData` 包装结构（`iconUrl`/`icon_url` 均支持）。
+- 若上游目录接口本身也缺失对应图标，最终仍可能为空。
 
 ### 终末地签到
 
@@ -2822,6 +2826,14 @@ Authorization: Bearer <jwt> 或 X-API-Key 或 X-Anonymous-Token
 > **设备图标**：`required_facilities[].icon_url` 在蓝图创建/更新时从 `wiki_facilities` 自动填充。详情查看时也会补充缺失的图标（兼容旧数据）。
 > **图片签名**：蓝图 `images` 和 `cover_image` 字段存储的是 object key，返回时自动签名为临时访问 URL。
 
+> **审核状态（`review_status`）说明**：
+> - `pending`：已提交，等待 AI 审核中
+> - `manual_pending`：AI 审核调用失败，转人工审核队列
+> - `approved`：审核通过
+> - `rejected`：审核拒绝
+>
+> **内容存储策略**：审核拒绝时后端不改写数据库原文；仅在对外响应层按策略脱敏展示。
+
 ### 发布蓝图
 
 ```http
@@ -2894,6 +2906,40 @@ Authorization: Bearer <jwt>
 ```
 
 仅创建者可删除。删除后自动异步清理关联的点赞、评论、收藏、浏览、复制记录。
+
+### 触发蓝图复审
+
+```http
+POST /api/blueprints/:id/review
+Authorization: Bearer <jwt>
+Content-Type: application/json
+
+{
+  "cap_token": "optional-cap-token"
+}
+```
+
+用于手动重试蓝图文字审核（例如 `manual_pending` 或 `rejected` 状态）。
+
+**行为规则**：
+- `pending`：禁止重复提审（返回错误）
+- `manual_pending`：允许提审
+- `rejected`：允许提审
+- 其他状态：拒绝提审
+- 启用 Cap 时需提供有效 `cap_token`（API 代理用户可跳过）
+- 后端使用 Redis 锁防重复提交：`blueprint:review:retry:lock:{blueprint_id}`
+
+**响应示例**：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "message": "已触发复审",
+    "review_status": "pending"
+  }
+}
+```
 
 ### 上传蓝图图片
 
@@ -3507,6 +3553,7 @@ GET /api/blueprint/get?code=EF013Eou4O6EoaiE0579
 ```
 
 > 兼容旧路径：`GET /api/blueprint/data?code=...`（建议逐步迁移到 `/api/blueprint/get`）。
+> 本地接口会在响应顶层新增 `cache` 字段，值由外部蓝图解析服务返回（表示是否命中外部缓存）。
 
 **请求参数**：
 
@@ -3519,6 +3566,7 @@ GET /api/blueprint/get?code=EF013Eou4O6EoaiE0579
 {
   "code": 0,
   "message": "成功",
+  "cache": true,
   "data": {
     "query": {
       "code": "EF013Eou4O6EoaiE0579"
@@ -3540,7 +3588,7 @@ GET /api/blueprint/get?code=EF013Eou4O6EoaiE0579
 }
 ```
 
-> `data` 字段结构与外部蓝图解析服务完全一致，可直接用于前端蓝图渲染。
+> 说明：后端保持 `data` 为外部业务数据透传，同时在顶层增加 `cache` 字段（来自外部 API）。
 
 ### 搜索蓝图码
 
@@ -4425,6 +4473,12 @@ X-Framework-Token: your-framework-token
 | `beginner` | 新手池 |
 | `weapon` | 武器池 |
 
+> **武器池结构兼容说明（2026-03）**：
+> - 新结构上游返回 `weaponId` / `weaponName` / `weaponType`
+> - 本项目继续统一对外返回 `char_id` / `char_name`（兼容既有调用方）
+> - 武器记录额外返回 `weapon_type` 字段（有值时表示武器类型）
+> - 历史库旧字段（`weapon_id` / `weapon_name` / `charId` / `charName` / `isFree`）会在读取时自动归一化
+
 **响应示例**:
 ```json
 {
@@ -4453,6 +4507,18 @@ X-Framework-Token: your-framework-token
         "is_new": false,
         "is_free": false,
         "seq_id": "1704067100001"
+      },
+      {
+        "char_id": "wpn_pistol_0011",
+        "char_name": "落草",
+        "weapon_type": "E_WeaponType_Pistol",
+        "rarity": 6,
+        "gacha_ts": "1773396496670",
+        "pool_id": "weponbox_1_1_1",
+        "pool_name": "新芽申领",
+        "is_new": true,
+        "is_free": false,
+        "seq_id": "206"
       }
     ],
     "total": 200,
@@ -4497,6 +4563,22 @@ GET /api/endfield/gacha/records?pools=limited,weapon&page=1&limit=100
 - `limit`: 每页数量
 - `pages`: 总页数
 - 记录按 `seq_id` 降序排列，即最新抽取的记录在最前面
+
+**records[] 字段说明**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `char_id` | string | 统一物品ID（角色池为角色ID，武器池为武器ID） |
+| `char_name` | string | 统一物品名称（角色池为角色名，武器池为武器名） |
+| `weapon_type` | string | 武器类型（仅武器池有值，如 `E_WeaponType_Pistol`） |
+| `rarity` | int | 稀有度 |
+| `gacha_ts` | string | 抽卡时间戳 |
+| `pool_id` | string | 卡池ID |
+| `pool_name` | string | 卡池名称 |
+| `is_new` | bool | 是否首次获得 |
+| `is_free` | bool | 是否免费抽 |
+| `seq_id` | string | 记录序列ID（用于时间排序/去重） |
+
+> 兼容约定：上游武器池新结构中的 `weaponId` / `weaponName` 会映射为 `char_id` / `char_name` 返回，保证历史调用方无需改动。
 
 ### 获取可用账号列表
 
@@ -5645,6 +5727,208 @@ GET /api/endfield/gacha/pool-chars
 
 ---
 
+## 卡池信息管理 API（Pool Admin Secret 鉴权）
+
+> 卡池管理接口用于手动维护角色池和武器池元数据，使用独立的卡池管理员密钥鉴权。
+>
+> 所有接口需在 `X-Admin-Secret` 请求头中携带 `pool_admin.secret`（与通用 `admin.secret` 不同）。
+
+### 接口概览
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/endfield/gacha/admin/char-pools` | 列出角色池 |
+| GET | `/api/endfield/gacha/admin/char-pools/:id` | 获取角色池详情 |
+| POST | `/api/endfield/gacha/admin/char-pools` | 创建角色池 |
+| PUT | `/api/endfield/gacha/admin/char-pools/:id` | 更新角色池 |
+| DELETE | `/api/endfield/gacha/admin/char-pools/:id` | 删除角色池 |
+| GET | `/api/endfield/gacha/admin/weapon-pools` | 列出武器池 |
+| GET | `/api/endfield/gacha/admin/weapon-pools/:id` | 获取武器池详情 |
+| POST | `/api/endfield/gacha/admin/weapon-pools` | 创建武器池 |
+| PUT | `/api/endfield/gacha/admin/weapon-pools/:id` | 更新武器池 |
+| DELETE | `/api/endfield/gacha/admin/weapon-pools/:id` | 删除武器池 |
+| GET | `/api/endfield/gacha/admin/activities` | 列出活动 |
+| GET | `/api/endfield/gacha/admin/activities/:id` | 获取活动详情 |
+| POST | `/api/endfield/gacha/admin/activities` | 创建活动 |
+| PUT | `/api/endfield/gacha/admin/activities/:id` | 更新活动 |
+| DELETE | `/api/endfield/gacha/admin/activities/:id` | 删除活动 |
+
+### 列出角色池
+
+```http
+GET /api/endfield/gacha/admin/char-pools
+X-Admin-Secret: <pool_admin_secret>
+```
+
+**Query 参数**:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| source | string | 否 | 按来源过滤：`manual` / `skland_wiki` |
+| pool_type | string | 否 | 按类型过滤：`limited` / `standard` / `beginner` |
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "list": [
+      {
+        "id": "...",
+        "pool_id": "special_1_0_1",
+        "name": "熔火灼痕",
+        "pool_type": "limited",
+        "chars": [...],
+        "pool_start_at_ts": "1706198400",
+        "pool_end_at_ts": "1707408000",
+        "sort_id": 100,
+        "source": "manual",
+        "created_at": "2026-03-12T10:00:00Z",
+        "updated_at": "2026-03-12T10:00:00Z"
+      }
+    ],
+    "total": 1
+  }
+}
+```
+
+### 创建角色池
+
+```http
+POST /api/endfield/gacha/admin/char-pools
+X-Admin-Secret: <pool_admin_secret>
+Content-Type: application/json
+
+{
+  "pool_id": "special_2_0_1",
+  "name": "新卡池名称",
+  "pool_type": "limited",
+  "pool_start_at_ts": "1706198400",
+  "pool_end_at_ts": "1707408000",
+  "start_at_ts": "1706198400",
+  "end_at_ts": "1707408000",
+  "sort_id": 200,
+  "chars": [
+    {
+      "id": "char_id",
+      "name": "角色名",
+      "pic": "https://...",
+      "rarity": "rarity_6",
+      "dot_type": "label_type_up"
+    }
+  ]
+}
+```
+
+**请求体字段**:
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| pool_id | string | 是 | 卡池唯一标识（如 `special_1_0_1`） |
+| name | string | 是 | 卡池名称 |
+| pool_type | string | 是 | 卡池类型：`limited` / `standard` / `beginner` / `weapon` |
+| pool_start_at_ts | string | 是 | 国服开始时间（Unix 秒级时间戳字符串） |
+| pool_end_at_ts | string | 是 | 国服结束时间（Unix 秒级时间戳字符串） |
+| start_at_ts | string | 否 | 通用开始时间戳 |
+| end_at_ts | string | 否 | 通用结束时间戳 |
+| europe_pool_start_at_ts | string | 否 | 欧服开始时间戳 |
+| europe_pool_end_at_ts | string | 否 | 欧服结束时间戳 |
+| sort_id | int | 否 | 排序权重 |
+| chars | array | 否 | UP 角色列表（WikiCharPoolChar 结构） |
+
+> 创建时自动设置 `source: "manual"`。`star6/5/4_chars` 不可通过此接口写入，由聚合定时任务自动填充。
+
+### 更新角色池
+
+```http
+PUT /api/endfield/gacha/admin/char-pools/:id
+X-Admin-Secret: <pool_admin_secret>
+Content-Type: application/json
+
+{
+  "name": "修改后的名称",
+  "pool_end_at_ts": "1707500000"
+}
+```
+
+> 支持部分更新，只提交需要修改的字段。
+
+### 删除角色池
+
+```http
+DELETE /api/endfield/gacha/admin/char-pools/:id
+X-Admin-Secret: <pool_admin_secret>
+```
+
+### 创建武器池
+
+```http
+POST /api/endfield/gacha/admin/weapon-pools
+X-Admin-Secret: <pool_admin_secret>
+Content-Type: application/json
+
+{
+  "name": "武库申领·莱万汀",
+  "up": "莱万汀",
+  "start_time": "2025/6/1 10:00",
+  "end_time": "2025/6/15 03:59",
+  "image_url": "https://...",
+  "detail_url": "https://..."
+}
+```
+
+**请求体字段**:
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 是 | 武器池名称 |
+| up | string | 是 | UP 武器名 |
+| start_time | string | 是 | 开始时间 |
+| end_time | string | 否 | 结束时间 |
+| description | string | 否 | 描述 |
+| image_url | string | 否 | 图片 URL |
+| detail_url | string | 否 | 详情页 URL |
+
+> 创建时自动设置 `type: "武库申领"`、`source: "manual"`。
+
+### 创建活动
+
+```http
+POST /api/endfield/gacha/admin/activities
+X-Admin-Secret: <pool_admin_secret>
+Content-Type: application/json
+
+{
+  "name": "特许寻访·熔火灼痕",
+  "type": "特许寻访",
+  "up": "安卡",
+  "start_time": "2025/6/1 10:00",
+  "end_time": "2025/6/15 03:59"
+}
+```
+
+**请求体字段**:
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 是 | 活动名称 |
+| type | string | 是 | 活动类型：`特许寻访` / `武库申领` |
+| up | string | 否 | UP 角色/武器名 |
+| start_time | string | 是 | 开始时间 |
+| end_time | string | 否 | 结束时间 |
+| description | string | 否 | 描述 |
+| image_url | string | 否 | 图片 URL |
+| detail_url | string | 否 | 详情页 URL |
+
+### 数据来源标记
+
+所有数据均带 `source` 字段标记来源，支持手动与自动同步共存：
+
+| source 值 | 含义 | 说明 |
+|-----------|------|------|
+| `manual` | 管理员手动创建 | 不会被自动同步覆盖 |
+| `skland_wiki` | 森空岛 Wiki 同步 | 由 wiki sync 自动写入 |
+| `bilibili_wiki` | B站 Wiki 同步 | 由 bilibili sync 自动写入 |
+
+---
+
 ## 便捷端点
 
 > 以下端点从 `card/detail` 接口提取特定数据，简化前端调用。
@@ -5690,6 +5974,10 @@ X-Framework-Token: your-framework-token
     "dailyMission": {
       "activation": 100,
       "maxActivation": 100
+    },
+    "weeklyMission": {
+      "score": 4,
+      "total": 10
     }
   }
 }
@@ -5722,6 +6010,8 @@ X-Framework-Token: your-framework-token
 | `charNameMap` | object | 角色 ID → 名称映射 |
 | `spaceShip` | object | 原始 spaceShip 数据（向下兼容） |
 
+> 说明：`rooms[].chars[]` 与 `characterCards[]` 均包含 `avatarUrl` 字段，便于前端直接展示头像。
+
 **rooms 中每个房间**:
 
 | 字段 | 类型 | 说明 |
@@ -5739,6 +6029,7 @@ X-Framework-Token: your-framework-token
 |------|------|------|
 | `charId` | string | 角色 ID |
 | `name` | string | 角色名称 |
+| `avatarUrl` | string | 角色头像 URL（如果上游返回） |
 | `physicalStrength` | float | 体力原始值（0~10000） |
 | `favorability` | float | 信赖原始值（0~1500） |
 | `moodPercent` | int | 心情百分比（0~100），= physicalStrength / 10000 × 100 |
@@ -6028,6 +6319,31 @@ X-Framework-Token: your-framework-token
       "activation": 100,
       "maxActivation": 100
     },
+    "weeklyMission": {
+      "score": 40,
+      "total": 100
+    },
+    "config": {
+      "charSwitch": true,
+      "charIds": ["chr_0007_ikut", "chr_0019_karin"]
+    },
+    "achieve": {
+      "count": 22,
+      "display": {
+        "1": "a0917421d5d9e2a174ac47d10ebc7be0"
+      },
+      "achieveMedals": [
+        {
+          "achievementData": {
+            "id": "a0917421d5d9e2a174ac47d10ebc7be0",
+            "name": "“苏醒”"
+          },
+          "level": 1,
+          "isPlated": false,
+          "obtainTs": "1769089919"
+        }
+      ]
+    },
     "bpSystem": {
       "curLevel": 46,
       "maxLevel": 60
@@ -6037,8 +6353,52 @@ X-Framework-Token: your-framework-token
         "id": "char_001",
         "name": "黎风",
         "level": 50,
+        "evolvePhase": 2,
+        "potentialLevel": 3,
+        "wikiItemId": "0",
+        "ownTs": "1769096945",
+        "gender": "CHAR_GENDER_FEMALE",
         "rarity": { "value": "6" },
         "profession": { "value": "先锋" },
+        "property": { "value": "电磁" },
+        "weaponType": { "value": "单手剑" },
+        "tags": ["技力恢复", "电磁附着"],
+        "abilityTalents": [
+          { "id": "chr_0007_ikut_3", "name": "游刃" }
+        ],
+        "combatTalents": [
+          { "id": "chr_0007_ikut_passive_skill_1_2", "name": "众生智慧" }
+        ],
+        "cultivationTalents": [
+          { "id": "spaceship_skill_chr_0007_ikut_1_1", "name": "荒野锋刃·α" }
+        ],
+        "talent": {
+          "latestBreakNode": "equipBreakT3",
+          "latestPassiveSkillNodes": ["chr_0007_ikut_passive_skill_0_2"],
+          "latestFactorySkillNodes": ["fac_chr_0007_ikut_0_1"],
+          "latestSpaceshipSkillNodes": ["spaceship_skill_chr_0007_ikut_2_1"],
+          "attrNodes": []
+        },
+        "weapon": {
+          "id": "9ebcdee862c8f6293f45d4f0458c5244",
+          "name": "热熔切割器",
+          "iconUrl": "https://bbs.hycdn.cn/image/xxx.png",
+          "rarity": { "value": "6" },
+          "type": { "value": "单手剑" },
+          "level": 60,
+          "refineLevel": 0,
+          "breakthroughLevel": 2,
+          "wikiItemId": "73",
+          "gem": {
+            "id": "item_gem_rarity_5-093372449f6d3a59df63ee7c9d26801e",
+            "gemData": {
+              "termId": "093372449f6d3a59df63ee7c9d26801e",
+              "name": "无瑕基质·流转",
+              "icon": "https://bbs.hycdn.cn/image/xxx.png",
+              "templateId": "item_gem_rarity_5"
+            }
+          }
+        },
         "avatarSqUrl": "https://bbs.hycdn.cn/image/xxx.png",
         "avatarRtUrl": "https://bbs.hycdn.cn/image/xxx.png"
       }
@@ -6047,6 +6407,10 @@ X-Framework-Token: your-framework-token
   }
 }
 ```
+
+**说明**:
+- `chars` 为便签接口聚合后的干员摘要；新增字段与 `card/detail` 同步（包含天赋分组、talent 节点、weapon.gem 等）。
+- 国际服（skport）与国服（skland）共用该返回结构；实际字段完整性取决于上游数据。
 
 ### 获取地区建设信息
 
@@ -6074,13 +6438,22 @@ X-Framework-Token: your-framework-token
         "domainId": "domain_001",
         "name": "荒原驻站",
         "level": 5,
-        "moneyMgr": 1000,
+        "moneyMgr": {
+          "total": "16000000",
+          "count": "6359757"
+        },
         "settlements": [
           {
             "id": "settlement_001",
             "name": "聚落名称",
             "level": 3,
-            "officerCharIds": "char_001"
+            "exp": "0",
+            "expToLevelUp": "0",
+            "remainMoney": "2200000",
+            "moneyMax": "2200000",
+            "officerCharIds": "char_001",
+            "officerCharAvatar": "https://bbs.hycdn.cn/image/xxx.png",
+            "lastTickTime": "1773034681"
           }
         ],
         "collections": [
@@ -6088,7 +6461,20 @@ X-Framework-Token: your-framework-token
             "levelId": "level_001",
             "trchestCount": 10,
             "puzzleCount": 5,
-            "blackboxCount": 2
+            "blackboxCount": 2,
+            "equipTrchestCount": 0,
+            "pieceCount": 1
+          }
+        ],
+        "levels": [
+          {
+            "levelId": "level_001",
+            "name": "枢纽区",
+            "trchestCount": { "count": 10, "total": 36 },
+            "puzzleCount": { "count": 5, "total": 23 },
+            "blackboxCount": { "count": 2, "total": 8 },
+            "equipTrchestCount": { "count": 0, "total": 0 },
+            "pieceCount": { "count": 1, "total": 1 }
           }
         ]
       }
@@ -6096,6 +6482,58 @@ X-Framework-Token: your-framework-token
     "charNameMap": {
       "char_001": "黎风",
       "char_002": "管理员"
+    },
+    "officerAvatarMap": {
+      "char_001": "https://bbs.hycdn.cn/image/xxx.png"
+    }
+  }
+}
+```
+
+### 获取成就信息
+
+```http
+GET /api/endfield/achieve
+X-Framework-Token: your-framework-token
+```
+
+> 从 `/card/detail` 提取 `detail.achieve` 数据，完整返回成就结构（包含 `achieveMedals` 全量字段）。
+
+**Query 参数**（可选，不提供则按 provider 对应绑定库解析目标角色）:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| roleId | string | 否 | 游戏角色 ID |
+| serverId | int | 否 | 服务器 ID，默认 1 |
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "role": {
+      "name": "玩家名#1234",
+      "roleId": "123456",
+      "level": 30,
+      "serverId": 1
+    },
+    "achieve": {
+      "count": 22,
+      "display": {
+        "1": "a0917421d5d9e2a174ac47d10ebc7be0"
+      },
+      "achieveMedals": [
+        {
+          "achievementData": {
+            "id": "a0917421d5d9e2a174ac47d10ebc7be0",
+            "name": "“苏醒”",
+            "cateName": "章节奖章"
+          },
+          "level": 1,
+          "isPlated": false,
+          "obtainTs": "1769089919"
+        }
+      ]
     }
   }
 }
@@ -7808,6 +8246,12 @@ Authorization: Bearer your-access-token
         "name": "蓝图写操作",
         "description": "发布/编辑/删除蓝图、点赞、评论、收藏等写操作",
         "requestable": true
+      },
+      {
+        "key": "maaend:control",
+        "name": "MaaEnd 远程控制",
+        "description": "管理设备、下发/停止任务、获取截图、查看任务历史等 MaaEnd 全量控制操作",
+        "requestable": true
       }
     ]
   }
@@ -8040,6 +8484,45 @@ Content-Type: application/json
 - 代理用户必须先通过 `PUT /api/v1/proxy-users` 初始化，否则返回 400
 - 评论接口的 Cap PoW 人机验证对 API Key 用户自动跳过
 - 蓝图和评论会自动标记 `client_source` 字段记录来源 API Key 名称
+
+### 第三方调用 MaaEnd 接口
+
+MaaEnd 远程控制的所有接口（设备管理、任务控制、截图、WS 推送）已支持 API Key + 代理用户认证。
+
+**调用流程**:
+
+1. **创建 API Key**：通过 Web 平台创建 API Key
+2. **申请权限**：申请 `maaend:control` 权限并等待管理员审核通过
+3. **初始化代理用户**：`PUT /api/v1/proxy-users` 注册终端用户
+4. **调用接口**：携带 `X-API-Key` + `X-Client-User-ID` + `X-Client-User-Type` 请求头
+
+**请求示例**:
+```http
+GET /api/maaend/devices
+X-API-Key: your-api-key
+X-Client-User-ID: 123456789
+X-Client-User-Type: bot
+```
+
+**必需请求头**:
+| 请求头 | 说明 |
+|--------|------|
+| `X-API-Key` | API Key（需具有 `maaend:control` 权限） |
+| `X-Client-User-ID` | 第三方平台用户标识（必须已初始化） |
+| `X-Client-User-Type` | 客户端类型：`bot` / `web` / `app`（必填） |
+
+**数据隔离**:
+- 每个代理用户只能看到和操作自己绑定的设备
+- 每个代理用户只能查看和停止自己发起的任务
+- WS 推送仅路由到发起方的代理用户连接
+
+**错误响应**:
+| 场景 | HTTP 状态码 | 响应 |
+|------|------------|------|
+| 缺少 `X-Client-User-ID` | 400 | `缺少 X-Client-User-ID 请求头（MaaEnd API Key 认证必须携带代理用户标识）` |
+| 缺少 `maaend:control` 权限 | 403 | `API Key 权限不足，需要 maaend:control 权限` |
+| 代理用户未初始化 | 400 | `代理用户未初始化，请先调用 PUT /api/v1/proxy-users 初始化用户` |
+| 匿名 Token 调用 | 401 | `MaaEnd API 不支持匿名认证` |
 
 ---
 
@@ -9591,6 +10074,26 @@ const callWithAPIKey = async (apiKey, endpoint) => {
 ---
 
 ## 更新日志
+
+### v3.4.0 (2026-03-12)
+
+- ✅ **卡池信息管理 API**（`/api/endfield/gacha/admin/*`）
+  - 15 个管理接口：角色池 CRUD + 武器池 CRUD + 通用活动 CRUD
+  - 独立 `pool_admin.secret` 鉴权，与通用 `admin.secret` 分离
+  - 直接写入现有 `wiki_char_pools` / `bili_activities` 集合，下游接口零影响
+  - 更新接口支持部分更新，只提交变更字段
+
+- ✅ **数据来源标记**
+  - `WikiCharPool` 和 `BiliActivity` 新增 `source` 字段（`omitempty`）
+  - 手动创建标记 `manual`，森空岛同步标记 `skland_wiki`，B站同步标记 `bilibili_wiki`
+
+- ✅ **同步共存机制**
+  - 自动同步不覆盖 `source=manual` 的手动数据
+  - 同步数据自动补写来源标记
+
+- ✅ **管理页面**（`admin/gacha-pools.html`）
+  - 角色池/武器池/活动三 Tab 管理
+  - 完整 CRUD + 来源/类型筛选 + 来源标签展示
 
 ### v3.3.0 (2026-03-01)
 

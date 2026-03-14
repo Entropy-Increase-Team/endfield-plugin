@@ -245,7 +245,7 @@ body {
 
 .info-label {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: #000000;
 }
 
 .info-value {
@@ -284,6 +284,13 @@ body {
 .activation-bar-fill {
   height: 100%;
   background: #6366f1;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.weekly-bar-fill {
+  height: 100%;
+  background: #10b981;
   border-radius: 3px;
   transition: width 0.3s ease;
 }
