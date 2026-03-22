@@ -41,7 +41,7 @@ up_weapons:
     weapon_name: 落草
     start_time: 03.12 12:00
     end_time: 03.29 11:59
-  - pool_name: 绘图申领
+  - pool_name: 绘涂申领
     weapon_name: 艺术暴君
     start_time: 02.24 12:00
     end_time: 03.12 06:00

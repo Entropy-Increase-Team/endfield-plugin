@@ -4,6 +4,7 @@ import { getMessage } from '../utils/common.js'
 import common from '../../../lib/common/common.js'
 import EndfieldRequest from '../model/endfieldReq.js'
 import setting from '../utils/setting.js'
+import { getCopyright } from '../utils/copyright.js'
 
 /** Wiki 游戏百科：main_type_id=1，sub_type_id 与展示名/输入前缀映射 */
 const WIKI = {
@@ -105,10 +106,38 @@ export class EndfieldWiki extends plugin {
     const dataSubTypeId = String(data.sub_type_id ?? data.subTypeId ?? '')
     const dataTypeLabel = WIKI.SUB_LABEL[dataSubTypeId] || typeLabel
     const cover = data.cover
-    const seg = global.segment || (await import('oicq')).segment
 
-    // 按【干员资料】【能力扩延】【干员潜能】等章节分段，合并转发每条一段
+    // 按章节作图：一个章节对应一张图，多章节走合并转发
     const { header, sections } = this.getWikiSections(data, dataTypeLabel)
+    const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
+
+    if (this.e?.runtime?.render) {
+      try {
+        const renderPages = this.buildWikiRenderPages(data, dataTypeLabel, sections)
+        const renderedImages = []
+        for (const page of renderPages) {
+          const imgSegment = await this.e.runtime.render('endfield-plugin', 'wiki/wiki', {
+            ...page,
+            pluResPath,
+            ...getCopyright()
+          }, { scale: 1.6, retType: 'base64' })
+          if (imgSegment) renderedImages.push(imgSegment)
+        }
+        if (renderedImages.length > 0) {
+          if (renderedImages.length === 1) {
+            await this.e.reply(renderedImages[0])
+          } else {
+            const forwardMsg = common.makeForwardMsg(this.e, renderedImages.map((img) => [img]), `终末地Wiki-${dataTypeLabel}`)
+            await this.e.reply(forwardMsg)
+          }
+          return true
+        }
+      } catch (err) {
+        logger.error(`[终末地Wiki] 图片渲染失败: ${err?.message || err}`)
+      }
+    }
+
+    const seg = global.segment || (await import('oicq')).segment
     const forwardParts = []
     if (sections.length === 0) {
       forwardParts.push([header || '暂无正文'])
@@ -136,6 +165,50 @@ export class EndfieldWiki extends plugin {
     const forwardMsg = common.makeForwardMsg(this.e, forwardParts, `终末地Wiki-${dataTypeLabel}`)
     await this.e.reply(forwardMsg)
     return true
+  }
+
+  buildWikiRenderPages(data, typeLabel, sections = []) {
+    const entryName = data?.name || '未知'
+    const caption = this.renderCaption(data?.caption)
+    const cover = String(data?.cover || '').trim()
+    const pages = Array.isArray(sections) && sections.length > 0
+      ? sections
+      : [{ chapterTitle: '【内容】', content: '暂无正文' }]
+
+    const pageCount = pages.length || 1
+    return pages.map((page, index) => {
+      const lines = this.buildWikiRenderLines(page?.content || '暂无正文')
+      return {
+        title: '终末地Wiki',
+        entryName,
+        typeLabel,
+        caption,
+        cover,
+        showCover: index === 0 && !!cover,
+        sectionTitle: page?.chapterTitle || '【内容】',
+        sectionPart: '',
+        pageNo: index + 1,
+        pageCount,
+        lines,
+        isDense: lines.length > 26 || lines.some((line) => line.type === 'table')
+      }
+    })
+  }
+
+  buildWikiRenderLines(content) {
+    return String(content || '')
+      .split('\n')
+      .map((rawLine) => {
+        const text = String(rawLine || '')
+        const trimmed = text.trim()
+        if (!trimmed) return { type: 'empty', text: '' }
+        if (trimmed === '────────────') return { type: 'divider', text: trimmed }
+        if (/^【.+】$/.test(trimmed)) return { type: 'heading', text: trimmed }
+        if (trimmed.startsWith('注：')) return { type: 'note', text: trimmed }
+        if (trimmed.startsWith('· ')) return { type: 'bullet', text: trimmed }
+        if (trimmed.includes(' | ')) return { type: 'table', text }
+        return { type: 'text', text }
+      })
   }
 
   /**

@@ -12,7 +12,6 @@ const _meta = path.join(_res, 'meta')
 
 const META_CLASS_DIR = path.join(_meta, 'class')
 const META_ATTRPANLE_DIR = path.join(_meta, 'attrpanle')
-const META_PHASES_DIR = path.join(_meta, 'phases')
 const LIST_BG_FILES = ['bg1.png', 'bg2.png']
 
 function isApiSuccess(res) {
@@ -95,6 +94,7 @@ export class EndfieldOperator extends plugin {
     const stars = Array.from({ length: Math.min(6, Math.max(1, rarity)) }, (_, i) => i + 1)
 
     const coreStats = processed?.core_stats || {}
+    const panelSummary = data?.panel?.summary || {}
     const agg = processed?.aggregated_attributes || []
     const findAgg = (rawName) => {
       const hit = Array.isArray(agg) ? agg.find((x) => x?.attr_type?.raw_name === rawName) : null
@@ -121,11 +121,23 @@ export class EndfieldOperator extends plugin {
       })(),
       cdmg: (() => {
         const derived = processed?.derived_stats || processed?.summary_stats || processed?.ui || {}
-        const v = derived?.critical_damage_pct ?? derived?.critical_damage
+        const v = derived?.critical_damage_pct ?? derived?.critical_damage ?? panelSummary?.critical_damage_pct
         if (typeof v !== 'number') return ''
         return `${v.toFixed(1)}%`
       })()
     }
+
+    const chargeEfficiency = (() => {
+      const v = findAgg('UltimateSpGainScalar')?.final
+      if (typeof v !== 'number') return ''
+      return `${this.formatPanelNumber(v * 100, 1)}%`
+    })()
+
+    const artsStrength = (() => {
+      const v = findAgg('PhysicalAndSpellInflictionEnhance')?.final
+      if (typeof v !== 'number') return ''
+      return this.formatPanelNumber(v, 1)
+    })()
 
     let matrix = null
     try {
@@ -223,6 +235,7 @@ export class EndfieldOperator extends plugin {
       stars,
       potentialLevel,
       potentialStars,
+      promotionName: char?.talent?.latest_break_node_named?.name_cn || '',
       core: {
         hp,
         atk,
@@ -232,8 +245,89 @@ export class EndfieldOperator extends plugin {
         defSub: defAgg ? `${Math.round(defAgg.base ?? 0)} + ${Math.round(defAgg.flat ?? 0)}` : ''
       },
       mini,
+      resist: {
+        physical: this.formatPanelNumber(panelSummary?.physical_resist, 1),
+        spell: this.formatPanelNumber(panelSummary?.spell_resist, 1),
+        healTaken: this.formatPanelNumber(panelSummary?.heal_taken_bonus_pct, 1)
+      },
+      chargeEfficiency,
+      artsStrength,
       matrix,
       equipAffixesBySlotArr
+    }
+  }
+
+  buildOperatorRenderBlocks(panelData, friendPanel, gearCards = [], friendCharData = null) {
+    const weaponStats = Array.isArray(friendPanel?.matrix?.terms)
+      ? friendPanel.matrix.terms
+        .map((term) => ({
+          name: term?.nameCn || '',
+          value: term?.cost ? `+${term.cost}` : ''
+        }))
+        .filter((term) => term.name)
+      : []
+
+    const weaponCard = friendPanel
+      ? (gearCards.find((card) => card?.type === 'weapon') || null)
+      : (panelData?.weapon
+          ? {
+              type: 'weapon',
+              slotLabel: '武器',
+              name: panelData.weapon.name || '武器',
+              level: panelData.weapon.level ?? '',
+              iconUrl: panelData.weapon.iconUrl || '',
+              stars: panelData.weapon.stars || [],
+              meta: panelData.weapon.typeLabel || '',
+              note: panelData.weapon.gem?.name || '',
+              affixes: (panelData.weapon.skills || []).slice(0, 3).map((skill) => ({
+                name: skill,
+                value: ''
+              }))
+            }
+          : null)
+
+    if (weaponCard && weaponStats.length > 0) {
+      weaponCard.affixes = weaponStats
+    }
+
+    const equipmentCards = friendPanel
+      ? gearCards.filter((card) => card?.type && !['weapon', 'tacticalItem'].includes(card.type))
+      : (panelData?.basicGearCards || [])
+        .filter((card) => !['武器', '战术物品'].includes(card?.slotLabel))
+        .map((card) => ({
+          type: 'equip',
+          slotLabel: card?.slotLabel || '',
+          name: card?.name || '未装备',
+          level: card?.level ?? '',
+          iconUrl: card?.iconUrl || '',
+          stars: card?.stars || [],
+          rarity: Number(card?.rarity || (Array.isArray(card?.stars) ? card.stars.length : 0) || 0),
+          rarityClass: card?.rarityClass || '',
+          meta: [card?.metaPrimary, card?.metaSecondary].filter(Boolean).join(' · '),
+          note: '',
+          affixes: Array.isArray(card?.chips)
+            ? card.chips.slice(0, 4).map((chip) => ({ name: chip, value: '' }))
+            : []
+        }))
+
+    const rawFriend = friendCharData?.data || friendCharData || {}
+    const equipMedicine = rawFriend?.char?.equip_medicine || {}
+    const tacticalItem = panelData?.tacticalItem || null
+    const recoveryItem = {
+      name: equipMedicine?.name_cn || equipMedicine?.name || tacticalItem?.name || '',
+      iconUrl: tacticalItem?.iconUrl || '',
+      tag: tacticalItem?.typeLabel || '恢复',
+      desc: tacticalItem?.desc || tacticalItem?.effectText || '',
+      rawName: equipMedicine?.raw_name || ''
+    }
+
+    const renderSkills = (panelData?.displaySkills || []).filter((skill) => !skill?.empty)
+
+    return {
+      weaponCard,
+      equipmentCards,
+      recoveryItem,
+      renderSkills
     }
   }
 
@@ -256,10 +350,15 @@ export class EndfieldOperator extends plugin {
 
     cards.push({
       type: 'weapon',
+      slotLabel: '武器',
       name: weapon?.name || '武器',
       level: weapon?.level ?? '',
       iconUrl: weapon?.iconUrl || '',
       stars: weapon?.stars || [],
+      rarity: Number(weapon?.rarity || (Array.isArray(weapon?.stars) ? weapon.stars.length : 0) || 0),
+      rarityClass: weapon?.rarityClass || '',
+      meta: weapon?.typeLabel || '',
+      note: weapon?.gem?.name || '',
       affixes: weaponAffixes
     })
 
@@ -276,10 +375,15 @@ export class EndfieldOperator extends plugin {
       const aff = e.slot >= 0 ? (friendPanel?.equipAffixesBySlotArr?.[e.slot] || []) : []
       cards.push({
         type: e.key,
+        slotLabel: raw?.slotLabel || raw?.typeLabel || e.key,
         name: raw?.name || '—',
         level: raw?.level ?? '',
         iconUrl: raw?.iconUrl || '',
         stars: raw?.stars || [],
+        rarity: Number(raw?.rarity || (Array.isArray(raw?.stars) ? raw.stars.length : 0) || 0),
+        rarityClass: raw?.rarityClass || '',
+        meta: raw?.suitName || raw?.typeLabel || '',
+        note: raw?.effectTag || '',
         affixes: padAffixes(aff)
       })
     }
@@ -296,6 +400,172 @@ export class EndfieldOperator extends plugin {
   hasApiKey() {
     const apiKey = setting.getConfig('common')?.api_key
     return String(apiKey || '').trim() !== ''
+  }
+
+  formatPanelNumber(value, digits = 1) {
+    const num = Number(value)
+    if (!Number.isFinite(num)) return ''
+    if (Math.abs(num - Math.round(num)) < 1e-6) return String(Math.round(num))
+    return num.toFixed(digits).replace(/\.?0+$/, '')
+  }
+
+  resolveDescExpr(expr, params = {}) {
+    const parts = String(expr || '').split('*').map((item) => item.trim()).filter(Boolean)
+    if (parts.length === 0) return null
+    let result = 1
+    let hasValue = false
+    for (const part of parts) {
+      let value = null
+      if (/^-?\d+(?:\.\d+)?$/.test(part)) {
+        value = Number(part)
+      } else {
+        const raw = params?.[part]
+        const parsed = Number(raw)
+        if (Number.isFinite(parsed)) value = parsed
+      }
+      if (!Number.isFinite(value)) return null
+      result *= value
+      hasValue = true
+    }
+    return hasValue ? result : null
+  }
+
+  renderPanelText(text, params = {}) {
+    if (!text) return ''
+    let out = String(text)
+    out = out.replace(/\{([^}:]+):([^}]+)\}/g, (_, expr, fmt) => {
+      const resolved = this.resolveDescExpr(expr, params)
+      if (!Number.isFinite(resolved)) return ''
+      const needsPercent = String(fmt || '').includes('%')
+      const value = needsPercent && Math.abs(resolved) <= 1 ? resolved * 100 : resolved
+      return `${this.formatPanelNumber(value, Math.abs(value) < 10 ? 1 : 0)}${needsPercent ? '%' : ''}`
+    })
+    out = out.replace(/<[^>]+>/g, '')
+    out = out.replace(/[ \t]+\n/g, '\n')
+    out = out.replace(/\n{3,}/g, '\n\n')
+    return out.trim()
+  }
+
+  buildTalentCards(items = [], categoryLabel = '') {
+    const list = Array.isArray(items) ? items : []
+    return list.map((item, index) => ({
+      name: item?.name || `${categoryLabel}${index + 1}`,
+      iconUrl: item?.iconUrl || item?.lockedIconUrl || '',
+      desc: this.renderPanelText(
+        item?.desc || item?.activeEffect || item?.passiveEffect || '',
+        item?.descParams || item?.activeEffectParams || item?.passiveEffectParams || {}
+      ),
+      categoryLabel
+    })).filter((item) => item.name || item.desc)
+  }
+
+  buildSkillCards(charData, userSkills = {}) {
+    const list = Array.isArray(charData?.skills) ? charData.skills : []
+    return list.map((skill) => {
+      const userInfo = userSkills?.[skill?.id] || {}
+      const desc = this.renderPanelText(skill?.desc || '', skill?.descParams || {})
+      return {
+        id: skill?.id || '',
+        name: skill?.name || '未知技能',
+        type: skill?.type?.value || '',
+        property: skill?.property?.value || '',
+        iconUrl: skill?.iconUrl || '',
+        level: userInfo?.level ?? 1,
+        maxLevel: userInfo?.maxLevel ?? '',
+        desc,
+        descCompact: desc.replace(/\n+/g, ' ').trim()
+      }
+    })
+  }
+
+  buildEquipSuits(equipList = []) {
+    const suitMap = new Map()
+    for (const equip of equipList) {
+      if (!equip?.suitName) continue
+      const key = String(equip.suitName).trim()
+      if (!key) continue
+      if (!suitMap.has(key)) {
+        suitMap.set(key, {
+          name: key,
+          count: 0,
+          effect: equip?.suitEffect || ''
+        })
+      }
+      const current = suitMap.get(key)
+      current.count += 1
+      if (!current.effect && equip?.suitEffect) current.effect = equip.suitEffect
+    }
+    return Array.from(suitMap.values())
+  }
+
+  buildBasicGearCards(panelData) {
+    const cards = []
+    const pushEmpty = (slotLabel) => {
+      cards.push({
+        empty: true,
+        slotLabel,
+        name: '未装备',
+        metaPrimary: '',
+        metaSecondary: '',
+        desc: ''
+      })
+    }
+
+    const weapon = panelData?.weapon
+    if (weapon) {
+      cards.push({
+        slotLabel: '武器',
+        name: weapon.name || '武器',
+        iconUrl: weapon.iconUrl || '',
+        level: weapon.level ?? '',
+        stars: weapon.stars || [],
+        rarity: Number(weapon.rarity || (Array.isArray(weapon.stars) ? weapon.stars.length : 0) || 0),
+        rarityClass: weapon.rarityClass || '',
+        metaPrimary: weapon.typeLabel || '主武器',
+        metaSecondary: weapon.breakthroughLevel > 0 ? `潜能 ${weapon.breakthroughLevel}` : '',
+        desc: weapon.desc || '',
+        chips: [
+          weapon.gem?.name || '',
+          ...(Array.isArray(weapon.skills) ? weapon.skills.slice(0, 2) : [])
+        ].filter(Boolean)
+      })
+    } else {
+      pushEmpty('武器')
+    }
+
+    const equipDefs = [
+      { key: 'bodyEquip', slotLabel: '躯干装备' },
+      { key: 'armEquip', slotLabel: '手部装备' },
+      { key: 'firstAccessory', slotLabel: '配件一' },
+      { key: 'secondAccessory', slotLabel: '配件二' },
+      { key: 'tacticalItem', slotLabel: '战术物品' }
+    ]
+
+    for (const def of equipDefs) {
+      const equip = panelData?.[def.key]
+      if (!equip) {
+        pushEmpty(def.slotLabel)
+        continue
+      }
+      cards.push({
+        slotLabel: equip.slotLabel || def.slotLabel,
+        name: equip.name || '未装备',
+        iconUrl: equip.iconUrl || '',
+        level: equip.level ?? '',
+        stars: equip.stars || [],
+        rarity: Number(equip.rarity || (Array.isArray(equip.stars) ? equip.stars.length : 0) || 0),
+        rarityClass: equip.rarityClass || '',
+        metaPrimary: equip.typeLabel || '',
+        metaSecondary: equip.suitName || '',
+        desc: equip.desc || equip.effectText || '',
+        chips: [
+          equip.effectTag || '',
+          equip.suitName ? `${equip.suitName}套装` : ''
+        ].filter(Boolean)
+      })
+    }
+
+    return cards
   }
 
   async getOperator() {
@@ -446,12 +716,14 @@ export class EndfieldOperator extends plugin {
       const panelData = this.buildPanelData(operator, charData, userSkills, container)
       const friendPanel = enableFriendPanel ? this.buildFriendPanelData(friendCharData) : null
       const gearCards = friendPanel ? this.buildGearCards(panelData, friendPanel) : []
+      const renderBlocks = this.buildOperatorRenderBlocks(panelData, friendPanel, gearCards, friendCharData)
       const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
       const tplData = {
         ...panelData,
         friendChar: friendCharData,
         friendPanel,
         gearCards,
+        ...renderBlocks,
         friendTemplateId: friendTemplateId || '',
         userAvatar: base?.avatarUrl || '',
         userNickname: base?.name || '未知',
@@ -489,15 +761,16 @@ export class EndfieldOperator extends plugin {
     const tagsList = tags.filter(Boolean)
     const tagsLength = tagsList.length
 
-    const skills = (charData.skills || []).map((s) => {
-      const u = userSkills?.[s.id] || {}
-      return {
-        name: s.name || '未知',
-        iconUrl: s.iconUrl || '',
-        level: u.level ?? 1,
-        maxLevel: u.maxLevel ?? ''
-      }
-    })
+    const skillCards = this.buildSkillCards(charData, userSkills)
+    const skills = skillCards.map((skill) => ({
+      name: skill.name,
+      iconUrl: skill.iconUrl,
+      level: skill.level,
+      maxLevel: skill.maxLevel,
+      type: skill.type,
+      property: skill.property,
+      desc: skill.desc
+    }))
 
     const weaponRaw = operator.weapon || container?.weapon
     let weapon = null
@@ -506,14 +779,24 @@ export class EndfieldOperator extends plugin {
       const w = weaponRaw.weaponData
       const wr = parseInt(w.rarity?.value || '1', 10) || 1
       const gemRaw = weaponRaw.gem
-      if (gemRaw && (gemRaw.icon || gemRaw.id)) {
-        gem = { name: gemRaw.name || '基质', iconUrl: gemRaw.icon || '' }
+      const gemData = gemRaw?.gemData || gemRaw
+      if (gemData && (gemData.icon || gemRaw?.id)) {
+        gem = {
+          name: gemData.name || gemRaw?.name || '基质',
+          iconUrl: gemData.icon || gemRaw?.icon || ''
+        }
       }
       weapon = {
         name: w.name || '未知',
         level: weaponRaw.level ?? 0,
-        refineLevel: weaponRaw.potential ?? weaponRaw.refine ?? weaponRaw.potentialLevel ?? 1,
+        rarity: wr,
+        rarityClass: `equip_rarity_${Math.min(6, Math.max(1, wr))}`,
+        refineLevel: weaponRaw.refineLevel ?? weaponRaw.refine ?? weaponRaw.potential ?? weaponRaw.potentialLevel ?? 0,
+        breakthroughLevel: weaponRaw.breakthroughLevel ?? weaponRaw.breakthrough ?? 0,
         iconUrl: w.iconUrl || '',
+        typeLabel: w.type?.value || '',
+        desc: this.renderPanelText(w.description || w.function || '', {}),
+        skills: Array.isArray(w.skills) ? w.skills.map((item) => item?.value || '').filter(Boolean) : [],
         stars: Array.from({ length: Math.min(6, Math.max(1, wr)) }, (_, i) => i + 1),
         gem
       }
@@ -534,7 +817,20 @@ export class EndfieldOperator extends plugin {
       const { rarity, rarityClass } = parseRarity(raw.rarity)
       // 生成星级数组用于模板显示
       const equipStars = Array.from({ length: Math.min(6, Math.max(1, rarity)) }, (_, i) => i + 1)
-      return { name: raw.name, iconUrl: raw.iconUrl || '', level: lv, rarity, rarityClass, stars: equipStars }
+      return {
+        name: raw.name,
+        iconUrl: raw.iconUrl || '',
+        level: lv,
+        rarity,
+        rarityClass,
+        stars: equipStars,
+        typeLabel: raw.type?.value || '',
+        slotLabel: raw.type?.value || '',
+        suitName: raw.suit?.name || '',
+        suitEffect: this.renderPanelText(raw.suit?.skillDesc || '', raw.suit?.skillDescParams || {}),
+        desc: this.renderPanelText(raw.pkg || raw.function || '', {}),
+        effectTag: Array.isArray(raw.properties) && raw.properties.length > 0 ? `${raw.properties.length}词条` : ''
+      }
     }
     const bodyEquip = pickEquip(operator.bodyEquip || container?.bodyEquip)
     const armEquip = pickEquip(operator.armEquip || container?.armEquip)
@@ -545,13 +841,46 @@ export class EndfieldOperator extends plugin {
     let tacticalItem = null
     if (tactRaw?.name) {
       const { rarity, rarityClass } = parseRarity(tactRaw.rarity)
-      tacticalItem = { name: tactRaw.name, iconUrl: tactRaw.iconUrl || '', level: '', rarity, rarityClass }
+      const activeEffect = this.renderPanelText(tactRaw.activeEffect || '', tactRaw.activeEffectParams || {})
+      const passiveEffect = this.renderPanelText(tactRaw.passiveEffect || '', tactRaw.passiveEffectParams || {})
+      tacticalItem = {
+        name: tactRaw.name,
+        iconUrl: tactRaw.iconUrl || '',
+        level: '',
+        rarity,
+        rarityClass,
+        typeLabel: tactRaw.activeEffectType?.value || '战术物品',
+        slotLabel: '战术物品',
+        effectTag: tactRaw.activeEffectType?.value || '',
+        activeEffect,
+        passiveEffect,
+        effectText: passiveEffect || activeEffect,
+        desc: passiveEffect || activeEffect
+      }
     }
 
     const displaySkills = skills.slice(0, 4)
     while (displaySkills.length < 4) displaySkills.push({ empty: true })
     const evolvePhase = container?.evolvePhase ?? operator?.evolvePhase ?? 1
     const weaponType = charData.weaponType?.value || ''
+    const combatTalentCards = this.buildTalentCards(charData.combatTalents, '作战天赋')
+    const abilityTalentCards = this.buildTalentCards(charData.abilityTalents, '能力扩延')
+    const cultivationTalentCards = this.buildTalentCards(charData.cultivationTalents, '驻舰天赋')
+    const equipSuits = this.buildEquipSuits([bodyEquip, armEquip, firstAccessory, secondAccessory])
+    const basicGearCards = this.buildBasicGearCards({
+      weapon,
+      bodyEquip,
+      armEquip,
+      firstAccessory,
+      secondAccessory,
+      tacticalItem
+    })
+    const identityChips = [
+      { label: '职业', value: profession, iconUrl: iconToDataUrl(META_CLASS_DIR, profession) },
+      { label: '属性', value: property, iconUrl: iconToDataUrl(META_ATTRPANLE_DIR, property) },
+      { label: '武器', value: weaponType, iconUrl: '' },
+      { label: '阶段', value: `精英化 ${evolvePhase}`, iconUrl: '' }
+    ].filter((item) => item.value)
     return {
       name: charData.name || '未知',
       illustrationUrl: charData.illustrationUrl || charData.avatarRtUrl || 'https://bbs.hycdn.cn/image/2025/11/12/9d96cc859f508f7add6668fd9280df7b.png',
@@ -568,6 +897,7 @@ export class EndfieldOperator extends plugin {
       tagsList,
       tagsLength,
       skills,
+      skillCards,
       displaySkills,
       weapon,
       gem,
@@ -575,7 +905,13 @@ export class EndfieldOperator extends plugin {
       armEquip,
       firstAccessory,
       secondAccessory,
-      tacticalItem
+      tacticalItem,
+      combatTalentCards,
+      abilityTalentCards,
+      cultivationTalentCards,
+      equipSuits,
+      basicGearCards,
+      identityChips
     }
   }
 
@@ -737,7 +1073,7 @@ export class EndfieldOperator extends plugin {
 
       const operators = chars.map((char) => {
         const c = char.charData || char
-        const imageUrl = c.avatarRtUrl || ''
+        const imageUrl = c.avatarSqUrl || c.avatar_sq_url || c.avatarRtUrl || c.avatar_rt_url || ''
         const templateId = norm(
           char?.template_id ||
           char?.templateId ||
@@ -751,21 +1087,6 @@ export class EndfieldOperator extends plugin {
         )
         const synced = syncedMap.get(templateId)
         const rarity = parseInt(c.rarity?.value || '1', 10) || 1
-        const level = synced?.level ?? char.level ?? c.level ?? 0
-        const profession = c.profession?.value || ''
-        const property = c.property?.value || ''
-        const professionIcon = iconToDataUrl(META_CLASS_DIR, profession)
-        const propertyIcon = iconToDataUrl(META_ATTRPANLE_DIR, property)
-        const colorCodeMap = {
-          char_property_physical: 'PHY',
-          char_property_fire: 'FIRE',
-          char_property_electric: 'ELEC',
-          char_property_pulse: 'ELEC',
-          char_property_ice: 'ICE',
-          char_property_cryst: 'ICE',
-          char_property_nature: 'NATURE'
-        }
-        const colorCode = (colorCodeMap[c.property?.key] || c.colorCode || 'PHY').toUpperCase()
         const name = pickCnName(
           c?.name,
           char?.name,
@@ -780,25 +1101,12 @@ export class EndfieldOperator extends plugin {
         const isFriendShowcase = isSynced
           || friendTemplateIdSet.has(templateId)
           || friendTemplateCnSet.has(name)
-        const evolvePhase = parseInt(char.evolvePhase ?? c.evolvePhase ?? '0', 10) || 0
-        const potentialLevel = parseInt(char.potentialLevel ?? c.potentialLevel ?? '0', 10) || 0
-        const phaseIcon = iconToDataUrl(META_PHASES_DIR, `phase-${evolvePhase}`)
         return {
           templateId,
           name,
-          nameChars: Array.from(name),
-          imageUrl: imageUrl,
+          imageUrl,
           rarity,
-          level,
-          profession,
-          professionIcon,
-          property,
-          propertyIcon,
-          colorCode,
           isFriendShowcase,
-          evolvePhase,
-          potentialLevel,
-          phaseIcon,
           syncOrder: isSynced ? syncedOrderMap.get(templateId) : Number.MAX_SAFE_INTEGER
         }
       })
@@ -814,13 +1122,12 @@ export class EndfieldOperator extends plugin {
       })
 
       const LIST_COLUMN_COUNT = 6
-      const LIST_CARD_WIDTH_PX = 300
-      const LIST_GAP_PX = 12
-      const LIST_CONTAINER_PADDING_PX = 48
+      const LIST_CARD_WIDTH_PX = 180
+      const LIST_GAP_PX = 14
+      const LIST_CONTAINER_PADDING_PX = 40
       const listContentWidth =
         LIST_COLUMN_COUNT * LIST_CARD_WIDTH_PX + (LIST_COLUMN_COUNT - 1) * LIST_GAP_PX
       const listPageWidth = LIST_CONTAINER_PADDING_PX + listContentWidth
-      const listCardScale = LIST_CARD_WIDTH_PX / 800
       const viewportWidth = listPageWidth + 40
 
       const userAvatar = base?.avatarUrl || ''
@@ -836,7 +1143,6 @@ export class EndfieldOperator extends plugin {
         userNickname,
         userLevel,
         listBgFile,
-        listCardScale,
         listColumnCount: LIST_COLUMN_COUNT,
         listCardWidthPx: LIST_CARD_WIDTH_PX,
         listGapPx: LIST_GAP_PX,

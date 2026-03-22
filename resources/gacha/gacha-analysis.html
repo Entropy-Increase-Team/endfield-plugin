@@ -57,13 +57,13 @@
       </div>
       <div class="stat-item stat-weapon">
         <div class="stat-content">
-          <span class="stat-label-top">武器池 · 平均出红</span>
+          <span class="stat-label-top">武库交易所 · 平均出红</span>
           <span class="stat-num">{{weaponAvgCost}}</span>
         </div>
       </div>
       <div class="stat-item stat-standard">
         <div class="stat-content">
-          <span class="stat-label-top">常驻寻访 · 平均出红</span>
+          <span class="stat-label-top">基础寻访 · 平均出红</span>
           <span class="stat-num">{{standardAvgCost}}</span>
         </div>
       </div>
@@ -76,7 +76,7 @@
     </div>
 
     <!-- 池组 -->
-    <div class="pool-groups-container">
+    <div class="pool-groups-container{{if singleGroupMode}} single-group{{/if}}">
     {{each poolGroups}}
     <div class="pool-group">
       <div class="pool-group-header">
@@ -88,12 +88,22 @@
       {{each $value.pools}}
       <div class="pool-entry">
         <div class="pool-entry-header">
-          <span class="pool-entry-name">{{$value.poolName}}</span>
-        </div>
-        <div class="pool-entry-metrics">
-          <span class="metric">{{$value.totalSummary || ('合计 ' + $value.total + ' 抽')}}</span>
-          <span class="metric">{{$value.metric1Label}} {{$value.metric1}}</span>
-          <span class="metric">{{$value.metric2Label}} {{$value.metric2}}</span>
+          <div class="pool-entry-header-main">
+            <div class="pool-entry-title-row">
+              <span class="pool-entry-name">{{$value.poolName}}</span>
+              <span class="pool-entry-total">合计 {{$value.total}} 抽</span>
+              <span class="pool-entry-pity">垫 {{if $value.pitySinceLast6 != null}}{{$value.pitySinceLast6}}{{else}}-{{/if}}</span>
+            </div>
+            <div class="pool-entry-metrics">
+              <span class="metric">{{$value.metric1Label}} {{$value.metric1}}</span>
+              <span class="metric">{{$value.metric2Label}} {{$value.metric2}}</span>
+            </div>
+          </div>
+          {{if $value.showHeaderCover && $value.headerCoverUrl}}
+          <div class="pool-entry-cover">
+            <img src="{{$value.headerCoverUrl}}" alt="{{$value.headerCoverName || $value.poolName}}" onerror="this.style.display='none'">
+          </div>
+          {{/if}}
         </div>
         {{if ($value.images && $value.images.length > 0) || ($value.pitySinceLast6 != null && $value.pitySinceLast6 > 0) || $value.freeTotal > 0}}
         <div class="star6-list">

@@ -1,4 +1,4 @@
-/* 地区建设 */
+/* 地区建设 - 高清优化版 */
 @font-face {
   font-family: 'HarmonyOS Sans SC';
   src: url('../font/HarmonyOS_SansSC_Bold.ttf') format('truetype');
@@ -13,27 +13,23 @@
 }
 
 html {
-  width: 100%;
-  min-width: 100%;
+  width: 120%;
   overflow-x: hidden;
 }
 
 body {
-  width: 100%;
-  min-width: 100%;
   overflow-x: hidden;
   background: #f5f5f5;
   font-family: 'HarmonyOS Sans SC', -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif;
   color: #1f2937;
 }
 
+/* 容器宽度：随页面自动适配，避免超出默认 viewport 被裁切 */
 .area-container {
-  width: 100%;
-  min-width: 100%;
-  max-width: 100vw;
-  padding: 14px 16px 6px;
+  padding: 20px 24px 10px;
   position: relative;
   overflow-x: hidden;
+  margin: 0 auto; /* 居中显示 */
 }
 
 /* ========== 顶部栏（复用 gacha-analysis 布局） ========== */
@@ -43,7 +39,7 @@ body {
   align-items: center;
   width: 100%;
   margin-bottom: 14px;
-  padding: 12px 16px;
+  padding: 16px 20px; /* 放大内边距 */
   background: #f9fafb;
   border-radius: 10px;
   position: relative;
@@ -53,14 +49,14 @@ body {
 .list-top-bar .user-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px; /* 放大间距 */
   flex-shrink: 0;
 }
 
 .list-top-bar .user-avatar {
-  width: 54px;
-  height: 54px;
-  border-radius: 10px;
+  width: 68px; /* 放大头像 */
+  height: 68px;
+  border-radius: 12px;
   border: 2px solid #e5e7eb;
   object-fit: cover;
 }
@@ -68,17 +64,17 @@ body {
 .list-top-bar .user-details {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .list-top-bar .user-name {
-  font-size: 1.1rem;
+  font-size: 1.4rem; /* 放大文字 */
   font-weight: bold;
   color: #1f2937;
 }
 
 .list-top-bar .user-uid {
-  font-size: 0.82rem;
+  font-size: 0.95rem; /* 放大文字 */
   color: #6b7280;
 }
 
@@ -93,21 +89,21 @@ body {
 }
 
 .list-top-bar .list-title {
-  font-size: 1.6rem;
+  font-size: 2.2rem; /* 核心放大：标题文字 */
   font-weight: bold;
   color: #1f2937;
-  margin: 0 0 2px 0;
+  margin: 0 0 4px 0;
 }
 
 .list-top-bar .list-count {
-  font-size: 0.9rem;
+  font-size: 1.05rem; /* 放大文字 */
   color: #6b7280;
   margin: 0;
 }
 
 .list-top-bar-logo {
   position: absolute;
-  right: 12px;
+  right: 20px;
   top: 50%;
   transform: translateY(-50%);
 }
@@ -115,12 +111,12 @@ body {
 .logo-container {
   display: flex;
   align-items: center;
-  max-width: 100px;
+  max-width: 120px; /* 放大 Logo 容器 */
   overflow: hidden;
 }
 
 .logo-container .logo-image {
-  height: 46px;
+  height: 58px; /* 放大 Logo */
   width: auto;
   max-width: 100%;
   object-fit: contain;
@@ -129,11 +125,11 @@ body {
 /* ========== 地区卡片 ========== */
 .zone-card {
   background: #fff;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  padding: 18px 22px;
-  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 24px 28px; /* 放大内边距 */
+  margin-bottom: 18px;
   position: relative;
   overflow: hidden;
 }
@@ -142,51 +138,12 @@ body {
   margin-bottom: 0;
 }
 
-/* 地区背景图 */
-.zone-card.has-bg {
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-.zone-bg-img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 0;
-}
-
-.zone-bg-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.35);
-  z-index: 1;
-}
-
-/* 有背景图时，内容层提到最上面 */
-.zone-card.has-bg .zone-header,
-.zone-card.has-bg .settlement-list {
-  position: relative;
-  z-index: 2;
-}
-
-/* 有背景图时，标题栏独立底条 */
-.zone-card.has-bg .zone-header {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(8px);
-  margin: -18px -22px 0;
-  padding: 14px 22px;
-  border-radius: 10px 10px 0 0;
-  border-bottom: none;
-}
-
-
 /* 地区头部：左侧名称 + 右侧收集统计 */
 .zone-header {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-bottom: 14px;
+  gap: 14px;
+  padding-bottom: 18px;
   border-bottom: 1px solid #f0f0f0;
 }
 
@@ -194,258 +151,222 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
 .zone-title-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
-/* 地区 SVG 图标 */
+/* 地区 SVG 图标 - 放大 */
 .zone-pin-icon {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
 /* SVG 加载失败时的文字回退 */
 .zone-pin-text {
-  font-size: 1.15rem;
+  font-size: 1.4rem; /* 放大回退文字 */
   color: #374151;
 }
 
 .zone-name {
-  font-size: 1.2rem;
+  font-size: 1.6rem; /* 核心放大：地区名称 */
   font-weight: bold;
   color: #1f2937;
 }
 
 .zone-level {
-  font-size: 0.8rem;
+  font-size: 0.95rem; /* 放大文字 */
   font-weight: bold;
   color: #6b7280;
   background: #f3f4f6;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
   border: 1px solid #e5e7eb;
 }
 
 .zone-money {
-  font-size: 0.9rem;
+  font-size: 1.05rem; /* 放大文字 */
   color: #111827;
   background: #eef2ff;
-  padding: 2px 10px;
+  padding: 4px 12px;
   border-radius: 999px;
   border: 1px solid #e0e7ff;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-}
-
-/* 收集统计 */
-.zone-stats {
-  display: flex;
-  align-items: center;
-  gap: 10px 14px;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-}
-
-.zone-stat {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 0.88rem;
-  color: #000000;
-  white-space: nowrap;
+  gap: 6px;
 }
 
-/* 收集统计图标 */
-.zone-stat-icon {
-  width: 18px;
-  height: 18px;
-  padding: 2px;
-  object-fit: contain;
-  vertical-align: middle;
-  flex-shrink: 0;
-  background: #374151;
-  border-radius: 4px;
-  box-sizing: content-box;
+/* 调度券图标：增大尺寸，object-position 上移以修正原图偏下的视觉偏差 */
+.zone-money-icon {
+  width: 36px;
+  height: 36px;
+  transform: translateY(-7px);
 }
 
+/* 收集统计样式仅在地区探索页面中使用，已移动到 area-explore.css */
 
-.zone-stat b {
-  color: #374151;
-  font-weight: bold;
-  margin-left: 2px;
-}
-
-/* ========== 聚落列表 ========== */
+/* ========== 优化后的聚落列表布局 ========== */
 .settlement-list {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* 放大间距 */
+  padding-top: 20px;
 }
 
 .settlement-item {
-  background: #f9fafb;
-  border-radius: 8px;
-  padding: 12px;
-  border: 1px solid #f0f0f0;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  /* 增加微弱内阴影，提升立体感 */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  height: 220px; /* 固定高度，避免背景拉伸变形 */
 }
 
-/* 聚落头部：名称 + 等级 */
+/* 优化遮罩：降低透明度，保留背景细节 */
+.settlement-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.25) 100%);
+  z-index: 1;
+}
+
+.settlement-content {
+  position: relative;
+  z-index: 2;
+  padding: 20px; /* 放大内边距 */
+  color: #ffffff; /* 统一文字颜色为白色 */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* 聚落头部 */
 .settlement-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 16px;
 }
 
 .settlement-name {
-  font-size: 0.95rem;
-  font-weight: bold;
-  color: #1f2937;
+  font-size: 1.5rem; /* 核心放大：聚落名称 */
+  font-weight: 800; /* 加粗 */
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3); /* 文字投影，防止看不清 */
 }
 
 .settlement-lv {
-  font-size: 0.75rem;
+  font-size: 0.9rem; /* 放大文字 */
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px); /* 毛玻璃效果 */
+  padding: 4px 12px;
+  border-radius: 8px;
   font-weight: bold;
-  color: #fff;
-  background: #374151;
-  padding: 1px 8px;
-  border-radius: 10px;
-  flex-shrink: 0;
 }
 
 /* 派驻干员区域 */
-.settlement-officer-area {
-  min-height: 42px;
-}
-
 .officer-card {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 16px; /* 放大间距 */
+  background: rgba(255, 255, 255, 0.1);
+  padding: 12px 16px; /* 放大内边距 */
+  border-radius: 10px;
 }
 
-/* 派驻干员头像 */
+/* 核心放大：干员头像 */
 .officer-avatar {
-  width: 36px;
-  height: 36px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #e5e7eb;
-  flex-shrink: 0;
-  background: #fff;
-}
-
-/* 头像加载失败时隐藏 */
-.officer-card.no-avatar .officer-avatar {
-  display: none;
-}
-
-.officer-info {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.officer-tag {
-  font-size: 0.7rem;
-  color: #9ca3af;
+  border: 2px solid rgba(255,255,255,0.3);
 }
 
 .officer-name {
-  font-size: 0.92rem;
-  color: #1f2937;
+  color: #ffffff;
   font-weight: bold;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 1.1rem; /* 放大文字 */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
-/* 未派驻状态 */
-.officer-empty {
-  justify-content: center;
-  gap: 6px;
+.officer-tag {
+  font-size: 0.85rem; /* 放大文字 */
+  opacity: 0.8;
 }
 
-.officer-empty-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 2px dashed #d1d5db;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #d1d5db;
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
-.officer-empty-text {
-  font-size: 0.82rem;
-  color: #d1d5db;
-}
-
+/* 进度条区域 */
 .settlement-money {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-  font-size: 0.78rem;
-  color: #6b7280;
-}
-
-.settlement-money-label {
-  color: #9ca3af;
+  justify-content: space-between;
+  margin-top: 16px;
+  font-size: 1.0rem; /* 放大文字 */
 }
 
 .settlement-money-value {
-  color: #374151;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
 .settlement-money-bar {
-  margin-top: 6px;
+  margin-top: 8px;
   width: 100%;
-  height: 6px;
-  background: rgba(229, 231, 235, 0.7);
+  height: 8px; /* 放大进度条 */
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .settlement-money-bar-fill {
   height: 100%;
-  background: #3b82f6;
-  border-radius: 4px;
+  background: #60a5fa; /* 更明亮的蓝色 */
+  box-shadow: 0 0 8px #3b82f6;
   transition: width 0.3s ease;
+}
+
+/* 未派驻状态 */
+.officer-empty {
+  justify-content: flex-start;
+  background: rgba(0,0,0,0.2);
+}
+.officer-empty-icon {
+  font-size: 1.5rem; /* 放大加号 */
+  color: rgba(255,255,255,0.8);
+}
+.officer-empty-text {
+  color: rgba(255,255,255,0.6);
+  font-size: 1.0rem; /* 放大文字 */
 }
 
 /* ========== 页脚 ========== */
 .footer {
   text-align: center;
-  margin-top: 4px;
-  padding: 6px 0 0;
+  margin-top: 8px;
+  padding: 10px 0 0;
 }
 
 .footer-text {
-  font-size: 1.4rem;
+  font-size: 1.1rem; /* 调整页脚文字大小，避免过大模糊 */
   color: #9ca3af;
-  line-height: 1.4;
+  line-height: 1.6;
 }
 
 .footer-text .version {
-  margin-left: 2px;
+  margin-left: 4px;
   color: #007180;
 }

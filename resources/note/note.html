@@ -7,90 +7,183 @@
   <link rel="stylesheet" href="{{_res_path}}note/note.css">
 </head>
 <body>
-  <div class="note-container">
-    <div class="list-top-bar">
-      <div class="list-header-middle">
-        <h1 class="list-title">{{title}}</h1>
-      </div>
-      {{if pluResPath}}
-      <div class="logo-container list-top-bar-logo">
-        <img src="{{pluResPath}}img/ET logo.svg" alt="Logo" class="logo-image">
+  <div class="note-page{{if isCharsView}} note-page-chars{{/if}}{{if isAccountView}} note-page-account{{/if}}">
+    <div class="note-shell">
+      {{if isAccountView}}
+      <div class="note-main-card">
+        <div class="note-hero">
+          {{if theme.noteBgUrl}}
+          <img src="{{theme.noteBgUrl}}" alt="" class="note-hero-bg" onerror="this.style.display='none'">
+          {{/if}}
+          <div class="note-hero-overlay"></div>
+
+          <div class="note-hero-grid">
+            <div class="note-left-panel">
+              <div class="note-profile-head">
+                <div class="note-profile-avatar-wrap">
+                  {{if base.avatarUrl}}
+                  <img src="{{base.avatarUrl}}" alt="" class="note-profile-avatar" onerror="this.style.display='none'">
+                  {{/if}}
+                  {{if theme.headFrameUrl}}
+                  <img src="{{theme.headFrameUrl}}" alt="" class="note-profile-frame" onerror="this.style.display='none'">
+                  {{/if}}
+                </div>
+                <div class="note-profile-info">
+                  <p class="note-profile-game">// ARKNIGHTS: ENDFIELD</p>
+                  <h2 class="note-profile-name">{{base.name}}</h2>
+                  {{if base.awakeningDateStr}}
+                  <div class="note-profile-id-row">
+                    <span class="note-profile-awake-tag">苏醒日</span>
+                    <span class="note-profile-awake-date">{{base.awakeningDateStr}}</span>
+                  </div>
+                  {{/if}}
+                  <p class="note-profile-uid-line">{{base.roleId}}</p>
+                </div>
+              </div>
+
+              <div class="note-level-rows">
+                <div class="note-level-row">
+                  <span class="note-level-label">权限等阶</span>
+                  <span class="note-level-value">{{base.level}}</span>
+                </div>
+                <div class="note-level-row">
+                  <span class="note-level-label">探索等级</span>
+                  <span class="note-level-value">{{base.worldLevel}}</span>
+                </div>
+              </div>
+
+              <div class="note-count-grid">
+                <div class="note-brief-item">
+                  <span class="note-brief-label">干员</span>
+                  <span class="note-brief-value">{{stats.charNum}}</span>
+                </div>
+                <div class="note-brief-item">
+                  <span class="note-brief-label">武器</span>
+                  <span class="note-brief-value">{{stats.weaponNum}}</span>
+                </div>
+                <div class="note-brief-item">
+                  <span class="note-brief-label">档案</span>
+                  <span class="note-brief-value">{{stats.docNum}}</span>
+                </div>
+              </div>
+
+              <div class="note-mission-card">
+                <div class="note-mission-title">使命纪事</div>
+                <div class="note-mission-desc">{{base.mainMissionDesc}}</div>
+              </div>
+            </div>
+
+            <div class="note-right-panel">
+              <div class="note-achieve-card">
+                <div class="note-right-title">成就徽章（{{achieve.count}}）</div>
+                {{if achieve.medals && achieve.medals.length > 0}}
+                <div class="note-achieve-grid">
+                  {{each achieve.medals medal idx}}
+                  {{if idx < 10}}
+                  <div class="note-achieve-medal {{medal.isPlated ? 'is-plated' : ''}}">
+                    {{if medal.icon}}
+                    <img src="{{medal.icon}}" alt="{{medal.name}}" class="note-achieve-medal-icon" onerror="this.style.display='none'">
+                    {{/if}}
+                  </div>
+                  {{/if}}
+                  {{/each}}
+                </div>
+                {{else}}
+                <div class="note-empty note-empty-mini">暂无徽章</div>
+                {{/if}}
+              </div>
+
+              <div class="note-showcase-card">
+                <div class="note-right-title">干员展示</div>
+                {{if topChars && topChars.length > 0}}
+                <div class="note-showcase-grid">
+                  {{each topChars char idx}}
+                  <div class="note-char-card" data-rarity="{{char.rarity}}">
+                    <div class="note-char-cover-wrap">
+                      <img src="{{char.imageUrl || char.rtUrl || char.sqUrl}}" alt="{{char.name}}" class="note-char-cover" onerror="this.style.display='none'">
+                      <div class="note-char-icons">
+                        {{if char.professionIcon}}
+                        <img src="{{char.professionIcon}}" alt="{{char.profession}}" class="note-char-icon" onerror="this.style.display='none'">
+                        {{/if}}
+                        {{if char.propertyIcon}}
+                        <img src="{{char.propertyIcon}}" alt="{{char.property}}" class="note-char-icon" onerror="this.style.display='none'">
+                        {{/if}}
+                      </div>
+                      <div class="note-char-level">Lv.{{char.level}}</div>
+                      {{if char.rarity >= 3}}
+                      <img
+                        src="{{pluResPath}}meta/starlevel/gachapool_star_{{char.rarity}}.png"
+                        alt="{{char.rarity}}星"
+                        class="note-char-rarity"
+                        onerror="this.style.display='none'">
+                      {{/if}}
+                    </div>
+                    <div class="note-char-footer">
+                      <span class="note-char-name">{{char.name}}</span>
+                    </div>
+                  </div>
+                  {{/each}}
+                </div>
+                {{else}}
+                <div class="note-empty note-empty-mini">暂无干员</div>
+                {{/if}}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       {{/if}}
-    </div>
 
-    <!-- 基础信息：参考图头部布局 -->
-    <div class="note-basic-wrap">
-      <div class="note-basic-inner">
-        <div class="note-basic-header">
-          {{if base.avatarUrl}}
-          <img src="{{base.avatarUrl}}" alt="" class="note-basic-avatar" onerror="this.style.display='none'">
-          {{/if}}
-          <div class="note-basic-info">
-            <p class="note-basic-game">// ARKNIGHTS: ENDFIELD</p>
-            <h2 class="note-basic-name">{{base.name}}</h2>
-            <div class="note-basic-meta">
-              <span class="note-basic-uid">UID {{base.roleId}}</span>
-              {{if base.awakeningDateStr}}
-              <span class="note-basic-meta-sep">·</span>
-              <span class="note-basic-awake">苏醒日 {{base.awakeningDateStr}}</span>
+      {{if isCharsView}}
+      <div class="card-wrap note-card note-card-standalone">
+        <div class="note-section-title">{{sectionTitle}}（{{chars.length}} 个）</div>
+        {{if chars && chars.length > 0}}
+        <div class="note-chars-grid">
+          {{each chars char idx}}
+          <div class="note-char-card note-char-card-detailed" data-rarity="{{char.rarity}}">
+            <div class="note-char-cover-wrap">
+              <img src="{{char.imageUrl || char.rtUrl || char.sqUrl}}" alt="{{char.name}}" class="note-char-cover" onerror="this.style.display='none'">
+              <div class="note-char-potential">潜{{char.potentialLevel}}</div>
+              <div class="note-char-icons">
+                {{if char.professionIcon}}
+                <img src="{{char.professionIcon}}" alt="{{char.profession}}" class="note-char-icon" onerror="this.style.display='none'">
+                {{/if}}
+                {{if char.propertyIcon}}
+                <img src="{{char.propertyIcon}}" alt="{{char.property}}" class="note-char-icon" onerror="this.style.display='none'">
+                {{/if}}
+              </div>
+              <div class="note-char-level">Lv.{{char.level}}</div>
+              {{if char.rarity >= 3}}
+              <img
+                src="{{pluResPath}}meta/starlevel/gachapool_star_{{char.rarity}}.png"
+                alt="{{char.rarity}}星"
+                class="note-char-rarity"
+                onerror="this.style.display='none'">
+              {{/if}}
+            </div>
+            <div class="note-char-footer">
+              <span class="note-char-name">{{char.name}}</span>
+              {{if char.weapon}}
+              <div class="note-char-weapon-panel">
+                <div class="note-char-weapon-text">
+                  <span class="note-char-weapon-name">{{char.weapon.name}}</span>
+                  <span class="note-char-weapon-meta">Lv.{{char.weapon.level}} 潜{{char.weapon.breakthroughLevel}}</span>
+                </div>
+                <div class="note-char-weapon-visual">
+                  {{if char.weapon.iconUrl}}
+                  <img src="{{char.weapon.iconUrl}}" alt="{{char.weapon.name}}" class="note-char-weapon-icon" onerror="this.style.display='none'">
+                  {{/if}}
+                </div>
+              </div>
               {{/if}}
             </div>
           </div>
+          {{/each}}
         </div>
-        <div class="note-basic-data">
-          <div class="note-basic-row1">
-            <div class="note-stat-card note-mission-card">
-              <span class="note-mission-title">{{base.mainMissionDesc}}</span>
-              <span class="note-stat-label">使命纪事</span>
-            </div>
-            <div class="note-stat-card"><span class="note-stat-num">{{base.level}}</span><span class="note-stat-label">权限等阶</span></div>
-            <div class="note-stat-card"><span class="note-stat-num">{{base.worldLevel}}</span><span class="note-stat-label">探索等级</span></div>
-          </div>
-          <div class="note-basic-row2">
-            <div class="note-stat-card"><span class="note-stat-num">{{stats.charNum}}</span><span class="note-stat-label">干员</span></div>
-            <div class="note-stat-card"><span class="note-stat-num">{{stats.weaponNum}}</span><span class="note-stat-label">武器</span></div>
-            <div class="note-stat-card"><span class="note-stat-num">{{stats.docNum}}</span><span class="note-stat-label">档案</span></div>
-            <div class="note-stat-card"><span class="note-stat-num">{{stats.achieveCount}}</span><span class="note-stat-label">成就</span></div>
-            <div class="note-stat-card"><span class="note-stat-num">{{stats.bpCur}}/{{stats.bpMax}}</span><span class="note-stat-label">通行证</span></div>
-          </div>
-        </div>
+        {{else}}
+        <div class="note-empty">暂无干员</div>
+        {{/if}}
       </div>
-    </div>
-
-    <div class="card-wrap note-card note-achieve-card">
-      <div class="note-section-title">成就徽章（{{achieve.count}}）</div>
-      {{if achieve.medals && achieve.medals.length > 0}}
-      <div class="note-achieve-grid">
-        {{each achieve.medals medal idx}}
-        <div class="note-achieve-item {{medal.isPlated ? 'is-plated' : ''}}">
-          {{if medal.icon}}
-          <img src="{{medal.icon}}" alt="{{medal.name}}" class="note-achieve-icon" onerror="this.style.display='none'">
-          {{/if}}
-          <span class="note-achieve-name">{{medal.name}}</span>
-        </div>
-        {{/each}}
-      </div>
-      {{else}}
-      <div class="note-empty">暂无徽章</div>
-      {{/if}}
-    </div>
-
-    <div class="card-wrap note-card">
-      <div class="note-section-title">已拥有干员（{{chars.length}} 个）</div>
-      {{if chars && chars.length > 0}}
-      <div class="note-chars-grid">
-        {{each chars char idx}}
-        <div class="note-char-item">
-          {{if char.sqUrl}}
-          <img src="{{char.sqUrl}}" alt="" class="note-char-img" onerror="this.style.display='none'">
-          {{/if}}
-          <span class="note-char-name">{{char.name}}</span>
-        </div>
-        {{/each}}
-      </div>
-      {{else}}
-      <div class="note-empty">暂无干员</div>
       {{/if}}
     </div>
   </div>

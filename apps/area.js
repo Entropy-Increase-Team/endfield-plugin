@@ -17,6 +17,10 @@ export class EndfieldArea extends plugin {
           fnc: 'getArea'
         },
         {
+          reg: '^(?:[:：]|[/#](?:zmd|终末地))地区(收集|探索)$',
+          fnc: 'getArea'
+        },
+        {
           reg: '^(?:[:：]|[/#](?:zmd|终末地))帝江号建设$',
           fnc: 'getSpaceship'
         }
@@ -24,8 +28,23 @@ export class EndfieldArea extends plugin {
     })
   }
 
-  // ==================== 地区建设 ====================
+  // ==================== 通用工具函数 - 金额转万单位 ====================
+  /**
+   * 格式化金额为万单位
+   * @param {string|number} money - 原始金额
+   * @returns {string} 格式化后的金额文本
+   */
+  formatMoneyToWan(money) {
+    // 空值、非数字直接返回原内容
+    if (money === '' || money == null || isNaN(Number(money))) {
+      return String(money ?? '')
+    }
+    // 转换为数字并除以10000，保留2位小数后去掉末尾无意义的0
+    const moneyInWan = (Number(money) / 10000).toFixed(2)
+    return parseFloat(moneyInWan) + '万'
+  }
 
+  // ==================== 地区建设 ====================
   async getArea() {
     const userId = this.e.at || this.e.user_id
     const sklUser = new EndfieldUser(userId)
@@ -102,14 +121,25 @@ export class EndfieldArea extends plugin {
           const count = moneyMgr.count ?? ''
           const total = moneyMgr.total ?? ''
           if (count === '' && total === '') return ''
-          if (count !== '' && total !== '') return `${count}/${total}`
-          return String(count !== '' ? count : total)
+          // 格式化count和total为万单位
+          const formattedCount = this.formatMoneyToWan(count)
+          const formattedTotal = this.formatMoneyToWan(total)
+          if (count !== '' && total !== '') return `${formattedCount}/${formattedTotal}`
+          return String(count !== '' ? formattedCount : formattedTotal)
         }
-        return String(moneyMgr)
+        // 格式化普通数值为万单位
+        return this.formatMoneyToWan(moneyMgr)
       }
 
       const zoneList = zones.map((zone) => {
         const zoneName = zone.zoneName || areaMap[zone.zoneId] || zone.zoneId || '未知'
+        // 根据地区名称选择总调度券图标
+        let moneyIcon = ''
+        if (zoneName.includes('四号谷地')) {
+          moneyIcon = 'moneysihaogudi.png'
+        } else if (zoneName.includes('武陵')) {
+          moneyIcon = 'moneywuling.png'
+        }
         const charNameMap = zone.charNameMap || {}
         const officerAvatarMap = zone.officerAvatarMap || {}
         const settlements = (zone.settlements || []).map((s) => {
@@ -123,15 +153,19 @@ export class EndfieldArea extends plugin {
           const officerAvatar = s.officerCharAvatar || officerAvatarMap?.[charId] || charInfoMap[charId]?.avatar || ''
           const remainMoney = s.remainMoney ?? ''
           const moneyMax = s.moneyMax ?? ''
+          // 格式化剩余资金和最大资金为万单位
+          const formattedRemainMoney = this.formatMoneyToWan(remainMoney)
+          const formattedMoneyMax = this.formatMoneyToWan(moneyMax)
           const remainMoneyText = (remainMoney !== '' && moneyMax !== '')
-            ? `${remainMoney}/${moneyMax}`
-            : String(remainMoney !== '' ? remainMoney : moneyMax || '')
+            ? `${formattedRemainMoney}/${formattedMoneyMax}`
+            : String(remainMoney !== '' ? formattedRemainMoney : formattedMoneyMax || '')
           const remainMoneyNum = Number(remainMoney)
           const moneyMaxNum = Number(moneyMax)
           const remainMoneyPercent = (Number.isFinite(remainMoneyNum) && moneyMaxNum > 0)
             ? Math.max(0, Math.min(100, (remainMoneyNum / moneyMaxNum) * 100))
             : 0
           return {
+            id: s.id || '', // 新增：传递聚落id到渲染数据
             name: s.name || s.id || '未知',
             level: s.level ?? 0,
             officerName,
@@ -170,13 +204,36 @@ export class EndfieldArea extends plugin {
           totalPiece += piece.count
           totalPieceAll += piece.total
         }
+        // 按关卡维度构建资源收集明细
+        const levelsSource = Array.isArray(zone.levels) && zone.levels.length > 0
+          ? zone.levels
+          : collectionSource
+        const levelStats = levelsSource.map((lv) => {
+          const levelId = lv.levelId || ''
+          const name = lv.name || areaMap[levelId] || levelId || '未知'
+          const chest = getCountPair(lv.trchestCount)
+          const puzzle = getCountPair(lv.puzzleCount)
+          const blackbox = getCountPair(lv.blackboxCount)
+          const equip = getCountPair(lv.equipTrchestCount)
+          const piece = getCountPair(lv.pieceCount)
+          return {
+            name,
+            chestText: formatCountText(chest.count, chest.total),
+            puzzleText: formatCountText(puzzle.count, puzzle.total),
+            blackboxText: formatCountText(blackbox.count, blackbox.total),
+            equipText: formatCountText(equip.count, equip.total),
+            pieceText: formatCountText(piece.count, piece.total)
+          }
+        })
         const moneyText = formatMoneyText(zone.moneyMgr)
         return {
           zoneName,
           level: zone.level ?? 0,
           moneyMgr: (zone.moneyMgr != null && zone.moneyMgr !== '' && String(zone.moneyMgr) !== '0') ? zone.moneyMgr : null,
           moneyText,
+          moneyIcon,
           settlements,
+          levelStats,
           totalChest,
           totalPuzzle,
           totalBlackbox,
@@ -194,8 +251,11 @@ export class EndfieldArea extends plugin {
       if (this.e?.runtime?.render) {
         try {
           const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
+          const rawMsg = String(this.e?.msg || this.e?.raw_message || '')
+          const isExplore = rawMsg.includes('地区探索')
+          const tplName = isExplore ? 'area/area-explore' : 'area/area'
           const renderData = {
-            title: '地区建设',
+            title: isExplore ? '地区探索' : '地区建设',
             zoneCount: zoneList.length,
             zones: zoneList,
             pluResPath,
@@ -205,8 +265,9 @@ export class EndfieldArea extends plugin {
             userUid: userBase.roleId || cardBase?.roleId || sklUser.endfield_uid || '未知',
             ...getCopyright()
           }
-          const baseOpt = { scale: 1.6, retType: 'base64' }
-          const imgSegment = await this.e.runtime.render('endfield-plugin', 'area/area', renderData, baseOpt)
+          // 使用默认 viewport，由页面自身布局决定宽度
+          const baseOpt = { retType: 'base64', scale: 2.0 }
+          const imgSegment = await this.e.runtime.render('endfield-plugin', tplName, renderData, baseOpt)
           if (imgSegment) {
             await this.reply(imgSegment)
             return true
@@ -217,22 +278,24 @@ export class EndfieldArea extends plugin {
       }
 
       // 降级为纯文本转发
+      const rawMsg = String(this.e?.msg || this.e?.raw_message || '')
+      const isExplore = rawMsg.includes('地区探索')
       let msg = ``
-      msg += `【地区建设】(${zoneList.length}个地区)\n`
+      msg += `【${isExplore ? '地区探索' : '地区建设'}】(${zoneList.length}个地区)\\n`
 
       for (const zone of zoneList) {
-        msg += `\n- 地区：${zone.zoneName}\n`
-        msg += `  等级：${zone.level}\n`
+        msg += `\\n- 地区：${zone.zoneName}\\n`
+        msg += `  等级：${zone.level}\\n`
         if (zone.moneyText) {
-          msg += `  资金：${zone.moneyText}\n`
+          msg += `  资金：${zone.moneyText}\\n`
         }
         if (zone.settlements.length) {
-          msg += `  聚落：${zone.settlements.length}个\n`
+          msg += `  聚落：${zone.settlements.length}个\\n`
           for (const s of zone.settlements) {
-            msg += `  • ${s.name} Lv.${s.level}${s.officerName ? `（派驻：${s.officerName}）` : ''}\n`
+            msg += `  • ${s.name} Lv.${s.level}${s.officerName ? `（派驻：${s.officerName}）` : ''}\\n`
           }
         }
-        msg += `  收集：宝箱 ${zone.totalChest}、醚质 ${zone.totalPuzzle}、协议采录桩 ${zone.totalBlackbox}、装备制造模板 ${zone.totalEquip}、维修灵感点 ${zone.totalPiece}\n`
+        msg += `  收集：宝箱 ${zone.totalChest}、醚质 ${zone.totalPuzzle}、协议采录桩 ${zone.totalBlackbox}、装备制造模板 ${zone.totalEquip}、维修灵感点 ${zone.totalPiece}\\n`
       }
 
       const segments = this.splitContent(msg, 2000)
@@ -285,7 +348,6 @@ export class EndfieldArea extends plugin {
   }
 
   // ==================== 帝江号建设 ====================
-
   async getSpaceship() {
     const userId = this.e.at || this.e.user_id
     const sklUser = new EndfieldUser(userId)
@@ -335,6 +397,7 @@ export class EndfieldArea extends plugin {
       }
 
       // 构建房间渲染数据（API 已过滤空房间）
+      const operatorMap = setting.getData('operatorMap') || {}
       const roomList = rooms.map((room, idx) => {
         const roomName = room.roomName || roomMap[room.id] || room.id || '未知'
         const lastReportTs = Number(room.lastReportTs ?? 0)
@@ -342,7 +405,8 @@ export class EndfieldArea extends plugin {
         const chars = (room.chars || []).map((c) => {
           const charId = c.charId || c.id || ''
           return {
-            name: c.name || charNameMap[charId] || charId || '未知',
+            // 优先根据干员ID使用本地映射表显示中文名，其次回退到接口名称或原始ID
+            name: operatorMap[charId] || c.name || charNameMap[charId] || charId || '未知',
             avatar: c.avatarUrl || charAvatarMap[charId] || '',
             physicalStrength: Math.round(c.physicalStrength ?? 0),
             favorability: Math.round(c.favorability ?? 0),
@@ -377,7 +441,8 @@ export class EndfieldArea extends plugin {
             userUid: userBase.roleId || role?.roleId || sklUser.endfield_uid || '未知',
             ...getCopyright()
           }
-          const baseOpt = { scale: 1.6, retType: 'base64' }
+          // 使用默认 viewport，由页面自身布局决定宽度
+          const baseOpt = { retType: 'base64', scale: 2.0 }
           const imgSegment = await this.e.runtime.render('endfield-plugin', 'area/spaceship', renderData, baseOpt)
           if (imgSegment) {
             await this.reply(imgSegment)
@@ -390,17 +455,17 @@ export class EndfieldArea extends plugin {
 
       // 降级为纯文本转发
       let msg = ``
-      msg += `【帝江号建设】(${roomList.length}个房间)\n`
+      msg += `【帝江号建设】(${roomList.length}个房间)\\n`
       for (const room of roomList) {
-        msg += `\n- 房间：${room.roomName}\n`
-        msg += `  等级：${room.level}\n`
+        msg += `\\n- 房间：${room.roomName}\\n`
+        msg += `  等级：${room.level}\\n`
         if (!room.chars.length) {
-          msg += `  干员：无\n`
+          msg += `  干员：无\\n`
           continue
         }
-        msg += `  干员：${room.chars.length}人\n`
+        msg += `  干员：${room.chars.length}人\\n`
         for (const c of room.chars) {
-          msg += `  • ${c.name}（${c.trustLevelName}，心情${c.moodPercent}% / 体力${c.physicalStrength}，信赖${c.trustPercent}% / 好感${c.favorability}）\n`
+          msg += `  • ${c.name}（${c.trustLevelName}，心情${c.moodPercent}% / 体力${c.physicalStrength}，信赖${c.trustPercent}% / 好感${c.favorability}）\\n`
         }
       }
 
@@ -467,7 +532,6 @@ export class EndfieldArea extends plugin {
   }
 
   // ==================== 工具方法 ====================
-
   splitContent(content, maxLength = 2000) {
     if (!content) return []
     
@@ -482,7 +546,7 @@ export class EndfieldArea extends plugin {
           segment.lastIndexOf('。'),
           segment.lastIndexOf('！'),
           segment.lastIndexOf('？'),
-          segment.lastIndexOf('\n')
+          segment.lastIndexOf('\\n')
         )
         
         if (lastPunctuation > maxLength * 0.5) {

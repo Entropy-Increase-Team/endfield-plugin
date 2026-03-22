@@ -44,6 +44,6 @@ export function getYunzaiCopyright() {
 export function getCopyright() {
   const endfieldVersion = getPluginVersion()
   const { name: yunzaiName, version: yunzaiVersion } = getYunzaiCopyright()
-  const copyright = `Created By ${yunzaiName}<span class="version">${yunzaiVersion}</span> & endfield-plugin <span class="version">${endfieldVersion}</span>`
+  const copyright = `Created By ${yunzaiName} <span class="version">${yunzaiVersion}</span> & Endfield-plugin <span class="version">${endfieldVersion}</span> & by QingYingX(HInXe)`
   return { copyright, sys: { copyright } }
 }

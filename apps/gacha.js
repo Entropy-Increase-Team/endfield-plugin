@@ -5,6 +5,7 @@ import EndfieldRequest from '../model/endfieldReq.js'
 import hypergryphAPI from '../model/hypergryphApi.js'
 import setting from '../utils/setting.js'
 import { getCopyright } from '../utils/copyright.js'
+import common from '../../../lib/common/common.js'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -54,11 +55,6 @@ export class EndfieldGacha extends plugin {
         {
           reg: '^(?:[:：]|[/#](?:zmd|终末地))抽卡分析(?:\\s+.*)?$',
           fnc: 'viewGachaAnalysis'
-        },
-        {
-          reg: '^(?:[:：]|[/#](?:zmd|终末地))同步全部抽卡$',
-          fnc: 'syncAllGacha',
-          permission: 'master'
         }
       ]
     })
@@ -85,7 +81,11 @@ export class EndfieldGacha extends plugin {
       if (!raw) return null
       const data = JSON.parse(raw)
       if (!data || typeof data !== 'object') return null
-      return data
+      const normalized = this.normalizeGachaCachePayload(data)
+      if (normalized.changed) {
+        fs.writeFileSync(file, JSON.stringify(normalized.data, null, 2), 'utf8')
+      }
+      return normalized.data
     } catch (err) {
       logger.error(`[终末地插件][抽卡缓存]读取失败: ${err?.message || err}`)
       return null
@@ -96,7 +96,8 @@ export class EndfieldGacha extends plugin {
     try {
       this.ensureGachaCacheDir()
       const file = this.getGachaCacheFile(userId, roleId)
-      fs.writeFileSync(file, JSON.stringify(payload, null, 2), 'utf8')
+      const normalized = this.normalizeGachaCachePayload(payload)
+      fs.writeFileSync(file, JSON.stringify(normalized.data, null, 2), 'utf8')
       return true
     } catch (err) {
       logger.error(`[终末地插件][抽卡缓存]写入失败: ${err?.message || err}`)
@@ -104,13 +105,134 @@ export class EndfieldGacha extends plugin {
     }
   }
 
+  hasNonEmptyValue(value) {
+    if (value == null) return false
+    if (typeof value === 'string') return value.trim() !== ''
+    if (Array.isArray(value)) return value.length > 0
+    return true
+  }
+
+  mergeDuplicateGachaRecord(base = {}, incoming = {}) {
+    const merged = { ...base }
+    for (const [key, value] of Object.entries(incoming || {})) {
+      if (!Object.prototype.hasOwnProperty.call(merged, key) || !this.hasNonEmptyValue(merged[key])) {
+        merged[key] = value
+        continue
+      }
+      if (key === 'is_new' && value === true) {
+        merged[key] = true
+      }
+    }
+    return merged
+  }
+
+  deduplicateGachaRecords(records = []) {
+    if (!Array.isArray(records) || records.length <= 1) return Array.isArray(records) ? records : []
+    const deduped = []
+    const seqIndexMap = new Map()
+    for (const record of records) {
+      if (!record || typeof record !== 'object') continue
+      const seqId = String(record?.seq_id ?? '').trim()
+      if (!seqId) {
+        deduped.push({ ...record })
+        continue
+      }
+      const existingIndex = seqIndexMap.get(seqId)
+      if (existingIndex == null) {
+        seqIndexMap.set(seqId, deduped.length)
+        deduped.push({ ...record })
+        continue
+      }
+      deduped[existingIndex] = this.mergeDuplicateGachaRecord(deduped[existingIndex], record)
+    }
+    return deduped
+  }
+
+  normalizeGachaCachePayload(payload) {
+    if (!payload || typeof payload !== 'object') {
+      return { data: payload, changed: false, removedCount: 0 }
+    }
+    const originalPools = payload?.records_by_pool || {}
+    const normalizedPools = {}
+    let changed = false
+    let removedCount = 0
+
+    for (const [poolKey, rows] of Object.entries(originalPools)) {
+      if (!Array.isArray(rows)) {
+        normalizedPools[poolKey] = rows
+        continue
+      }
+      const dedupedRows = this.deduplicateGachaRecords(rows)
+      normalizedPools[poolKey] = dedupedRows
+      if (dedupedRows.length !== rows.length) {
+        changed = true
+        removedCount += rows.length - dedupedRows.length
+      }
+    }
+
+    if (!changed) {
+      return { data: payload, changed: false, removedCount: 0 }
+    }
+
+    return {
+      data: {
+        ...payload,
+        records_by_pool: {
+          ...originalPools,
+          ...normalizedPools
+        }
+      },
+      changed: true,
+      removedCount
+    }
+  }
+
   getCachePoolRecords(cacheData, poolKey) {
     const pools = cacheData?.records_by_pool || {}
     const rows = Array.isArray(pools?.[poolKey]) ? pools[poolKey] : []
-    return rows
+    return this.deduplicateGachaRecords(rows)
   }
 
-  getCachePoolPage(cacheData, poolKey, page = 1, limit = 10) {
+  buildCacheRecordSummary(cacheData) {
+    const summary = {
+      totalCount: 0,
+      star6: 0,
+      star5: 0,
+      star4: 0,
+      pools: {}
+    }
+
+    for (const poolKey of GACHA_POOLS) {
+      const rows = this.getCachePoolRecords(cacheData, poolKey)
+      const poolSummary = {
+        total: rows.length,
+        star6: 0,
+        star5: 0,
+        star4: 0
+      }
+
+      for (const row of rows) {
+        const rarity = Number(row?.rarity || 0)
+        if (rarity === 6) {
+          summary.star6++
+          poolSummary.star6++
+        } else if (rarity === 5) {
+          summary.star5++
+          poolSummary.star5++
+        } else if (rarity === 4) {
+          summary.star4++
+          poolSummary.star4++
+        }
+      }
+
+      summary.totalCount += rows.length
+      summary.pools[poolKey] = poolSummary
+    }
+
+    return summary
+  }
+
+  getCachePoolPreview(cacheData, poolKey, limit = 10) {
     const rows = this.getCachePoolRecords(cacheData, poolKey)
     const sorted = [...rows].sort((a, b) => {
       const sa = Number(a?.seq_id)
@@ -120,15 +242,9 @@ export class EndfieldGacha extends plugin {
       const tb = Number(b?.gacha_ts || 0)
       return tb - ta
     })
-    const total = sorted.length
-    const pages = Math.max(1, Math.ceil(total / limit))
-    const current = Math.min(Math.max(1, page), pages)
-    const start = (current - 1) * limit
     return {
-      records: sorted.slice(start, start + limit),
-      total,
-      pages,
-      page: current
+      records: sorted.slice(0, limit),
+      total: sorted.length
     }
   }
 
@@ -156,7 +272,7 @@ export class EndfieldGacha extends plugin {
         let recordsTotal = 0
         GACHA_POOLS.forEach((pool, idx) => {
           const r = poolDataList[idx]
-          recordsByPool[pool] = Array.isArray(r?.records) ? r.records : []
+          recordsByPool[pool] = this.deduplicateGachaRecords(Array.isArray(r?.records) ? r.records : [])
           recordsTotal += recordsByPool[pool].length
         })
 
@@ -446,11 +562,20 @@ export class EndfieldGacha extends plugin {
       ((statsData?.stats?.total_count ?? 0) > 0)
   }
 
-  /** 查看抽卡记录：四个卡池合并到一张图中展示，支持 :抽卡记录 <页码>；带「同步」则先同步再展示 */
+  /** 查看抽卡记录：四个卡池合并到一张图中展示；带「同步」则先同步再展示，支持管理员指定平台 ID */
   async viewGachaRecords() {
     const rawMsg = String(this.e.msg || '')
     const wantsSync = /(同步|更新)\s*抽卡记录/.test(rawMsg)
-    
+
+    // 仅 "同步抽卡记录 / 更新抽卡记录" 使用云端同步
+    if (wantsSync) {
+      return await this.syncGacha({
+        afterSyncShowRecords: true,
+        fromSync: true,
+        selectPrompt: getMessage('gacha.select_account_sync')
+      })
+    }
+
     const sklUser = new EndfieldUser(this.e.user_id)
     if (!(await sklUser.getUser())) {
       await this.reply(getUnbindMessage())
@@ -459,18 +584,9 @@ export class EndfieldGacha extends plugin {
     const roleId = String(sklUser.endfield_uid || '')
     const serverId = Number(sklUser.server_id || 1)
     const cacheData = this.readLocalGachaCache(this.e.user_id, roleId)
+    const cacheSummary = this.buildCacheRecordSummary(cacheData)
     const recordStatsData = cacheData?.stats_data || null
     const hasRecord = this.hasAnyGachaRecord(recordStatsData)
-
-    // 仅 "同步抽卡记录 / 更新抽卡记录" 使用云端同步
-    if (wantsSync) {
-      return await this.syncGacha({
-        afterSyncShowRecords: true,
-        fromSync: true,
-        isFirstSync: !hasRecord,
-        selectPrompt: getMessage('gacha.select_account_sync')
-      })
-    }
 
     if (!cacheData || !hasRecord) {
       await this.reply(getMessage('gacha.no_records'))
@@ -482,9 +598,6 @@ export class EndfieldGacha extends plugin {
       })
     }
 
-    // 解析页码参数
-    const argStr = rawMsg.replace(/.*抽卡记录\s*/, '').trim()
-    const page = (argStr && Number.isFinite(parseInt(argStr, 10))) ? Math.max(1, parseInt(argStr, 10)) : 1
     const limit = 10
     const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
 
@@ -507,9 +620,8 @@ export class EndfieldGacha extends plugin {
       { key: 'weapon', label: '武器池' },
       { key: 'limited', label: '限定角色' }
     ]
-    const poolResults = poolList.map(({ key }) => this.getCachePoolPage(cacheData, key, page, limit))
+    const poolResults = poolList.map(({ key }) => this.getCachePoolPreview(cacheData, key, limit))
 
-    const stats = recordStatsData.stats || {}
     const userInfo = recordStatsData.user_info || {}
 
     // 判断是否为 UP 角色/武器
@@ -530,18 +642,15 @@ export class EndfieldGacha extends plugin {
       const rd = poolResults[idx]
       const records = rd?.records || []
       const total = rd?.total ?? 0
-      const pages = rd?.pages ?? 1
       return {
         label,
         total,
-        page,
-        pages,
         hasRecords: total > 0,
         records: records.map((r, i) => {
           const name = r.char_name || r.item_name || '未知'
           const isUp = r.rarity >= 5 && isUpItem(name, key)
           return {
-            index: (page - 1) * limit + i + 1,
+            index: i + 1,
             rarity: r.rarity,
             starClass: r.rarity === 6 ? 'star6' : r.rarity === 5 ? 'star5' : 'star4',
             name,
@@ -557,15 +666,14 @@ export class EndfieldGacha extends plugin {
       try {
         const renderData = {
           title: '抽卡记录',
-          totalCount: stats.total_count ?? 0,
-          star6: stats.star6_count ?? 0,
-          star5: stats.star5_count ?? 0,
-          star4: stats.star4_count ?? 0,
+          totalCount: cacheSummary.totalCount,
+          star6: cacheSummary.star6,
+          star5: cacheSummary.star5,
+          star4: cacheSummary.star4,
           userAvatar: noteBase.avatarUrl || '',
           userNickname: noteBase.name || userInfo.nickname || userInfo.game_uid || '未知',
           userLevel: noteBase.level ?? 0,
           userUid: userInfo.game_uid || noteBase.roleId || '',
-          page,
           poolSections,
           pluResPath,
           ...getCopyright()
@@ -588,10 +696,10 @@ export class EndfieldGacha extends plugin {
       channel: userInfo.channel_name ? ` | ${userInfo.channel_name}` : ''
     }) + '\n'
     msg += getMessage('gacha.record_fallback_stats', {
-      total: stats.total_count ?? 0,
-      star6: stats.star6_count ?? 0,
-      star5: stats.star5_count ?? 0,
-      star4: stats.star4_count ?? 0
+      total: cacheSummary.totalCount,
+      star6: cacheSummary.star6,
+      star5: cacheSummary.star5,
+      star4: cacheSummary.star4
     }) + '\n'
     for (const sec of poolSections) {
       msg += '\n' + getMessage('gacha.record_section_header', { label: sec.label, total: sec.total }) + '\n'
@@ -607,16 +715,24 @@ export class EndfieldGacha extends plugin {
     return true
   }
 
-  /** 抽卡分析：直接拉取当前账号的 stats 并出图，无数据时自动同步 */
+  /** 抽卡分析：支持管理员指定平台 ID 读取目标用户缓存；无数据时自动同步 */
   async viewGachaAnalysis() {
-    const sklUser = new EndfieldUser(this.e.user_id)
+    const targetInfo = await this.resolveSyncTarget()
+    if (!targetInfo) return true
+    if (targetInfo.error) {
+      await this.reply(targetInfo.error)
+      return true
+    }
+
+    const targetUserId = String(targetInfo.userId || this.e.user_id)
+    const sklUser = new EndfieldUser(targetUserId)
     if (!(await sklUser.getUser())) {
       await this.reply(getUnbindMessage())
       return true
     }
 
     const roleId = String(sklUser.endfield_uid || '')
-    const cacheData = this.readLocalGachaCache(this.e.user_id, roleId)
+    const cacheData = this.readLocalGachaCache(targetUserId, roleId)
     const statsData = cacheData?.stats_data || null
     const hasRecord = this.hasAnyGachaRecord(statsData)
 
@@ -627,12 +743,13 @@ export class EndfieldGacha extends plugin {
         afterSyncSendAnalysis: true,
         fromAnalysis: true,
         isFirstSync: true,
-        selectPrompt: getMessage('gacha.select_account_sync')
+        selectPrompt: getMessage('gacha.select_account_sync'),
+        targetUserId
       })
     }
     
     // 有数据则直接出图
-    await this.renderGachaAnalysisAndReply(statsData, { cacheData })
+    await this.renderGachaAnalysisAndReply(statsData, { cacheData, targetUserId })
     return true
   }
 
@@ -647,9 +764,8 @@ export class EndfieldGacha extends plugin {
     const roleId = String(sklUser.endfield_uid || '')
     const serverId = Number(sklUser.server_id || 1)
     const cacheData = options.cacheData || this.readLocalGachaCache(targetUserId, roleId) || {}
-    const poolStats = statsData.pool_stats || {}
+    const cacheSummary = this.buildCacheRecordSummary(cacheData)
     const userInfo = statsData.user_info || {}
-    const getPool = (charKey, shortKey) => poolStats[charKey] || poolStats[shortKey] || {}
     const fmtCost = (total, star6) => {
       if (star6 == null || star6 <= 0) return '-'
       const t = Number(total) || 0
@@ -662,19 +778,51 @@ export class EndfieldGacha extends plugin {
     const userAvatar = noteAvatarData.base.avatarUrl || ''
     const userNickname = noteAvatarData.base.name || userInfo.nickname || userInfo.game_uid || '未知'
     const userUid = userInfo.game_uid || ''
+    const syncTargetUserId = String(targetUserId || '').trim()
+    const syncHintCommand = syncTargetUserId && syncTargetUserId !== String(this.e.user_id)
+      ? `:同步抽卡记录 ${syncTargetUserId}`
+      : ':同步抽卡记录'
 
 
+    let charCoverMap = {}
     let weaponCoverMap = {}
     try {
-      const wikiRes = await sklUser.sklReq.getWikiData('wiki_items', { main_type_id: '1', sub_type_id: '2', page: 1, page_size: 100 })
-      const items = wikiRes?.data?.items || []
-      for (const it of items) {
+      const [charWikiRes, weaponWikiRes] = await Promise.all([
+        sklUser.sklReq.getWikiData('wiki_items', { main_type_id: '1', sub_type_id: '1', page: 1, page_size: 100 }).catch(() => null),
+        sklUser.sklReq.getWikiData('wiki_items', { main_type_id: '1', sub_type_id: '2', page: 1, page_size: 100 }).catch(() => null)
+      ])
+      const charItems = charWikiRes?.data?.items || []
+      for (const it of charItems) {
+        const name = (it.brief?.name || it.name || '').trim()
+        const cover = it.brief?.cover || it.cover || ''
+        if (name && cover) charCoverMap[name] = cover
+      }
+      const weaponItems = weaponWikiRes?.data?.items || []
+      for (const it of weaponItems) {
         const name = (it.brief?.name || it.name || '').trim()
         const cover = it.brief?.cover || it.cover || ''
         if (name && cover) weaponCoverMap[name] = cover
       }
     } catch (e) {
-      logger.error(`[终末地插件][抽卡分析]获取 wiki 武器图失败: ${e?.message || e}`)
+      logger.error(`[终末地插件][抽卡分析]获取 wiki 封面图失败: ${e?.message || e}`)
+    }
+
+    const getCharHeaderCover = (name) => {
+      const key = String(name || '').trim()
+      if (!key) return ''
+      return charCoverMap[key] || noteCharMap[key]?.url || ''
+    }
+    const getWeaponHeaderCover = (name) => {
+      const key = String(name || '').trim()
+      if (!key) return ''
+      return weaponCoverMap[key] || ''
+    }
+    const getFallbackHeaderCover = (images = []) => {
+      const firstWithUrl = Array.isArray(images) ? images.find((item) => item?.url) : null
+      return {
+        url: firstWithUrl?.url || '',
+        name: firstWithUrl?.name || ''
+      }
     }
 
 
@@ -699,6 +847,9 @@ export class EndfieldGacha extends plugin {
       const isLimitedPool = isLimited || (isChar && effectiveUpCharNames.length > 0)
       const total = records.length
       const isWeapon = !isChar
+      const hasUpTarget = isWeapon
+        ? Boolean(String(effectiveUpWeaponName || '').trim())
+        : (!noWaiTag && effectiveUpCharNames.length > 0)
       const sorted = [...records].sort((a, b) => {
         const na = Number(a.seq_id)
         const nb = Number(b.seq_id)
@@ -749,14 +900,14 @@ export class EndfieldGacha extends plugin {
       const totalStar6 = countsByRarity[6] + countsByRarity['6_std']
       const star6 = totalStar6
       const sparkCount = upSixStarPullsDetail.filter(p => p.isSpark).length
-      const analysisWinRate = totalStar6 > 0 ? ((countsByRarity[6] / totalStar6) * 100).toFixed(1) + '%' : '-'
+      const analysisWinRate = (hasUpTarget && totalStar6 > 0) ? ((countsByRarity[6] / totalStar6) * 100).toFixed(1) + '%' : '-'
       const upPullsExcludingSpark = upSixStarPullsDetail.filter(p => !p.isSpark)
       const avgUpCost = upPullsExcludingSpark.length > 0
         ? Math.round(upPullsExcludingSpark.reduce((s, p) => s + p.count, 0) / upPullsExcludingSpark.length) + '抽'
         : '-'
       const avgAllCost = totalStar6 > 0 ? Math.round(paidTotal / totalStar6) + '抽' : '-'
       let metric2 = metric2Default !== undefined ? (metric2Default ?? totalStar6) : totalStar6
-      if (showNotWaiRate && totalStar6 > 0) {
+      if (showNotWaiRate && hasUpTarget && totalStar6 > 0) {
         metric2 = analysisWinRate
       }
       let pullsSinceLast6 = 0
@@ -916,7 +1067,7 @@ export class EndfieldGacha extends plugin {
       const poolSpecificUp = poolUpMap[subPoolName]
       const poolUpChars = poolSpecificUp ? [poolSpecificUp] : null
       const metric1Label = (isLimited || poolUpChars) ? '平均UP花费' : '每红花费'
-      const showNotWaiRate = !!matchActivePool(subPoolName, biliUp?.activeCharPoolName)
+      const showNotWaiRate = isLimited
       const metric2Label = showNotWaiRate ? '不歪率' : '出红数'
       const metric2Default = showNotWaiRate ? '-' : null
       const entry = buildPoolEntry(groupRecords, {
@@ -988,6 +1139,9 @@ export class EndfieldGacha extends plugin {
           }
         }
       }
+      const headerCharName = String(poolSpecificUp || '').trim()
+      const headerCharCover = getCharHeaderCover(headerCharName)
+      const fallbackCharCover = getFallbackHeaderCover(mergedImages)
       charPoolEntries.push({
         poolName: entry.poolName,
         total: entry.total,
@@ -1011,6 +1165,9 @@ export class EndfieldGacha extends plugin {
         counts: entry.counts,
         winRate: entry.winRate,
         sparkCount: entry.sparkCount,
+        showHeaderCover: isLimited,
+        headerCoverUrl: headerCharCover || fallbackCharCover.url,
+        headerCoverName: headerCharName || fallbackCharCover.name || entry.poolName,
         ...(specialMilestones ? { specialMilestones } : {})
       })
     }
@@ -1195,8 +1352,8 @@ export class EndfieldGacha extends plugin {
     })
     for (const subPoolName of weaponPoolNames) {
       const groupRecords = weaponByPoolName[subPoolName]
-      const showNotWaiRate = !!matchActivePool(subPoolName, biliUp?.activeWeaponPoolName)
-      const metric2Label = showNotWaiRate ? '不歪率' : '出红数'
+      const showNotWaiRate = true
+      const metric2Label = '不歪率'
       // 从 poolUpMap 获取该池子的 UP 武器名（支持历史池子）
       const poolSpecificWeaponUp = poolUpMap[subPoolName] || null
       const entry = buildPoolEntry(groupRecords, {
@@ -1204,7 +1361,7 @@ export class EndfieldGacha extends plugin {
         isLimited: false,
         noWaiTag: false,
         metric2Label,
-        metric2Default: showNotWaiRate ? '-' : null,
+        metric2Default: '-',
         showNotWaiRate,
         poolUpWeaponName: poolSpecificWeaponUp
       })
@@ -1220,8 +1377,6 @@ export class EndfieldGacha extends plugin {
       // 武器池按"申领次数"（十连）计数
       // 累计奖励节奏：第10次给武库箱，第18次给UP武器，之后每16次循环
       const weaponSessions = Math.floor(groupRecords.length / 10)
-      // 武器池每红花费：按十连数计算，而非单抽数
-      const weaponAvgCost = entry.star6 > 0 ? Math.round(weaponSessions / entry.star6) + '抽' : '-'
       // 计算当前垫抽数（单抽数）
       const pullsSinceLast6 = (() => {
         const sorted6 = [...groupRecords].sort((a, b) => Number(b.seq_id) - Number(a.seq_id))
@@ -1263,14 +1418,17 @@ export class EndfieldGacha extends plugin {
         }
         return `合计 ${totalPulls} 抽`
       })()
+      const headerWeaponName = String(poolSpecificWeaponUp || '').trim()
+      const headerWeaponCover = getWeaponHeaderCover(headerWeaponName)
+      const fallbackWeaponCover = getFallbackHeaderCover(wMergedImages)
       weaponPoolEntries.push({
         poolName: entry.poolName,
         total: groupRecords.length,
         totalPulls: groupRecords.length,
         totalSummary: weaponTotalSummary,
         star6: entry.star6,
-        metric1: weaponAvgCost,
-        metric1Label: '每红花费',
+        metric1: entry.avgUpCost,
+        metric1Label: '平均UP花费',
         metric2: entry.metric2,
         metric2Label,
         images: wMergedImages,
@@ -1282,15 +1440,18 @@ export class EndfieldGacha extends plugin {
         counts: entry.counts,
         winRate: entry.winRate,
         sparkCount: entry.sparkCount,
+        showHeaderCover: true,
+        headerCoverUrl: headerWeaponCover || fallbackWeaponCover.url,
+        headerCoverName: headerWeaponName || fallbackWeaponCover.name || entry.poolName,
         weaponStatus
       })
     }
 
-    // 限定特许寻访倒序展示：最新（热烈色彩）在最上面，最老（熔火灼痕）在最下面
+    // 限定特许寻访倒序展示：最新在最上面，最老在最下面
     const poolGroups = [
       { label: '特许寻访', pools: charPoolEntriesLimited.slice().reverse() },
-      { label: '武器池', pools: weaponPoolEntries },
-      { label: '常驻寻访', pools: charPoolEntriesNormal }
+      { label: '武库交易所', pools: weaponPoolEntries },
+      { label: '基础寻访', pools: charPoolEntriesNormal }
     ]
 
 
@@ -1305,12 +1466,6 @@ export class EndfieldGacha extends plugin {
 
     if (this.e?.runtime?.render) {
       try {
-        const overallStats = statsData.stats || {}
-        const limited = getPool('limited_char', 'limited')
-        const standard = getPool('standard_char', 'standard')
-        const beginner = getPool('beginner_char', 'beginner')
-        const weapon = getPool('weapon', 'weapon')
-        
         // 计算特许寻访平均出红（限定池）
         const limitedTotalPulls = charPoolEntriesLimited.reduce((sum, pool) => sum + (pool.total ?? 0), 0)
         const limitedTotal6Stars = charPoolEntriesLimited.reduce((sum, pool) => sum + (pool.star6 ?? 0), 0)
@@ -1325,11 +1480,11 @@ export class EndfieldGacha extends plugin {
         const standardTotalPulls = charPoolEntriesNormal.reduce((sum, pool) => sum + (pool.total ?? 0), 0)
         const standardTotal6Stars = charPoolEntriesNormal.reduce((sum, pool) => sum + (pool.star6 ?? 0), 0)
         const standardAvgCost = standardTotal6Stars > 0 ? Math.round(standardTotalPulls / standardTotal6Stars) : 0
-        
-        const totalPulls = overallStats.total_count ?? 0
-        const total6Stars = overallStats.star6_count ?? 0
+
+        const totalPulls = cacheSummary.totalCount
+        const total6Stars = cacheSummary.star6
         const baseOpt = { scale: 1.6, retType: 'base64' }
-        const renderData = {
+        const renderDataBase = {
           title: '抽卡分析',
           subtitle: `${userNickname} · ${userInfo.channel_name || ''}`,
           userAvatar,
@@ -1338,28 +1493,43 @@ export class EndfieldGacha extends plugin {
           analysisTime,
           totalCount: totalPulls,
           star6: total6Stars,
-          star5: overallStats.star5_count ?? 0,
-          star4: overallStats.star4_count ?? 0,
+          star5: cacheSummary.star5,
+          star4: cacheSummary.star4,
           limitedAvgCost,
           weaponAvgCost,
           standardAvgCost,
-          limitedTotal: limited.total ?? 0,
-          standardTotal: standard.total ?? 0,
-          beginnerTotal: beginner.total ?? 0,
-          weaponTotal: weapon.total ?? 0,
-          poolGroups,
-          syncHint: `若需要刷新，发送 :同步抽卡记录`,
+          limitedTotal: cacheSummary.pools.limited?.total ?? 0,
+          standardTotal: cacheSummary.pools.standard?.total ?? 0,
+          beginnerTotal: cacheSummary.pools.beginner?.total ?? 0,
+          weaponTotal: cacheSummary.pools.weapon?.total ?? 0,
+          syncHint: `若需要刷新，发送 ${syncHintCommand}`,
           pluResPath,
           ...getCopyright()
         }
-        const imgSegment = await this.e.runtime.render('endfield-plugin', 'gacha/gacha-analysis', renderData, baseOpt)
-        if (imgSegment) {
-          if (options.syncMsg) {
-            // 同步完成文字 + 分析图合并为一条消息发送
-            await this.reply([options.syncMsg + '\n', imgSegment], false, { at: !!this.e.isGroup })
-          } else {
-            await this.reply(imgSegment)
+
+        const renderedGroups = []
+        for (const group of poolGroups) {
+          const imgSegment = await this.e.runtime.render('endfield-plugin', 'gacha/gacha-analysis', {
+            ...renderDataBase,
+            poolGroups: [group],
+            poolGroupCount: 1,
+            singleGroupMode: true
+          }, baseOpt)
+          if (imgSegment) {
+            renderedGroups.push({ label: group.label, img: imgSegment })
           }
+        }
+
+        if (renderedGroups.length > 0) {
+          const forwardParts = []
+          if (options.syncMsg) {
+            forwardParts.push([options.syncMsg])
+          }
+          for (const group of renderedGroups) {
+            forwardParts.push([group.img])
+          }
+          const forwardMsg = common.makeForwardMsg(this.e, forwardParts, '抽卡分析')
+          await this.e.reply(forwardMsg)
           await redis.set(GACHA_KEYS.lastAnalysis(this.e.user_id), String(Date.now()), { EX: 900 })
           return true
         }
@@ -1423,86 +1593,6 @@ export class EndfieldGacha extends plugin {
     const uid = userId != null ? String(userId) : ''
     const name = qqName != null && qqName !== '' ? String(qqName) : uid || getMessage('common.user')
     return msg.replace(/\{qq号\}/g, uid).replace(/\{qqname\}/g, name)
-  }
-
-
-  /** 同步全部抽卡：管理员专用，为所有已绑定用户触发抽卡同步（仅发起请求，不轮询等待）；账号间间隔约 3 秒避免并发过高 */
-  async syncAllGacha() {
-    if (!this.e?.isMaster) return false
-    if (!redis) {
-      await this.reply(getMessage('gacha.no_accounts'))
-      return true
-    }
-    let keys = []
-    try {
-      keys = await redis.keys('ENDFIELD:USER:*')
-    } catch (err) {
-      logger.error(`[终末地插件][同步全部抽卡] redis.keys 失败: ${err?.message || err}`)
-      await this.reply(getMessage('gacha.sync_all_get_users_failed'))
-      return true
-    }
-    const tasks = []
-    for (const key of keys) {
-      const userId = key.replace(/^ENDFIELD:USER:/, '')
-      const raw = await redis.get(REDIS_KEY(userId))
-      if (!raw) continue
-      let accounts = []
-      try {
-        const data = JSON.parse(raw)
-        accounts = Array.isArray(data) ? data : [{ ...data, is_active: true }]
-      } catch {
-        continue
-      }
-      const active = accounts.find((a) => a.is_active === true) || accounts[0]
-      const token = active?.framework_token
-      if (!token) continue
-      const accountsData = await hypergryphAPI.getGachaAccounts(token)
-      if (!accountsData?.accounts?.length) continue
-      const gachaAccounts = accountsData.accounts
-      if (gachaAccounts.length === 1) {
-        tasks.push({
-          token,
-          accountUid: gachaAccounts[0]?.uid || null,
-          roleId: this.getAccountRoleId(gachaAccounts[0]),
-          serverId: this.getAccountServerId(gachaAccounts[0])
-        })
-      } else {
-        for (const acc of gachaAccounts) {
-          tasks.push({
-            token,
-            accountUid: acc?.uid || null,
-            roleId: this.getAccountRoleId(acc),
-            serverId: this.getAccountServerId(acc)
-          })
-        }
-      }
-    }
-    if (tasks.length === 0) {
-      await this.reply(getMessage('gacha.sync_all_no_accounts'))
-      return true
-    }
-    let triggered = 0
-    let skipped = 0
-    for (let i = 0; i < tasks.length; i++) {
-      if (i > 0) await this.sleep(3000)
-      const { token, accountUid, roleId, serverId } = tasks[i]
-      const query = { role_id: String(roleId || ''), server_id: String(serverId || '1') }
-      const statusData = await hypergryphAPI.getGachaSyncStatus(token, query)
-      if (statusData?.status === 'syncing') {
-        skipped++
-        continue
-      }
-      const body = {}
-      if (accountUid) body.account_uid = accountUid
-      if (roleId) body.role_id = roleId
-      if (serverId) body.server_id = serverId
-      const res = await hypergryphAPI.postGachaFetch(token, body)
-      if (res?.status === 'conflict') skipped++
-      else if (res?.status) triggered++
-    }
-    const skippedText = skipped > 0 ? `，跳过（进行中/冲突）${skipped} 个` : ''
-    await this.reply(getMessage('gacha.sync_all_done', { triggered, skipped_text: skippedText }))
-    return true
   }
 
   /** 抽卡记录同步入口：直接使用当前激活绑定的角色（role_id/server_id）启动同步并轮询 */
@@ -1573,11 +1663,35 @@ export class EndfieldGacha extends plugin {
     return true
   }
 
+  extractTargetPlatformUserId(msg = '') {
+    const text = String(msg || '').trim()
+    const patterns = [
+      /^(?:[:：]|[/#](?:zmd|终末地))\s*(?:同步|更新)抽卡记录(?:\s+(\S+))?\s*$/i,
+      /^(?:[:：]|[/#](?:zmd|终末地))\s*抽卡分析(?:\s+(\S+))?\s*$/i
+    ]
+    for (const pattern of patterns) {
+      const match = text.match(pattern)
+      if (match) return String(match[1] || '').trim()
+    }
+    return ''
+  }
+
   async resolveSyncTarget(options = {}) {
+    if (options?.targetUserId) {
+      const requestedUserId = String(options.targetUserId).trim()
+      if (!requestedUserId) return { userId: String(this.e.user_id), requiresMaster: false }
+      if (requestedUserId === String(this.e.user_id)) {
+        return { userId: requestedUserId, requiresMaster: false }
+      }
+      if (!this.e?.isMaster) {
+        return { error: getMessage('gacha.sync_master_only') }
+      }
+      return { userId: requestedUserId, requiresMaster: true }
+    }
     const atUser = this.e?.at
     const msg = (this.e.msg || '').trim()
-    const match = msg.match(/(?:抽卡分析)(?:同步)?\s*(\d+)/)
-    if (!atUser && !match) {
+    const platformUserId = this.extractTargetPlatformUserId(msg)
+    if (!atUser && !platformUserId) {
       return { userId: String(this.e.user_id), requiresMaster: false }
     }
     if (!this.e?.isMaster) {
@@ -1586,26 +1700,18 @@ export class EndfieldGacha extends plugin {
     if (atUser) {
       return { userId: String(atUser), requiresMaster: true }
     }
-    const roleId = match[1]
+    const requestedUserId = String(platformUserId || '').trim()
+    if (!requestedUserId) {
+      return { userId: String(this.e.user_id), requiresMaster: false }
+    }
     if (!redis) return { error: getMessage('gacha.no_accounts') }
     try {
-      const keys = await redis.keys('ENDFIELD:USER:*')
-      for (const key of keys) {
-        const raw = await redis.get(key)
-        if (!raw) continue
-        let accounts = []
-        try {
-          const parsed = JSON.parse(raw)
-          accounts = Array.isArray(parsed) ? parsed : [parsed]
-        } catch {
-          continue
-        }
-        if (accounts.some((acc) => String(acc?.role_id || '') === roleId)) {
-          return { userId: key.replace('ENDFIELD:USER:', ''), requiresMaster: true }
-        }
+      const raw = await redis.get(REDIS_KEY(requestedUserId))
+      if (raw) {
+        return { userId: requestedUserId, requiresMaster: true }
       }
     } catch (err) {
-      logger.error(`[终末地插件][抽卡同步] 解析平台 userid 失败: ${err}`)
+      logger.error(`[终末地插件][抽卡同步] 解析平台用户ID失败: ${err}`)
     }
     return { error: getMessage('gacha.no_accounts') }
   }

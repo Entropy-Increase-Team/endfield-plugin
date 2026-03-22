@@ -136,21 +136,6 @@ export default [
     component: 'Input',
   },
   {
-    field: 'gacha.sync_all_get_users_failed',
-    label: '抽卡 - 同步全部获取用户失败',
-    component: 'Input',
-  },
-  {
-    field: 'gacha.sync_all_no_accounts',
-    label: '抽卡 - 同步全部无账号',
-    component: 'Input',
-  },
-  {
-    field: 'gacha.sync_all_done',
-    label: '抽卡 - 同步全部完成',
-    component: 'Input',
-  },
-  {
     field: 'gacha.simulate_failed',
     label: '抽卡 - 模拟失败',
     component: 'Input',

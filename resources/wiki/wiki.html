@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=980, initial-scale=1">
+  <title>{{entryName}} - {{sectionTitle}}</title>
+  <link rel="stylesheet" href="{{_res_path}}wiki/wiki.css">
+</head>
+<body>
+  <div class="wiki-page">
+    <div class="wiki-shell">
+      <header class="wiki-hero{{if showCover && cover}} has-cover{{/if}}">
+        <div class="wiki-hero-main">
+          <div class="wiki-type-row">
+            <span class="wiki-type-badge">{{typeLabel}}</span>
+            <span class="wiki-page-badge">第 {{pageNo}} / {{pageCount}} 页</span>
+          </div>
+          <h1 class="wiki-entry-name">{{entryName}}</h1>
+          {{if caption}}
+          <p class="wiki-entry-caption">{{caption}}</p>
+          {{/if}}
+          <div class="wiki-meta-row">
+            <span class="wiki-meta-item">章节 {{sectionTitle}}</span>
+            {{if sectionPart}}
+            <span class="wiki-meta-item">分段 {{sectionPart}}</span>
+            {{/if}}
+          </div>
+        </div>
+        {{if showCover && cover}}
+        <div class="wiki-cover-panel">
+          <img src="{{cover}}" alt="{{entryName}}" class="wiki-cover-image" onerror="this.style.display='none';this.parentElement.classList.add('is-empty');var hero=this.closest('.wiki-hero');if(hero){hero.classList.remove('has-cover')}">
+        </div>
+        {{/if}}
+        {{if pluResPath}}
+        <div class="wiki-logo">
+          <img src="{{pluResPath}}img/ET logo.svg" alt="Logo" onerror="this.style.display='none'">
+        </div>
+        {{/if}}
+      </header>
+
+      <section class="wiki-section-card">
+        <div class="wiki-section-head">
+          <div class="wiki-section-kicker">WIKI ENTRY</div>
+          <div class="wiki-section-title-row">
+            <h2 class="wiki-section-title">{{sectionTitle}}</h2>
+            {{if sectionPart}}
+            <span class="wiki-section-part">{{sectionPart}}</span>
+            {{/if}}
+          </div>
+        </div>
+
+        <div class="wiki-section-body{{if isDense}} is-dense{{/if}}">
+          {{each lines line}}
+          {{if line.type === 'empty'}}
+          <div class="wiki-space"></div>
+          {{else}}
+            {{if line.type === 'divider'}}
+            <div class="wiki-divider"></div>
+            {{else}}
+            <div class="wiki-line wiki-line-{{line.type}}">{{line.text}}</div>
+            {{/if}}
+          {{/if}}
+          {{/each}}
+        </div>
+      </section>
+
+      <footer class="wiki-footer">
+        <div class="wiki-footer-top">
+          <span class="wiki-footer-left">终末地 Wiki 图片渲染</span>
+          <span class="wiki-footer-right">{{typeLabel}} · {{pageNo}} / {{pageCount}}</span>
+        </div>
+        <div class="wiki-footer-copy">{{@copyright}}</div>
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

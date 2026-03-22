@@ -2,25 +2,87 @@ import { getUnbindMessage, getMessage } from '../utils/common.js'
 import common from '../../../lib/common/common.js'
 import EndfieldUser from '../model/endfieldUser.js'
 import setting from '../utils/setting.js'
+import path from 'node:path'
+import fs from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
+const _dir = path.dirname(fileURLToPath(import.meta.url))
+const _res = path.join(_dir, '..', 'resources')
+const _meta = path.join(_res, 'meta')
+const META_CLASS_DIR = path.join(_meta, 'class')
+const META_ATTRPANLE_DIR = path.join(_meta, 'attrpanle')
+const META_NOTEBG_DIR = path.join(_meta, 'notebg')
+const META_HEADFRAME_DIR = path.join(_meta, 'headframeicon')
+
+function iconToDataUrl(dir, chineseName) {
+  if (!chineseName || typeof chineseName !== 'string') return ''
+  const exts = ['.jpg', '.jpeg', '.png', '.webp']
+  const name = chineseName.trim()
+  for (const ext of exts) {
+    const p = path.join(dir, name + ext)
+    if (fs.existsSync(p)) {
+      const buf = fs.readFileSync(p)
+      const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg'
+      return `data:${mime};base64,${buf.toString('base64')}`
+    }
+  }
+  return ''
+}
+
+function fileToDataUrl(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) return ''
+  const ext = path.extname(filePath).toLowerCase()
+  const mimeMap = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.webp': 'image/webp'
+  }
+  const mime = mimeMap[ext]
+  if (!mime) return ''
+  const buf = fs.readFileSync(filePath)
+  return `data:${mime};base64,${buf.toString('base64')}`
+}
+
+function pickRandomImageDataUrl(dir) {
+  if (!dir || !fs.existsSync(dir)) return ''
+  const files = fs.readdirSync(dir)
+    .filter((name) => /\.(png|jpg|jpeg|webp)$/i.test(name))
+  if (files.length === 0) return ''
+  const pick = files[Math.floor(Math.random() * files.length)]
+  return fileToDataUrl(path.join(dir, pick))
+}
 
 export class EndfieldNote extends plugin {
   constructor() {
     super({
-      name: '[endfield-plugin]便签',
-      dsc: '终末地角色便签',
+      name: '[endfield-plugin]账号便签',
+      dsc: '终末地账号便签与角色列表',
       event: 'message',
       priority: 50,
       rule: [
         {
-          reg: '^(?:[:：]|[/#](?:zmd|终末地))便签$',
+          reg: '^(?:[:：]|[/#](?:zmd|终末地))(?:账号)?便签$',
           fnc: 'getNote'
+        },
+        {
+          reg: '^(?:[:：]|[/#](?:zmd|终末地))角色$',
+          fnc: 'getRoleList'
         }
       ]
     })
     this.common_setting = setting.getConfig('common')
   }
 
-  async getNote() {
+  async getRoleList() {
+    return this.getNote('chars')
+  }
+
+  async getNote(viewMode = 'account') {
+    const isCharsView = viewMode === 'chars'
+    const pageTitle = isCharsView ? '角色' : '账号便签'
+    const loadingMessage = isCharsView ? '正在获取角色列表...' : '正在获取账号便签...'
+    const sectionTitle = isCharsView ? '角色' : '已拥有干员'
     const userId = this.e.at || this.e.user_id
     const sklUser = new EndfieldUser(userId)
 
@@ -29,7 +91,7 @@ export class EndfieldNote extends plugin {
       return true
     }
 
-    await this.reply(getMessage('note.loading'))
+    await this.reply(loadingMessage)
 
     try {
       const detailData = await this.fetchCharacterDetail(sklUser)
@@ -45,23 +107,93 @@ export class EndfieldNote extends plugin {
       const awakeningDateStr = base.createTime
         ? new Date(parseInt(base.createTime) * 1000).toISOString().slice(0, 10).replace(/-/g, '-')
         : ''
-      // 干员：方形图 SqUrl + 仅显示 name
-      const charsList = (chars || []).map((char) => ({
-        name: char.name || unknown,
-        sqUrl: char.avatarSqUrl || char.avatar_sq_url || ''
-      }))
+      // 干员：优先使用矩形图 RtUrl，缺失时回退到方形图 SqUrl
+      const colorCodeMapByKey = {
+        char_property_physical: 'PHY',
+        char_property_fire: 'FIRE',
+        char_property_electric: 'ELEC',
+        char_property_pulse: 'ELEC',
+        char_property_ice: 'ICE',
+        char_property_cryst: 'ICE',
+        char_property_nature: 'NATURE'
+      }
+      const colorCodeMapByValue = {
+        物理: 'PHY',
+        灼热: 'FIRE',
+        电磁: 'ELEC',
+        脉冲: 'ELEC',
+        寒冷: 'ICE',
+        晶体: 'ICE',
+        自然: 'NATURE'
+      }
+      const charsList = (chars || []).map((char) => {
+        const rtUrl = char.avatarRtUrl || char.avatar_rt_url || ''
+        const sqUrl = char.avatarSqUrl || char.avatar_sq_url || ''
+        const imageUrl = rtUrl || sqUrl
+        const profession = char?.profession?.value || char?.profession || ''
+        const property = char?.property?.value || char?.property || ''
+        const propertyKey = char?.property?.key || ''
+        const rarity = Math.max(1, Math.min(6, parseInt(char?.rarity?.value || char?.rarity || 1, 10) || 1))
+        const potentialLevel = Math.max(0, Math.min(5, parseInt(char?.potentialLevel || 0, 10) || 0))
+        const level = Math.max(1, parseInt(char?.level || 1, 10) || 1)
+        const name = char.name || unknown
+        const weaponRaw = char?.weapon || {}
+        const weaponName = weaponRaw?.name || ''
+        const weaponIconUrl = weaponRaw?.iconUrl || weaponRaw?.icon_url || ''
+        const weaponLevel = Math.max(0, parseInt(weaponRaw?.level || 0, 10) || 0)
+        const weaponBreakthroughLevel = Math.max(0, parseInt(weaponRaw?.breakthroughLevel || weaponRaw?.breakthrough_level || 0, 10) || 0)
+        const weaponType = weaponRaw?.type?.value || weaponRaw?.type || ''
+        const weaponGemIcon = weaponRaw?.gem?.gemData?.icon || ''
+        const weaponGemName = weaponRaw?.gem?.gemData?.name || ''
+        const weapon = weaponName || weaponIconUrl
+          ? {
+              name: weaponName || unknown,
+              iconUrl: weaponIconUrl,
+              level: weaponLevel,
+              breakthroughLevel: weaponBreakthroughLevel,
+              type: weaponType,
+              gemIcon: weaponGemIcon,
+              gemName: weaponGemName
+            }
+          : null
+        const colorCode = (colorCodeMapByKey[propertyKey] || colorCodeMapByValue[property] || 'PHY').toUpperCase()
+        return {
+          name,
+          nameChars: Array.from(name),
+          rtUrl,
+          sqUrl,
+          imageUrl,
+          level,
+          rarity,
+          potentialLevel,
+          colorCode,
+          profession,
+          property,
+          weapon,
+          professionIcon: iconToDataUrl(META_CLASS_DIR, profession),
+          propertyIcon: iconToDataUrl(META_ATTRPANLE_DIR, property)
+        }
+      })
       const totalCharNum = base.charNum ?? charCount ?? charsList.length
       const placeholder = getMessage('note.placeholder')
       const achieveCount = Number.isFinite(Number(achieve?.count)) ? Number(achieve.count) : null
       const bpCur = Number.isFinite(Number(bpSystem?.curLevel)) ? Number(bpSystem.curLevel) : null
       const bpMax = Number.isFinite(Number(bpSystem?.maxLevel)) ? Number(bpSystem.maxLevel) : null
+      const noteBgUrl = pickRandomImageDataUrl(META_NOTEBG_DIR)
+      const headFrameUrl = pickRandomImageDataUrl(META_HEADFRAME_DIR)
+      const topChars = charsList.slice(0, 4)
+      const isAccountView = !isCharsView
 
       if (this.e?.runtime?.render) {
         try {
           const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
-          const pageWidth = 360
+          const pageWidth = 980
+          const charRows = Math.max(1, Math.ceil(charsList.length / 6))
+          const viewportHeight = isCharsView
+            ? Math.min(5200, 190 + charRows * 152)
+            : 420
           const renderData = {
-            title: getMessage('note.title'),
+            title: pageTitle,
             subtitle: getMessage('note.subtitle', { name: base.name || unknown, server: serverName }),
             base: {
               name: base.name || unknown,
@@ -89,9 +221,17 @@ export class EndfieldNote extends plugin {
               medals: achieve?.medals || []
             },
             chars: charsList,
+            topChars,
+            isCharsView,
+            isAccountView,
+            sectionTitle,
+            theme: {
+              noteBgUrl,
+              headFrameUrl
+            },
             pluResPath
           }
-          const baseOpt = { scale: 1.6, retType: 'base64', viewport: { width: pageWidth, height: 1100 } }
+          const baseOpt = { scale: 1.3, retType: 'base64', viewport: { width: pageWidth, height: viewportHeight } }
           const imgSegment = await this.e.runtime.render('endfield-plugin', 'note/note', renderData, baseOpt)
           if (imgSegment) {
             await this.reply(imgSegment)
@@ -103,36 +243,42 @@ export class EndfieldNote extends plugin {
       }
 
       let msg = ''
-      msg += getMessage('note.text_base', {
-        name: base.name || unknown,
-        role_id: base.roleId || unknown,
-        level: base.level ?? 0,
-        exp: base.exp ?? 0,
-        world_level: base.worldLevel ?? 0,
-        server: serverName,
-        create_time: createTimeStr,
-        last_login: lastLoginTimeStr,
-        main_mission: mainMissionDesc
-      })
-      msg += '\n\n'
-      msg += getMessage('note.text_stats', {
-        char_num: totalCharNum || 0,
-        weapon_num: base.weaponNum || 0,
-        doc_num: base.docNum || 0,
-        achieve_count: achieveCount ?? placeholder,
-        bp_cur: bpCur ?? placeholder,
-        bp_max: bpMax ?? placeholder
-      })
-      msg += '\n\n'
-      msg += getMessage('note.text_owned_header', { count: charsList.length }) + '\n'
+      if (!isCharsView) {
+        msg += getMessage('note.text_base', {
+          name: base.name || unknown,
+          role_id: base.roleId || unknown,
+          level: base.level ?? 0,
+          exp: base.exp ?? 0,
+          world_level: base.worldLevel ?? 0,
+          server: serverName,
+          create_time: createTimeStr,
+          last_login: lastLoginTimeStr,
+          main_mission: mainMissionDesc
+        })
+        msg += '\n\n'
+        msg += getMessage('note.text_stats', {
+          char_num: totalCharNum || 0,
+          weapon_num: base.weaponNum || 0,
+          doc_num: base.docNum || 0,
+          achieve_count: achieveCount ?? placeholder,
+          bp_cur: bpCur ?? placeholder,
+          bp_max: bpMax ?? placeholder
+        })
+        msg += '\n\n'
+      }
+      msg += `【${sectionTitle}】(${charsList.length}个)\n`
       if (charsList.length > 0) {
         for (const char of charsList) {
-          msg += getMessage('note.text_owned_item', { name: char.name }) + '\n'
+          if (isCharsView && char.weapon) {
+            msg += `• ${char.name} - ${char.weapon.name} Lv.${char.weapon.level} 潜${char.weapon.breakthroughLevel}\n`
+          } else {
+            msg += getMessage('note.text_owned_item', { name: char.name }) + '\n'
+          }
         }
       }
 
       const segments = this.splitContent(msg, 2000)
-      const forwardMsg = common.makeForwardMsg(this.e, segments, getMessage('note.title'))
+      const forwardMsg = common.makeForwardMsg(this.e, segments, pageTitle)
       await this.e.reply(forwardMsg)
       return true
     } catch (error) {

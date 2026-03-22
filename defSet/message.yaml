@@ -247,7 +247,7 @@ gacha:
   invalid_index: "序号无效，请输入列表中的数字。"
   sync_start: "开始同步抽卡记录..."
   sync_busy: "同步任务正在运行中，请稍后再试。"
-  sync_start_failed: "同步任务启动失败。"
+  sync_start_failed: "同步任务启动失败，请重新登录"
   sync_master_only: "此操作仅限主人使用。"
   sync_done: |
     [ 抽卡同步完成 ]
@@ -261,9 +261,6 @@ gacha:
   auth_full_sync: "正在执行全量同步（首次同步耗时较长）..."
   sync_failed: "同步失败 {error}"
   sync_timeout: "同步超时，请稍后重试。"
-  sync_all_get_users_failed: "获取用户列表失败，请稍后重试。"
-  sync_all_no_accounts: "暂无已绑定账号，无需同步。"
-  sync_all_done: "已为全部绑定账号触发抽卡同步：成功 {triggered} 个{skipped_text}。后台会陆续完成同步。"
   global_stats_pool_not_found: "未找到包含「{name}」的限定池，请检查干员名或卡池名。"
   simulate_failed: "抽卡失败，请稍后再试。"
   simulate_disabled: "模拟抽卡功能暂未开启。"

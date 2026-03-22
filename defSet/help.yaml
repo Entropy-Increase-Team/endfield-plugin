@@ -79,13 +79,16 @@ help_group:
     list:
       - icon: 6
         title: ":便签"
-        desc: "查询角色便签"
+        desc: "查询账号便签"
+      - icon: 6
+        title: ":角色"
+        desc: "查询角色列表"
       - icon: 6
         title: ":成就列表"
         desc: "查看成就徽章列表（全量）"
       - icon: 8
         title: ":更新面板"
-        desc: "同步展柜面板后返回全量干员列表（同步角色优先）"
+        desc: "同步展柜面板后返回已拥有干员列表（同步角色优先）"
       - icon: 7
         title: ":<干员名>面板"
         desc: "干员面板（如 黎风面板）"
@@ -95,6 +98,9 @@ help_group:
       - icon: 10
         title: ":地区建设"
         desc: "查询地区建设信息"
+      - icon: 10
+        title: ":地区探索"
+        desc: "查询地区探索信息"
       - icon: 16
         title: ":日历"
         desc: "活动日历（20 天时间轴）"
@@ -117,11 +123,11 @@ help_group:
         title: ":抽卡分析"
         desc: "查看抽卡分析（无数据时自动同步）"
       - icon: 12
-        title: ":抽卡记录 <页码>"
+        title: ":抽卡记录"
         desc: "查看抽卡记录（无数据时自动同步）"
       - icon: 12
-        title: ":同步抽卡记录 / :更新抽卡记录"
-        desc: "手动同步抽卡记录（强制拉取最新数据）"
+        title: ":同步抽卡记录"
+        desc: "手动同步抽卡记录"
       - icon: 12
         title: ":全服抽卡统计"
         desc: "查看全服抽卡统计（合并转发多图）"
