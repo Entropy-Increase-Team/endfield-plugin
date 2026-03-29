@@ -15,6 +15,11 @@ const GACHA_KEYS = {
 const SYNC_MS = { pollInterval: 1500, pollTimeout: Infinity }
 const GACHA_CACHE_DIR = path.join(process.cwd(), 'plugins', 'endfield-plugin', 'data', 'gacha')
 const GACHA_POOLS = ['limited', 'standard', 'beginner', 'weapon']
+const GACHA_POOL_GROUP_CONFIG = [
+  { id: 'limited', keys: ['limited'], label: '特许寻访', upType: 'limited' },
+  { id: 'weapon', keys: ['weapon'], label: '武库交易所', upType: 'weapon' },
+  { id: 'base', keys: ['standard', 'beginner'], label: '基础寻访', upType: '' }
+]
 
 /**
  * 保底常量
@@ -232,8 +237,17 @@ export class EndfieldGacha extends plugin {
     return summary
   }
 
-  getCachePoolPreview(cacheData, poolKey, limit = 10) {
-    const rows = this.getCachePoolRecords(cacheData, poolKey)
+  getLocalGachaRecordCount(userId, roleId) {
+    const cacheData = this.readLocalGachaCache(userId, roleId)
+    return this.buildCacheRecordSummary(cacheData).totalCount
+  }
+
+  getCachePoolPreview(cacheData, poolKeyOrKeys, limit = 10) {
+    const poolKeys = Array.isArray(poolKeyOrKeys) ? poolKeyOrKeys : [poolKeyOrKeys]
+    let rows = []
+    for (const key of poolKeys) {
+      rows = rows.concat(this.getCachePoolRecords(cacheData, key))
+    }
     const sorted = [...rows].sort((a, b) => {
       const sa = Number(a?.seq_id)
       const sb = Number(b?.seq_id)
@@ -562,7 +576,7 @@ export class EndfieldGacha extends plugin {
       ((statsData?.stats?.total_count ?? 0) > 0)
   }
 
-  /** 查看抽卡记录：四个卡池合并到一张图中展示；带「同步」则先同步再展示，支持管理员指定平台 ID */
+  /** 查看抽卡记录：按「特许寻访 / 武库交易所 / 基础寻访」三组展示；带「同步」则先同步再展示，支持管理员指定平台 ID */
   async viewGachaRecords() {
     const rawMsg = String(this.e.msg || '')
     const wantsSync = /(同步|更新)\s*抽卡记录/.test(rawMsg)
@@ -614,13 +628,8 @@ export class EndfieldGacha extends plugin {
     }
 
 
-    const poolList = [
-      { key: 'standard', label: '常驻角色' },
-      { key: 'beginner', label: '新手池' },
-      { key: 'weapon', label: '武器池' },
-      { key: 'limited', label: '限定角色' }
-    ]
-    const poolResults = poolList.map(({ key }) => this.getCachePoolPreview(cacheData, key, limit))
+    const poolList = GACHA_POOL_GROUP_CONFIG
+    const poolResults = poolList.map(({ keys }) => this.getCachePoolPreview(cacheData, keys, limit))
 
     const userInfo = recordStatsData.user_info || {}
 
@@ -638,7 +647,7 @@ export class EndfieldGacha extends plugin {
     }
 
     // 构建每个池子的数据
-    const poolSections = poolList.map(({ key, label }, idx) => {
+    const poolSections = poolList.map(({ label, upType }, idx) => {
       const rd = poolResults[idx]
       const records = rd?.records || []
       const total = rd?.total ?? 0
@@ -648,7 +657,7 @@ export class EndfieldGacha extends plugin {
         hasRecords: total > 0,
         records: records.map((r, i) => {
           const name = r.char_name || r.item_name || '未知'
-          const isUp = r.rarity >= 5 && isUpItem(name, key)
+          const isUp = r.rarity >= 5 && isUpItem(name, upType)
           return {
             index: i + 1,
             rarity: r.rarity,
@@ -1448,11 +1457,15 @@ export class EndfieldGacha extends plugin {
     }
 
     // 限定特许寻访倒序展示：最新在最上面，最老在最下面
-    const poolGroups = [
-      { label: '特许寻访', pools: charPoolEntriesLimited.slice().reverse() },
-      { label: '武库交易所', pools: weaponPoolEntries },
-      { label: '基础寻访', pools: charPoolEntriesNormal }
-    ]
+    const analysisPoolsByGroup = {
+      limited: charPoolEntriesLimited.slice().reverse(),
+      weapon: weaponPoolEntries,
+      base: charPoolEntriesNormal
+    }
+    const poolGroups = GACHA_POOL_GROUP_CONFIG.map(({ id, label }) => ({
+      label,
+      pools: analysisPoolsByGroup[id] || []
+    }))
 
 
     // 顶部显示时间（替代「按池统计」）
@@ -1731,6 +1744,7 @@ export class EndfieldGacha extends plugin {
     const afterSyncSendAnalysis = options?.afterSyncSendAnalysis ?? false
     const fromAnalysis = options?.fromAnalysis ?? false
     const fromSync = options?.fromSync ?? false
+    const localRecordCountBeforeSync = this.getLocalGachaRecordCount(userId, roleId)
     const query = {
       role_id: String(roleId || ''),
       server_id: String(serverId || '1')
@@ -1767,7 +1781,7 @@ export class EndfieldGacha extends plugin {
         await this.sleep(SYNC_MS.pollInterval)
         const statusData = await hypergryphAPI.getGachaSyncStatus(token, query)
         if (!statusData) continue
-        const { status, message, records_found, new_records, error, current_pool } = statusData
+        const { status, message, records_found, error, current_pool } = statusData
         if (status === 'syncing' && (message || current_pool)) {
           const rawMsg = message || (current_pool ? getMessage('gacha.sync_query_pool', { pool: current_pool }) : '')
           const progressMsg = this.formatProgressMsg(rawMsg, userId, qqName)
@@ -1777,23 +1791,23 @@ export class EndfieldGacha extends plugin {
         }
         if (status === 'completed') {
           const total = records_found ?? 0
-          const added = new_records ?? 0
           let poolLine = ''
           const statsData = await hypergryphAPI.getGachaStats(token, query)
           const stats = statsData?.stats || {}
           if (stats.limited_char_count != null || stats.standard_char_count != null || stats.beginner_char_count != null || stats.weapon_count != null) {
             const parts = []
-            if (stats.limited_char_count != null) parts.push(getMessage('gacha.sync_done_pool_limited', { count: stats.limited_char_count }))
-            if (stats.standard_char_count != null) parts.push(getMessage('gacha.sync_done_pool_standard', { count: stats.standard_char_count }))
-            if (stats.beginner_char_count != null) parts.push(getMessage('gacha.sync_done_pool_beginner', { count: stats.beginner_char_count }))
-            if (stats.weapon_count != null) parts.push(getMessage('gacha.sync_done_pool_weapon', { count: stats.weapon_count }))
+            const toCount = (v) => {
+              const n = Number(v)
+              return Number.isFinite(n) ? n : 0
+            }
+            if (stats.limited_char_count != null) parts.push(`特许寻访 ${toCount(stats.limited_char_count)} 条`)
+            if (stats.weapon_count != null) parts.push(`武库交易所 ${toCount(stats.weapon_count)} 条`)
+            if (stats.standard_char_count != null || stats.beginner_char_count != null) {
+              const baseCount = toCount(stats.standard_char_count) + toCount(stats.beginner_char_count)
+              parts.push(`基础寻访 ${baseCount} 条`)
+            }
             if (parts.length) poolLine = '\n' + getMessage('gacha.sync_done_pools', { pools: parts.join(' | ') }).trim()
           }
-          const syncDoneMsg = getMessage('gacha.sync_done', {
-            records_found: total,
-            new_records: added,
-            pool_detail: poolLine
-          })
           let cacheRoleId = String(roleId || '')
           let cacheServerId = String(serverId || '1')
           if (!cacheRoleId) {
@@ -1804,7 +1818,14 @@ export class EndfieldGacha extends plugin {
             }
           }
           await this.refreshLocalGachaCacheFromCloud(token, userId, cacheRoleId, cacheServerId)
+          const localRecordCountAfterSync = this.getLocalGachaRecordCount(userId, cacheRoleId)
+          const added = Math.max(0, localRecordCountAfterSync - localRecordCountBeforeSync)
           // 同步完成文字 + 分析图始终合并为一条消息发送
+          const syncDoneMsg = getMessage('gacha.sync_done', {
+            records_found: total,
+            new_records: added,
+            pool_detail: poolLine
+          })
           await this.renderAndSendGachaAnalysis(syncDoneMsg, userId)
           return
         }
