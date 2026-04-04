@@ -135,6 +135,10 @@ export class EndfieldNote extends plugin {
         const propertyKey = char?.property?.key || ''
         const rarity = Math.max(1, Math.min(6, parseInt(char?.rarity?.value || char?.rarity || 1, 10) || 1))
         const potentialLevel = Math.max(0, Math.min(5, parseInt(char?.potentialLevel || 0, 10) || 0))
+        const rawEvolvePhase = char?.evolvePhase ?? char?.evolve_phase ?? char?.eliteLevel ?? char?.elite_level
+        const evolvePhase = Number.isFinite(Number(rawEvolvePhase))
+          ? Math.max(0, parseInt(rawEvolvePhase, 10) || 0)
+          : null
         const level = Math.max(1, parseInt(char?.level || 1, 10) || 1)
         const name = char.name || unknown
         const weaponRaw = char?.weapon || {}
@@ -166,6 +170,8 @@ export class EndfieldNote extends plugin {
           level,
           rarity,
           potentialLevel,
+          evolvePhase,
+          elitePhase: evolvePhase ?? weaponBreakthroughLevel,
           colorCode,
           profession,
           property,
@@ -269,10 +275,11 @@ export class EndfieldNote extends plugin {
       msg += `【${sectionTitle}】(${charsList.length}个)\n`
       if (charsList.length > 0) {
         for (const char of charsList) {
+          const eliteText = Number.isFinite(Number(char?.elitePhase)) ? ` 精英化${char.elitePhase}` : ''
           if (isCharsView && char.weapon) {
-            msg += `• ${char.name} - ${char.weapon.name} Lv.${char.weapon.level} 潜${char.weapon.breakthroughLevel}\n`
+            msg += `• ${char.name}${eliteText} - ${char.weapon.name} Lv.${char.weapon.level}\n`
           } else {
-            msg += getMessage('note.text_owned_item', { name: char.name }) + '\n'
+            msg += getMessage('note.text_owned_item', { name: `${char.name}${eliteText}` }) + '\n'
           }
         }
       }

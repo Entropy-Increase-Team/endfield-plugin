@@ -119,7 +119,12 @@
                       {{/if}}
                     </div>
                     <div class="note-char-footer">
-                      <span class="note-char-name">{{char.name}}</span>
+                      <div class="note-char-name-row">
+                        <span class="note-char-name">{{char.name}}</span>
+                        {{if char.elitePhase !== null && char.elitePhase !== undefined}}
+                        <span class="note-char-elite">精英化{{char.elitePhase}}</span>
+                        {{/if}}
+                      </div>
                     </div>
                   </div>
                   {{/each}}
@@ -162,12 +167,17 @@
               {{/if}}
             </div>
             <div class="note-char-footer">
-              <span class="note-char-name">{{char.name}}</span>
+              <div class="note-char-name-row">
+                <span class="note-char-name">{{char.name}}</span>
+                {{if char.elitePhase !== null && char.elitePhase !== undefined}}
+                <span class="note-char-elite">精英化{{char.elitePhase}}</span>
+                {{/if}}
+              </div>
               {{if char.weapon}}
               <div class="note-char-weapon-panel">
                 <div class="note-char-weapon-text">
                   <span class="note-char-weapon-name">{{char.weapon.name}}</span>
-                  <span class="note-char-weapon-meta">Lv.{{char.weapon.level}} 潜{{char.weapon.breakthroughLevel}}</span>
+                  <span class="note-char-weapon-meta">Lv.{{char.weapon.level}}</span>
                 </div>
                 <div class="note-char-weapon-visual">
                   {{if char.weapon.iconUrl}}

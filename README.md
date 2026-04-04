@@ -99,13 +99,6 @@ git clone https://github.com/Entropy-Increase-Team/endfield-plugin ./plugins/end
 详细数据 仅能查询 在展柜的4名干员
 并且此功能需要 APIKey 为 Pro 等级
 
-#### 练度统计说明
-
-- 命令：`:练度统计`
-- 数据源仅使用官方接口：`/api/endfield/card/detail` 与 `/api/endfield/card/char`
-- 不使用 `friend/*` 接口
-- 排序规则：优先角色星级（6 > 5 > 4 > ...），同星级内按练度高到低排序
-
 ### 公告
 
 | 命令 | 说明 |

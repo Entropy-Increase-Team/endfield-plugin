@@ -458,12 +458,31 @@ body {
 }
 
 .note-char-name {
+  min-width: 0;
+  flex: 1;
   font-size: 0.78rem;
   color: #111827;
   line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.note-char-name-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.note-char-elite {
+  flex-shrink: 0;
+  font-size: 0.56rem;
+  line-height: 1;
+  color: #f9fafb;
+  background: #374151;
+  border: 1px solid #1f2937;
+  padding: 2px 4px;
 }
 
 .note-char-weapon-panel {
