@@ -76,6 +76,10 @@ export class EndfieldOperator extends plugin {
           fnc: 'getOperatorList'
         },
         {
+          reg: '^(?:[:：]|[/#](?:zmd|终末地))练度统计$',
+          fnc: 'getTrainingStats'
+        },
+        {
           reg: '^(?:[:：]|[/#](?:zmd|终末地))(.+?)面板$',
           fnc: 'getOperator'
         }
@@ -400,6 +404,156 @@ export class EndfieldOperator extends plugin {
   hasApiKey() {
     const apiKey = setting.getConfig('common')?.api_key
     return String(apiKey || '').trim() !== ''
+  }
+
+  normalizeTrainingLevel(value, fallback = '-') {
+    if (value == null || value === '') return fallback
+    const num = Number(value)
+    if (Number.isFinite(num)) {
+      return String(Math.max(0, Math.floor(num)))
+    }
+    const text = String(value).trim()
+    return text || fallback
+  }
+
+  extractTrainingSkillLevels(panelData = {}, operator = {}, userSkills = {}, container = {}) {
+    const levels = []
+    const pushLevel = (raw) => {
+      if (levels.length >= 4) return
+      const text = this.normalizeTrainingLevel(raw, '')
+      if (!text) return
+      levels.push(text)
+    }
+
+    const panelSkills = Array.isArray(panelData?.displaySkills)
+      ? panelData.displaySkills.filter((item) => !item?.empty)
+      : (Array.isArray(panelData?.skills) ? panelData.skills : [])
+    for (const skill of panelSkills) {
+      pushLevel(skill?.level ?? skill?.skillLevel ?? userSkills?.[skill?.id]?.level)
+    }
+
+    const skillSources = [
+      operator?.skills,
+      operator?.charData?.skills,
+      container?.skills,
+      container?.charData?.skills
+    ]
+    for (const source of skillSources) {
+      if (levels.length >= 4) break
+      if (!Array.isArray(source)) continue
+      for (const skill of source) {
+        const skillId = skill?.id || skill?.skillId || skill?.skill_id
+        const level = skill?.level ?? skill?.skillLevel ?? skill?.skill_level ?? userSkills?.[skillId]?.level
+        pushLevel(level)
+        if (levels.length >= 4) break
+      }
+    }
+
+    while (levels.length < 4) levels.push('-')
+    return levels.slice(0, 4)
+  }
+
+  extractTrainingMatrixInfo(panelData = {}, operator = {}, container = {}) {
+    const matrix = panelData?.gem
+      || panelData?.weapon?.gem
+      || operator?.weapon?.gem
+      || container?.weapon?.gem
+      || null
+
+    const name = String(
+      matrix?.name
+      || matrix?.gemData?.name
+      || matrix?.template?.name_cn
+      || matrix?.template?.name
+      || ''
+    ).trim() || '-'
+
+    const levelCandidates = [
+      matrix?.level,
+      matrix?.lv,
+      matrix?.rank,
+      matrix?.tier,
+      matrix?.phase,
+      matrix?.breakthroughLevel,
+      matrix?.refineLevel,
+      matrix?.intensifyLevel,
+      matrix?.enhanceLevel,
+      matrix?.gemData?.level,
+      matrix?.gemData?.lv
+    ]
+    let level = '-'
+    for (const candidate of levelCandidates) {
+      const text = this.normalizeTrainingLevel(candidate, '')
+      if (text) {
+        level = text
+        break
+      }
+    }
+
+    return { name, level }
+  }
+
+  extractTrainingItemName(rawDetailData = {}, panelData = {}) {
+    const data = rawDetailData?.detail || rawDetailData || {}
+    const char = data?.char || {}
+    const equipMedicine = char?.equip_medicine || char?.equipMedicine || {}
+    const name = equipMedicine?.name_cn || equipMedicine?.name || panelData?.tacticalItem?.name || ''
+    return String(name || '').trim() || '-'
+  }
+
+  buildTrainingFallbackRow(seed = {}) {
+    return {
+      name: seed?.name || '未知',
+      rarity: Number(seed?.rarity || 0),
+      level: this.normalizeTrainingLevel(seed?.level, '-'),
+      skillLevels: ['-', '-', '-', '-'],
+      weaponName: String(seed?.weaponName || '-').trim() || '-',
+      weaponLevel: this.normalizeTrainingLevel(seed?.weaponLevel, '-'),
+      matrixName: String(seed?.matrixName || '-').trim() || '-',
+      matrixLevel: this.normalizeTrainingLevel(seed?.matrixLevel, '-'),
+      equipLevels: [
+        this.normalizeTrainingLevel(seed?.equipLevels?.[0], '-'),
+        this.normalizeTrainingLevel(seed?.equipLevels?.[1], '-'),
+        this.normalizeTrainingLevel(seed?.equipLevels?.[2], '-'),
+        this.normalizeTrainingLevel(seed?.equipLevels?.[3], '-')
+      ],
+      itemName: String(seed?.itemName || '-').trim() || '-'
+    }
+  }
+
+  parseTrainingNumber(value) {
+    const num = Number(value)
+    return Number.isFinite(num) ? Math.max(0, Math.floor(num)) : 0
+  }
+
+  calcTrainingSortMetrics(row = {}) {
+    const rarity = this.parseTrainingNumber(row.rarity)
+    const level = this.parseTrainingNumber(row.level)
+    const skillTotal = Array.isArray(row.skillLevels)
+      ? row.skillLevels.reduce((sum, val) => sum + this.parseTrainingNumber(val), 0)
+      : 0
+    const weaponLevel = this.parseTrainingNumber(row.weaponLevel)
+    const equipTotal = Array.isArray(row.equipLevels)
+      ? row.equipLevels.reduce((sum, val) => sum + this.parseTrainingNumber(val), 0)
+      : 0
+    const matrixLevel = this.parseTrainingNumber(row.matrixLevel)
+    return { rarity, level, skillTotal, weaponLevel, equipTotal, matrixLevel }
+  }
+
+  sortTrainingRows(rows = []) {
+    return rows.slice().sort((a, b) => {
+      const am = this.calcTrainingSortMetrics(a)
+      const bm = this.calcTrainingSortMetrics(b)
+      // 优先按角色星级：6 > 5 > 4 > ...
+      if (bm.rarity !== am.rarity) return bm.rarity - am.rarity
+      // 同星级内按综合练度高到低
+      if (bm.level !== am.level) return bm.level - am.level
+      if (bm.skillTotal !== am.skillTotal) return bm.skillTotal - am.skillTotal
+      if (bm.weaponLevel !== am.weaponLevel) return bm.weaponLevel - am.weaponLevel
+      if (bm.equipTotal !== am.equipTotal) return bm.equipTotal - am.equipTotal
+      if (bm.matrixLevel !== am.matrixLevel) return bm.matrixLevel - am.matrixLevel
+      return String(a?.name || '').localeCompare(String(b?.name || ''), 'zh-CN')
+    })
   }
 
   formatPanelNumber(value, digits = 1) {
@@ -921,6 +1075,178 @@ export class EndfieldOperator extends plugin {
     let charData = operator.charData || container.charData || operator?.char?.charData || {}
     let userSkills = operator.userSkills || container.userSkills || operator?.char?.userSkills || {}
     return { operator, charData, userSkills, container }
+  }
+
+  async getTrainingStats() {
+    const uid = this.e.at || this.e.user_id
+    const sklUser = new EndfieldUser(uid)
+
+    if (!(await sklUser.getUser())) {
+      await this.reply(getUnbindMessage())
+      return true
+    }
+
+    await this.reply(getMessage('operator.training_loading'))
+
+    try {
+      const roleId = String(sklUser.endfield_uid || '')
+      const serverId = Number(sklUser.server_id || 1)
+      const detailRes = await sklUser.sklReq.getData('endfield_card_detail', { roleId, serverId })
+      if (!isApiSuccess(detailRes)) {
+        logger.error(`[终末地练度统计] 获取角色列表失败: ${JSON.stringify(detailRes)}`)
+        await this.reply(getMessage('common.get_role_failed'))
+        return true
+      }
+
+      const detail = detailRes?.data?.detail || {}
+      const base = detail?.base || {}
+      const chars = Array.isArray(detail?.chars) ? detail.chars : []
+      if (!chars.length) {
+        await this.reply(getMessage('operator.training_empty'))
+        return true
+      }
+
+      const seeds = chars.map((char, index) => {
+        const c = char?.charData || char || {}
+        const instId = String(char?.id || char?.instId || c?.id || '').trim()
+        const name = String(
+          c?.name || char?.name || c?.template?.name_cn || char?.template?.name_cn || `角色${index + 1}`
+        ).trim()
+        const rarity = Number.parseInt(c?.rarity?.value || c?.rarity || '0', 10) || 0
+        const level = c?.level ?? char?.level ?? 0
+        const weapon = c?.weapon || char?.weapon || {}
+        return {
+          instId,
+          index,
+          name: name || `角色${index + 1}`,
+          rarity,
+          level,
+          weaponName: weapon?.name || '-',
+          weaponLevel: weapon?.level ?? '-',
+          matrixName: weapon?.gem?.gemData?.name || '-'
+        }
+      })
+        .sort((a, b) => {
+          if (b.rarity !== a.rarity) return b.rarity - a.rarity
+          const lvDiff = (Number(b.level) || 0) - (Number(a.level) || 0)
+          if (lvDiff !== 0) return lvDiff
+          return a.index - b.index
+        })
+
+      const rows = await this.collectTrainingRows(sklUser, seeds, roleId, serverId)
+      if (!rows.length) {
+        await this.reply(getMessage('operator.training_failed'))
+        return true
+      }
+
+      const sortedRows = this.sortTrainingRows(rows)
+      const renderRows = sortedRows.map((row, i) => ({
+        ...row,
+        index: i + 1
+      }))
+      const updatedAt = new Date().toLocaleString('zh-CN')
+
+      if (this.e.runtime?.render) {
+        const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
+        const renderData = {
+          userAvatar: base?.avatarUrl || '',
+          userNickname: base?.name || '未知',
+          userLevel: base?.level ?? 0,
+          totalCount: renderRows.length,
+          updatedAt,
+          rows: renderRows,
+          pluResPath,
+          ...getCopyright()
+        }
+        const img = await this.e.runtime.render('endfield-plugin', 'operator/training', renderData, {
+          retType: 'base64'
+        })
+        if (img) {
+          await this.e.reply(img)
+          return true
+        }
+      }
+
+      const lines = renderRows.map((row) => {
+        const skillText = row.skillLevels.join('/')
+        const equipText = row.equipLevels.join('/')
+        return `${row.index}. ${row.name} Lv.${row.level} | 技能 ${skillText} | 武器 ${row.weaponName} Lv.${row.weaponLevel} | 基质 ${row.matrixName} Lv.${row.matrixLevel} | 装备 ${equipText} | 物品 ${row.itemName}`
+      })
+      await this.reply([
+        `练度统计（共 ${renderRows.length} 名）`,
+        ...lines
+      ].join('\n'))
+      return true
+    } catch (error) {
+      logger.error(`[终末地练度统计] 查询失败: ${error}`)
+      await this.reply(getMessage('common.query_failed', { error: error?.message || error }))
+      return true
+    }
+  }
+
+  async collectTrainingRows(sklUser, seeds = [], roleId, serverId) {
+    if (!Array.isArray(seeds) || seeds.length === 0) return []
+    const rows = new Array(seeds.length)
+    let cursor = 0
+    const concurrency = Math.min(4, seeds.length)
+
+    const worker = async () => {
+      while (true) {
+        const idx = cursor++
+        if (idx >= seeds.length) return
+
+        const seed = seeds[idx]
+        const fallback = this.buildTrainingFallbackRow(seed)
+        if (!seed?.instId) {
+          rows[idx] = fallback
+          continue
+        }
+
+        try {
+          const detailRes = await sklUser.sklReq.getData('endfield_card_char', {
+            instId: seed.instId,
+            roleId,
+            serverId
+          })
+          if (!isApiSuccess(detailRes)) {
+            rows[idx] = fallback
+            continue
+          }
+
+          const { operator, charData, userSkills, container } = this.extractOperatorDetail(detailRes.data)
+          if (!operator || !charData) {
+            rows[idx] = fallback
+            continue
+          }
+          const panelData = this.buildPanelData(operator, charData, userSkills, container)
+          const skillLevels = this.extractTrainingSkillLevels(panelData, operator, userSkills, container)
+          const matrix = this.extractTrainingMatrixInfo(panelData, operator, container)
+
+          rows[idx] = {
+            name: String(panelData?.name || seed?.name || '未知').trim() || '未知',
+            rarity: Number(seed?.rarity || 0),
+            level: this.normalizeTrainingLevel(panelData?.level ?? seed?.level, '-'),
+            skillLevels,
+            weaponName: String(panelData?.weapon?.name || seed?.weaponName || '-').trim() || '-',
+            weaponLevel: this.normalizeTrainingLevel(panelData?.weapon?.level ?? seed?.weaponLevel, '-'),
+            matrixName: matrix.name || String(seed?.matrixName || '-').trim() || '-',
+            matrixLevel: matrix.level,
+            equipLevels: [
+              this.normalizeTrainingLevel(panelData?.bodyEquip?.level, '-'),
+              this.normalizeTrainingLevel(panelData?.armEquip?.level, '-'),
+              this.normalizeTrainingLevel(panelData?.firstAccessory?.level, '-'),
+              this.normalizeTrainingLevel(panelData?.secondAccessory?.level, '-')
+            ],
+            itemName: this.extractTrainingItemName(detailRes?.data, panelData)
+          }
+        } catch (err) {
+          rows[idx] = fallback
+        }
+      }
+    }
+
+    await Promise.all(Array.from({ length: concurrency }, () => worker()))
+    return rows.filter(Boolean)
   }
 
   async getOperatorList(options = {}) {

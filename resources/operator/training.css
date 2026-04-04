@@ -1,0 +1,197 @@
+@font-face {
+  font-family: 'HarmonyOS Sans SC';
+  src: url('../font/HarmonyOS_SansSC_Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 16px;
+  background: #eef2f7;
+  color: #1f2937;
+  font-family: 'HarmonyOS Sans SC', -apple-system, BlinkMacSystemFont, 'Microsoft YaHei', sans-serif;
+}
+
+.training-page {
+  width: 100%;
+  max-width: 1528px;
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid #d6dce6;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.training-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #dbe2eb;
+  background: #f7f9fc;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.user-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #cfd7e3;
+  background: #e8edf5;
+}
+
+.user-meta {
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 21px;
+  line-height: 1.1;
+  color: #0f172a;
+}
+
+.user-level {
+  margin-top: 2px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.header-main {
+  flex: 1;
+  text-align: center;
+  padding-right: 26px;
+}
+
+.title {
+  margin: 0;
+  font-size: 36px;
+  line-height: 1;
+  color: #0f172a;
+}
+
+.subtitle {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.summary-wrap {
+  padding: 12px 12px 10px;
+}
+
+.training-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.training-table thead th {
+  background: #1f3250;
+  color: #f8fafc;
+  font-size: 12px;
+  padding: 8px 5px;
+  border: 1px solid #304664;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.training-table tbody td {
+  font-size: 12px;
+  padding: 7px 5px;
+  border: 1px solid #d7deea;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  height: 38px;
+  text-align: center;
+}
+
+.training-table tbody tr:nth-child(odd) td {
+  background: #fbfdff;
+}
+
+.training-table tbody tr:nth-child(even) td {
+  background: #f3f6fb;
+}
+
+.training-table th:nth-child(1),
+.training-table td:nth-child(1) {
+  width: 5%;
+}
+
+.training-table th:nth-child(2),
+.training-table td:nth-child(2) {
+  width: 13%;
+  text-align: left;
+  padding-left: 8px;
+}
+
+.training-table th:nth-child(3),
+.training-table td:nth-child(3) {
+  width: 7%;
+}
+
+.training-table th:nth-child(4),
+.training-table td:nth-child(4) {
+  width: 13%;
+}
+
+.training-table th:nth-child(5),
+.training-table td:nth-child(5) {
+  width: 18%;
+  text-align: left;
+  padding-left: 8px;
+}
+
+.training-table th:nth-child(6),
+.training-table td:nth-child(6) {
+  width: 17%;
+  text-align: left;
+  padding-left: 8px;
+}
+
+.training-table th:nth-child(7),
+.training-table td:nth-child(7) {
+  width: 17%;
+  font-size: 11px;
+  letter-spacing: -0.2px;
+}
+
+.training-table th:nth-child(8),
+.training-table td:nth-child(8) {
+  width: 10%;
+  text-align: left;
+  padding-left: 8px;
+}
+
+.col-skills,
+.col-equip {
+  font-family: 'HarmonyOS Sans SC', 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+
+.training-table td:nth-child(7) {
+  text-overflow: clip;
+}
+
+.training-footer {
+  border-top: 1px solid #dbe2eb;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #66758a;
+  text-align: center;
+  background: #f7f9fc;
+}

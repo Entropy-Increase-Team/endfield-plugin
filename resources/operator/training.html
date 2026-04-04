@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1560, initial-scale=1.0">
+  <title>练度统计 - 终末地</title>
+  <link rel="stylesheet" href="{{_res_path}}operator/training.css">
+</head>
+<body>
+  <div class="training-page">
+    <header class="training-header">
+      <div class="header-user">
+        <img src="{{userAvatar}}" alt="用户头像" class="user-avatar" onerror="this.style.display='none'">
+        <div class="user-meta">
+          <div class="user-name">{{userNickname}}</div>
+          <div class="user-level">Lv.{{userLevel}}</div>
+        </div>
+      </div>
+      <div class="header-main">
+        <h1 class="title">练度统计</h1>
+        <div class="subtitle">共 {{totalCount}} 名角色 · {{updatedAt}}</div>
+      </div>
+    </header>
+
+    <section class="summary-wrap">
+      <table class="training-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th class="col-name">角色</th>
+            <th>等级</th>
+            <th class="col-skills">技能 1/2/3/4</th>
+            <th class="col-weapon">武器</th>
+            <th class="col-matrix">基质</th>
+            <th class="col-equip">装备 1/2/3/4</th>
+            <th class="col-item">物品</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{each rows row}}
+          <tr>
+            <td>{{row.index}}</td>
+            <td class="col-name" title="{{row.name}}">{{row.name}}</td>
+            <td>{{row.level}}</td>
+            <td class="col-skills">[{{row.skillLevels[0]}}/{{row.skillLevels[1]}}/{{row.skillLevels[2]}}/{{row.skillLevels[3]}}]</td>
+            <td class="col-weapon" title="{{row.weaponName}}">{{row.weaponName}} {{if row.weaponLevel !== '-'}}Lv.{{row.weaponLevel}}{{else}}-{{/if}}</td>
+            <td class="col-matrix" title="{{row.matrixName}}">{{row.matrixName}} {{if row.matrixLevel !== '-'}}Lv.{{row.matrixLevel}}{{else}}-{{/if}}</td>
+            <td class="col-equip">[{{row.equipLevels[0]}}/{{row.equipLevels[1]}}/{{row.equipLevels[2]}}/{{row.equipLevels[3]}}]</td>
+            <td class="col-item" title="{{row.itemName}}">{{row.itemName}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </section>
+
+    <footer class="training-footer">{{@copyright || sys?.copyright}}</footer>
+  </div>
+</body>
+</html>

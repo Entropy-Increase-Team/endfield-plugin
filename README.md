@@ -14,7 +14,7 @@
 
 - 一个适用于 [Yunzai 系列机器人框架](https://github.com/yhArcadia/Yunzai-Bot-plugins-index) 的明日方舟：终末地游戏数据查询插件
 
-- 当前版本：`2.1.1`（2026-03-22）
+- 当前版本：`2.1.2`（2026-04-04）
 
 - 支持 Cred / 网页授权 / 扫码 / 手机号绑定，支持账号便签、角色列表、干员面板、Wiki、攻略、帝江号与地区建设等查询
 
@@ -76,6 +76,7 @@ git clone https://github.com/Entropy-Increase-Team/endfield-plugin ./plugins/end
 | `:便签` / `:账号便签` | 查询账号便签 |
 | `:角色` | 查询角色列表 |
 | `:更新面板` | 同步展柜面板后返回已拥有干员列表（同步角色优先） |
+| `:练度统计` | 一图查看角色练度（等级/技能/武器/基质/装备/物品） |
 | `:<干员名>面板` | 干员面板（如 `:黎风面板`） |
 | `:帝江号建设` | 查询帝江号建设信息 |
 | `:地区建设` | 查询地区建设信息 |
@@ -97,6 +98,13 @@ git clone https://github.com/Entropy-Increase-Team/endfield-plugin ./plugins/end
 
 详细数据 仅能查询 在展柜的4名干员
 并且此功能需要 APIKey 为 Pro 等级
+
+#### 练度统计说明
+
+- 命令：`:练度统计`
+- 数据源仅使用官方接口：`/api/endfield/card/detail` 与 `/api/endfield/card/char`
+- 不使用 `friend/*` 接口
+- 排序规则：优先角色星级（6 > 5 > 4 > ...），同星级内按练度高到低排序
 
 ### 公告
 
