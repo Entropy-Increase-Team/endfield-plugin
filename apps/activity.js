@@ -1,166 +1,185 @@
 /**
- * 活动列表（日历）：:日历，调用 GET /api/wiki/activities，渲染 HTML 模板
+ * 活动列表（日历）：:日历，调用 GET /api/wiki/activities，渲染甘特图
  */
 import { getMessage } from '../utils/common.js'
 import EndfieldRequest from '../model/endfieldReq.js'
 import setting from '../utils/setting.js'
 
 const DAY_SEC = 86400
-const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+const PERM_THRESHOLD_DAYS = 300
+const WINDOW_BEFORE_DAYS = 15
+const WINDOW_AFTER_DAYS = 15
+const MIN_BAR_WIDTH_PCT = 6.67
+const AXIS_MIN_GAP_DAYS = 4
+const THEMES = ['theme-red', 'theme-yellow', 'theme-dark']
 
-/** 格式化为 年-月-日 时:分 */
-function formatShortTs(ts) {
-  const d = new Date(ts * 1000)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const h = String(d.getHours()).padStart(2, '0')
-  const min = String(d.getMinutes()).padStart(2, '0')
-  return `${y}-${m}-${day} ${h}:${min}`
-}
+const pad2 = (n) => String(n).padStart(2, '0')
 
-/** 格式化为 x月x日（用于「x月x日开启」） */
-function formatMonthDay(ts) {
-  const d = new Date(ts * 1000)
-  const month = d.getMonth() + 1
-  const date = d.getDate()
-  return `${month}月${date}日`
-}
+/** 从 Wiki 条目里抓长条 banner；失败回退到 pic 贴纸 */
+const bannerCache = new Map()
+async function fetchBanner(req, raw) {
+  const name = raw.name || ''
+  if (bannerCache.has(name)) return bannerCache.get(name)
+  if (bannerCache.size > 200) bannerCache.clear()
 
-/** 将 bili-wiki 的 start_time/end_time 字符串解析为秒级时间戳 */
-function parseBiliWikiTime(str) {
-  if (!str || typeof str !== 'string') return null
-  const s = str.trim().replace(/\//g, '-')
-  const ts = Date.parse(s)
-  return Number.isFinite(ts) ? Math.floor(ts / 1000) : null
-}
-
-/** 根据 startTs/endTs 与当前时间计算「xx后结束」或「xx日后开启」 */
-function getRemainingOrOpensText(nowTs, startTs, endTs) {
-  let remainingText = ''
-  let opensInText = ''
-  if (startTs != null && nowTs < startTs) {
-    const daysUntil = Math.max(0, Math.ceil((startTs - nowTs) / DAY_SEC))
-    opensInText = daysUntil < 30
-      ? getMessage('activity.opens_in_days', { days: daysUntil })
-      : daysUntil < 60
-        ? getMessage('activity.opens_in_one_month')
-        : getMessage('activity.opens_in_months', { months: Math.floor(daysUntil / 30) })
-  } else if (endTs != null) {
-    const diff = endTs - nowTs
-    if (diff <= 0) remainingText = getMessage('activity.remaining_ended')
-    else {
-      const daysLeft = Math.floor(diff / DAY_SEC)
-      if (daysLeft <= 0) remainingText = getMessage('activity.remaining_soon')
-      else if (daysLeft < 30) remainingText = getMessage('activity.remaining_days', { days: daysLeft })
-      else if (daysLeft < 60) remainingText = getMessage('activity.remaining_one_month')
-      else remainingText = getMessage('activity.remaining_months', { months: Math.floor(daysLeft / 30) })
+  const pcLink = raw.pc_link || raw.pcLink || ''
+  const m = pcLink.match(/gameEntryId=(\d+)/)
+  if (m) {
+    try {
+      const res = await req.getWikiData('wiki_item_detail', { id: m[1] })
+      const docMap = res?.data?.content?.document_map
+      if (docMap) {
+        for (const doc of Object.values(docMap)) {
+          const blockMap = doc?.block_map
+          if (!blockMap) continue
+          for (const block of Object.values(blockMap)) {
+            if (block?.kind === 'image' && block.image?.url) {
+              bannerCache.set(name, block.image.url)
+              return block.image.url
+            }
+          }
+        }
+      }
+    } catch (err) {
+      logger.error(`[终末地插件][活动列表]抓 banner 失败 ${name}: ${err?.message || err}`)
     }
-  } else remainingText = getMessage('activity.remaining_long')
-  return { remainingText, opensInText }
+  }
+
+  const pic = raw.pic || ''
+  bannerCache.set(name, pic)
+  return pic
 }
 
-/**
- * 将 API 返回的活动列表统一为模板所需结构，并计算日历用 startCol/endCol、剩余时间文案
- * 响应格式以 1s.json 为准：data.activities，项含 pic、activity_start_at_ts、activity_end_at_ts 等（snake_case）
- */
-function normalizeActivities(rawData) {
-  let list = []
-  if (rawData?.activities && Array.isArray(rawData.activities)) list = rawData.activities
-  else if (Array.isArray(rawData)) list = rawData
-  else if (rawData?.list && Array.isArray(rawData.list)) list = rawData.list
-  return list.map((item, index) => {
-    const startTs = item.activity_start_at_ts != null ? Number(item.activity_start_at_ts) : (item.activityStartAtTs != null ? Number(item.activityStartAtTs) : null)
-    const endTs = item.activity_end_at_ts != null ? Number(item.activity_end_at_ts) : (item.activityEndAtTs != null ? Number(item.activityEndAtTs) : null)
-    let startTime = ''
-    let endTime = ''
-    if (startTs != null) startTime = new Date(startTs * 1000).toLocaleString('zh-CN')
-    else if (item.start_time) startTime = new Date(item.start_time).toLocaleString('zh-CN')
-    if (endTs != null) endTime = new Date(endTs * 1000).toLocaleString('zh-CN')
-    else if (item.end_time) endTime = new Date(item.end_time).toLocaleString('zh-CN')
-    return {
-      index: index + 1,
-      name: item.name || getMessage('common.unknown'),
-      description: item.description || '',
-      cover: item.pic || item.cover || '',
-      startTime,
-      endTime,
-      startTs: startTs ?? 0,
-      endTs: endTs ?? 0
+function fmtDateTime(ts) {
+  const d = new Date(ts * 1000)
+  return `${pad2(d.getMonth() + 1)}.${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+}
+
+function fmtMonthDay(ts) {
+  const d = new Date(ts * 1000)
+  return `${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}`
+}
+
+function fmtNow(d) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+}
+
+function normalizeRaw(rawData) {
+  if (rawData?.activities && Array.isArray(rawData.activities)) return rawData.activities
+  if (Array.isArray(rawData)) return rawData
+  if (rawData?.list && Array.isArray(rawData.list)) return rawData.list
+  return []
+}
+
+function parseAct(raw) {
+  const stTs = Number(raw.activity_start_at_ts ?? raw.activityStartAtTs ?? raw.start_at_ts ?? 0)
+  const etTs = Number(raw.activity_end_at_ts ?? raw.activityEndAtTs ?? raw.end_at_ts ?? 0)
+  if (!stTs || !etTs) return null
+
+  const durationDays = (etTs - stTs) / DAY_SEC
+  const isPerm = durationDays >= PERM_THRESHOLD_DAYS
+  let desc = (raw.description || '').trim() || '活动'
+  if (isPerm && ['', '玩法说明', '新手活动', '活动'].includes(desc)) desc = '常驻活动'
+
+  return {
+    name: raw.name || '未知活动',
+    desc,
+    start: fmtDateTime(stTs),
+    end: fmtDateTime(etTs),
+    stTs,
+    etTs,
+    cover: raw.pic || raw.cover || '',
+    isPerm
+  }
+}
+
+/** 贪心车道打包：活动按开始时间升序放入首个不重叠的车道（含 1 天缓冲） */
+function packLanes(acts) {
+  const lanes = []
+  for (const act of acts) {
+    let placed = false
+    for (const lane of lanes) {
+      const last = lane[lane.length - 1]
+      if (act.stTs >= last.etTs + DAY_SEC) {
+        lane.push(act)
+        placed = true
+        break
+      }
     }
-  })
+    if (!placed) lanes.push([act])
+  }
+  return lanes
 }
 
-/** 生成日历用：20 天时间轴、在范围内的活动条、不在范围内的活动卡片、未开始显示 x月x日开启 */
-function buildCalendarData(activities, dayCount = 20, daysBefore = 0) {
-  const now = new Date()
-  const nowTs = Math.floor(now.getTime() / 1000)
-  const startDate = new Date(now)
-  startDate.setDate(startDate.getDate() - daysBefore)
-  startDate.setHours(0, 0, 0, 0)
-  const startDayTs = Math.floor(startDate.getTime() / 1000)
-  const endDayTs = startDayTs + dayCount * DAY_SEC
-
-  const days = []
-  for (let i = 0; i < dayCount; i++) {
-    const d = new Date((startDayTs + i * DAY_SEC) * 1000)
-    const month = d.getMonth() + 1
-    const date = d.getDate()
-    const weekday = WEEKDAYS[d.getDay()]
-    const isToday = d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-    days.push({
-      month: `${month}月`,
-      date: `${date}日`,
-      weekday,
-      isToday
+function assignTheme(lanes) {
+  for (const lane of lanes) {
+    lane.forEach((act, idx) => {
+      act.themeClass = THEMES[idx % THEMES.length]
     })
   }
+}
 
-  const inRange = []
-  const outOfRange = []
+function buildGanttData(rawList) {
+  const now = new Date()
+  const nowTs = Math.floor(now.getTime() / 1000)
+  const todayMidnight = new Date(now)
+  todayMidnight.setHours(0, 0, 0, 0)
+  const minTs = Math.floor(todayMidnight.getTime() / 1000) - WINDOW_BEFORE_DAYS * DAY_SEC
+  const maxTs = Math.floor(todayMidnight.getTime() / 1000) + WINDOW_AFTER_DAYS * DAY_SEC
+  const totalDuration = maxTs - minTs
 
-  for (const a of activities) {
-    const { remainingText, opensInText } = getRemainingOrOpensText(nowTs, a.startTs, a.endTs)
+  const parsed = rawList.map(parseAct).filter(Boolean)
+  const normal = []
+  const perm = []
+  for (const a of parsed) {
+    (a.isPerm ? perm : normal).push(a)
+  }
+  normal.sort((x, y) => x.stTs - y.stTs)
+  perm.sort((x, y) => x.stTs - y.stTs)
 
-    const shortStart = (a.startTs != null) ? formatShortTs(a.startTs) : a.startTime || '-'
-    const shortEnd = (a.endTs != null) ? formatShortTs(a.endTs) : a.endTime || '-'
-    const notStarted = a.startTs != null && a.startTs > nowTs
-    const daysUntilStart = notStarted && a.startTs != null ? Math.max(0, Math.ceil((a.startTs - nowTs) / DAY_SEC)) : 0
-    const opensInTextOverride = notStarted ? getMessage('activity.opens_in_days', { days: daysUntilStart }) : ''
-    const startLabel = notStarted
-      ? getMessage('activity.opens_label', { date: formatMonthDay(a.startTs) })
-      : getMessage('activity.start_label', { time: shortStart })
-    const endLabel = getMessage('activity.end_label', { time: shortEnd })
-    const timeLine = `${startLabel}${getMessage('activity.time_range_separator')}${endLabel}`
+  const clipPct = (v) => Math.max(0, Math.min(100, v))
+  const keyDates = new Set()
 
-    const overlaps = (a.startTs != null && a.endTs != null)
-      ? (a.endTs >= startDayTs && a.startTs <= endDayTs)
-      : true
-    const item = { ...a, remainingText, opensInText: opensInTextOverride || opensInText, shortStart, shortEnd, startLabel, endLabel, timeLine }
-
-    if (overlaps) {
-      let startCol = 0
-      let endCol = 1
-      if (a.startTs != null && a.endTs != null) {
-        startCol = Math.floor((a.startTs - startDayTs) / DAY_SEC)
-        endCol = Math.ceil((a.endTs - startDayTs) / DAY_SEC)
-        if (startCol < 0) startCol = 0
-        if (endCol > dayCount) endCol = dayCount
-        if (endCol <= startCol) endCol = startCol + 1
-      }
-      inRange.push({ ...item, startCol, endCol, span: endCol - startCol })
-    } else {
-      outOfRange.push(item)
+  const positionAct = (act) => {
+    let leftPct = (act.stTs - minTs) / totalDuration * 100
+    let rightPct = act.isPerm ? 100 : (act.etTs - minTs) / totalDuration * 100
+    leftPct = clipPct(leftPct)
+    rightPct = clipPct(rightPct)
+    let widthPct = rightPct - leftPct
+    if (widthPct < MIN_BAR_WIDTH_PCT) {
+      widthPct = MIN_BAR_WIDTH_PCT
+      if (leftPct + widthPct > 100) leftPct = 100 - widthPct
     }
+    act.leftPct = leftPct
+    act.widthPct = widthPct
+    act.hideStart = act.stTs < minTs
+    if (!act.isPerm && leftPct >= 0 && leftPct <= 100) keyDates.add(act.stTs)
+  }
+  normal.forEach(positionAct)
+  perm.forEach(positionAct)
+
+  // 过滤已结束 + 完全在窗口外的活动
+  const inWindow = (a) => a.etTs >= nowTs && a.stTs <= maxTs
+  const normalIn = normal.filter(inWindow)
+  const permIn = perm.filter(inWindow)
+
+  const lanes = packLanes(normalIn).concat(packLanes(permIn))
+  assignTheme(lanes)
+
+  const axisDates = []
+  let lastTs = 0
+  const minGap = AXIS_MIN_GAP_DAYS * DAY_SEC
+  for (const ts of [...keyDates].sort((a, b) => a - b)) {
+    if (ts - lastTs < minGap) continue
+    lastTs = ts
+    axisDates.push({ label: fmtMonthDay(ts), leftPct: (ts - minTs) / totalDuration * 100 })
   }
 
-  // 按开启时间（startTs）升序排序，无开始时间的排到最后
-  const sortByStart = (x, y) => (x.startTs ?? 1e12) - (y.startTs ?? 1e12)
-  inRange.sort(sortByStart)
-  outOfRange.sort(sortByStart)
+  let nowLine = null
+  const nowPct = (nowTs - minTs) / totalDuration * 100
+  if (nowPct >= 0 && nowPct <= 100) nowLine = { label: 'TODAY', leftPct: nowPct }
 
-  const currentTimeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-  return { days, activitiesInRange: inRange, activitiesOutOfRange: outOfRange, dayCount, currentTimeStr }
+  return { lanes, axisDates, nowLine, currentTimeStr: fmtNow(now) }
 }
 
 export class EndfieldActivity extends plugin {
@@ -188,128 +207,42 @@ export class EndfieldActivity extends plugin {
 
     const req = new EndfieldRequest(0, '', '')
     const res = await req.getWikiData('wiki_activities')
-
     if (!res || res.code !== 0) {
       logger.error(`[终末地插件][活动列表]请求失败: ${JSON.stringify(res)}`)
       await this.reply(getMessage('activity.query_failed', { name: '日历' }))
       return true
     }
 
-    const rawData = res.data
-    const activities = normalizeActivities(rawData)
-
-    if (activities.length === 0) {
+    const rawList = normalizeRaw(res.data)
+    if (rawList.length === 0) {
       await this.reply(getMessage('activity.no_records'))
       return true
     }
 
-    // 本期 UP（特许寻访 / 武库申领）：并入日历展示，按 is_active 分为进行中/即将开始，并计算 xx后结束/xx日后开启
-    let currentUpActive = []
-    let currentUpUpcoming = []
-    if (config.api_key && String(config.api_key).trim() !== '') {
-      try {
-        const upRes = await req.getWikiData('bili_wiki_activities')
-        if (upRes?.code === 0 && Array.isArray(upRes.data?.activities)) {
-          const nowTs = Math.floor(Date.now() / 1000)
-          const upTypes = ['特许寻访', '武库申领']
-          const upItems = upRes.data.activities
-            .filter((a) => upTypes.includes(a?.type || ''))
-            .map((a) => {
-              const startTs = parseBiliWikiTime(a.start_time)
-              const endTs = parseBiliWikiTime(a.end_time)
-              const { remainingText, opensInText } = getRemainingOrOpensText(nowTs, startTs, endTs)
-              const timeStr = a.end_time ? `${a.start_time || ''} ~ ${a.end_time}` : (a.start_time || '')
-              const shortStart = startTs != null ? formatShortTs(startTs) : (a.start_time || '-')
-              const shortEnd = endTs != null ? formatShortTs(endTs) : (a.end_time || '-')
-              const notStarted = startTs != null && startTs > nowTs
-              const startLabel = notStarted && startTs != null
-                ? getMessage('activity.opens_label', { date: formatMonthDay(startTs) })
-                : getMessage('activity.start_label', { time: shortStart })
-              const endLabel = getMessage('activity.end_label', { time: shortEnd })
-              const timeLine = `${startLabel}${getMessage('activity.time_range_separator')}${endLabel}`
-              return {
-                name: a.name || getMessage('common.unknown'),
-                type: a.type || '',
-                timeStr,
-                description: (a.description || '').trim(),
-                is_active: !!a.is_active,
-                remainingText,
-                opensInText,
-                startTs,
-                endTs,
-                timeLine,
-                isUpPool: true
-              }
-            })
-            .sort((a, b) => {
-              if (a.is_active !== b.is_active) return a.is_active ? -1 : 1
-              return 0
-            })
-          currentUpActive = upItems.filter((a) => a.is_active)
-          currentUpUpcoming = upItems.filter((a) => !a.is_active)
-        }
-      } catch (e) {
-        logger.error(`[终末地插件][活动列表]获取本期UP失败: ${e?.message || e}`)
-      }
-    }
-    const currentUpList = currentUpActive.concat(currentUpUpcoming)
-
     if (this.e?.runtime?.render) {
       try {
         const pluResPath = this.e?.runtime?.path?.plugin?.['endfield-plugin']?.res || ''
-        // 31 天：往前 15、当天、往后 15
-        const daysBefore = 15
-        const dayCount = 31
-        const { days, activitiesInRange: calendarInRange, activitiesOutOfRange: calendarOutOfRange, currentTimeStr } = buildCalendarData(activities, dayCount, daysBefore)
-        const todayColIndex = days.findIndex(d => d.isToday)
-
-        const now = new Date()
-        const startDate = new Date(now)
-        startDate.setDate(startDate.getDate() - daysBefore)
-        startDate.setHours(0, 0, 0, 0)
-        const startDayTs = Math.floor(startDate.getTime() / 1000)
-        const endDayTs = startDayTs + dayCount * DAY_SEC
-
-        const upToBarItem = (up) => {
-          const overlaps = (up.startTs != null && up.endTs != null)
-            ? (up.endTs >= startDayTs && up.startTs <= endDayTs)
-            : false
-          let startCol = 0
-          let endCol = 1
-          if (up.startTs != null && up.endTs != null) {
-            startCol = Math.floor((up.startTs - startDayTs) / DAY_SEC)
-            endCol = Math.ceil((up.endTs - startDayTs) / DAY_SEC)
-            if (startCol < 0) startCol = 0
-            if (endCol > dayCount) endCol = dayCount
-            if (endCol <= startCol) endCol = startCol + 1
-          }
-          const span = endCol - startCol
-          return { ...up, startCol, endCol, span, overlaps }
+        // 并发抓长条 banner 写回 raw.pic
+        await Promise.all(rawList.map(async (raw) => {
+          const url = await fetchBanner(req, raw)
+          if (url) raw.pic = url
+        }))
+        const { lanes, axisDates, nowLine, currentTimeStr } = buildGanttData(rawList)
+        if (lanes.length === 0) {
+          await this.reply('当前时间窗口内暂无活动。')
+          return true
         }
-
-        const upInRange = currentUpList.filter((up) => upToBarItem(up).overlaps).map(upToBarItem)
-        const upOutOfRange = currentUpList.filter((up) => !upToBarItem(up).overlaps)
-
-        const sortByStart = (x, y) => (x.startTs ?? 1e12) - (y.startTs ?? 1e12)
-        const activitiesInRange = [...upInRange.map(({ overlaps, ...u }) => u), ...calendarInRange].sort(sortByStart)
-        const activitiesOutOfRange = [...upOutOfRange, ...calendarOutOfRange].sort(sortByStart)
-
-        const pageWidth = 1400
-        const viewportHeight = 800
-        const baseOpt = { scale: 1.6, retType: 'base64' }
+        const pageWidth = 1500
         const renderData = {
           title: getMessage('activity.text_title'),
-          subtitle: getMessage('activity.text_subtitle', { count: activities.length }),
-          days,
-          dayCount,
-          todayColIndex: todayColIndex >= 0 ? todayColIndex : 15,
-          activitiesInRange,
-          activitiesOutOfRange,
+          lanes,
+          axisDates,
+          nowLine,
           currentTimeStr,
           pluResPath,
-          pageWidth,
-          viewport: { width: pageWidth, height: viewportHeight }
+          pageWidth
         }
+        const baseOpt = { scale: 1, retType: 'base64', viewport: { width: pageWidth, height: 900 } }
         const imgSegment = await this.e.runtime.render('endfield-plugin', 'calendar/calendar', renderData, baseOpt)
         if (imgSegment) {
           await this.reply(imgSegment)
@@ -320,24 +253,15 @@ export class EndfieldActivity extends plugin {
       }
     }
 
+    // 文本兜底
     let msg = getMessage('activity.text_title_wrapped') + '\n\n'
-    if (currentUpList.length > 0) {
-      msg += getMessage('activity.text_up_title') + '\n'
-      currentUpList.forEach((a) => {
-        const timeLabel = a.opensInText || a.remainingText || ''
-        const activePrefix = a.is_active ? getMessage('activity.text_up_active_prefix') : ''
-        msg += `${activePrefix}${a.name}${timeLabel ? ` ${timeLabel}` : ''}\n`
-        msg += getMessage('activity.text_type_line', { type: a.type, time: a.timeStr ? ` | ${a.timeStr}` : '' }) + '\n'
-        if (a.description) msg += `${a.description}\n`
-        msg += '\n'
-      })
-      msg += getMessage('activity.text_separator') + '\n\n'
-    }
-    activities.forEach((a) => {
-      msg += getMessage('activity.text_item_line', { index: a.index, name: a.name }) + '\n'
+    rawList.forEach((a, i) => {
+      msg += getMessage('activity.text_item_line', { index: i + 1, name: a.name || '未知活动' }) + '\n'
       if (a.description) msg += getMessage('activity.text_item_desc', { desc: a.description }) + '\n'
-      if (a.startTime) msg += getMessage('activity.text_item_start', { time: a.startTime }) + '\n'
-      if (a.endTime) msg += getMessage('activity.text_item_end', { time: a.endTime }) + '\n'
+      const st = Number(a.activity_start_at_ts ?? a.activityStartAtTs ?? 0)
+      const et = Number(a.activity_end_at_ts ?? a.activityEndAtTs ?? 0)
+      if (st) msg += getMessage('activity.text_item_start', { time: new Date(st * 1000).toLocaleString('zh-CN') }) + '\n'
+      if (et) msg += getMessage('activity.text_item_end', { time: new Date(et * 1000).toLocaleString('zh-CN') }) + '\n'
       msg += '\n'
     })
     await this.reply(msg.trim())
