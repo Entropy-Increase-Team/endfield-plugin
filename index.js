@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import setting from './utils/setting.js'
+import './utils/renderPatch.js'
 
 // 兼容部分适配器未提前注入 segment 的场景
 if (!global.segment) {

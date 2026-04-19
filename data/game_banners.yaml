@@ -11,6 +11,10 @@ permanent_weapons:
     weapon_name: 大雷斑
 
 up_characters:
+  - pool_name: 春雷动，万物生
+    character_name: 庄方宜
+    start_time: 04.17 11:00
+    end_time: 05.22 12:00
   - pool_name: 狼珀
     character_name: 洛茜
     start_time: 03.29 12:00
@@ -33,6 +37,10 @@ up_characters:
     end_time: 02.07 11:59
 
 up_weapons:
+  - pool_name: 行舟申领
+    weapon_name: 孤舟
+    start_time: 04.17 11:00
+    end_time: 05.22 12:00
   - pool_name: 绯珀申领
     weapon_name: 狼之绯
     start_time: 03.29 12:00

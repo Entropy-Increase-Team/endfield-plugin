@@ -5,6 +5,26 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循扩展的语义化版本规范（x.y.z 格式）。
 
+## [2.1.4] - 2026-04-19
+- **补充地区素材图片**
+- **补充映射**
+
+## [2.1.3] - 2026-04-15
+
+### feat
+- **新增渲染补丁模块**
+  - 新增 `utils/renderPatch.js`
+  - 对 `Runtime.render` 与 Puppeteer 渲染流程进行统一补丁处理
+  - 为 `endfield-plugin` 的模板渲染补齐截图参数归一化与多页截图兼容逻辑
+
+### changed
+- **版本号统一为 2.1.3**
+  - `package.json` 版本号更新为 `2.1.3`
+  - `README.md` 当前版本更新为 `2.1.3`（2026-04-15）
+- **许可证统一为 AGPLv3**
+  - `package.json` 许可证字段由 `MIT` 调整为 `AGPL-3.0-only`
+  - 与仓库中的 `LICENSE` 文件和 `README.md` 开源协议说明保持一致
+
 ## [2.1.2] - 2026-04-04
 
 ### feat
