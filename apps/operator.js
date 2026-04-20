@@ -47,6 +47,30 @@ function pickPanelSyncFailedReason(statusRes) {
   return '同步失败'
 }
 
+function normText(val) {
+  return String(val || '').trim()
+}
+
+function isOperatorRawName(val) {
+  return /^chr_\d{4}_[a-z0-9_]+$/i.test(normText(val))
+}
+
+function getOperatorNameMap() {
+  return setting.getData('operatorMap') || {}
+}
+
+function pickOperatorCnName(templateId, ...vals) {
+  const normalizedTemplateId = normText(templateId)
+  const mappedName = normText(getOperatorNameMap()?.[normalizedTemplateId])
+  const candidates = [...vals, mappedName]
+  for (const v of candidates) {
+    const text = normText(v)
+    if (!text || isOperatorRawName(text)) continue
+    return text
+  }
+  return mappedName
+}
+
 
 function iconToDataUrl(dir, chineseName) {
   if (!chineseName || typeof chineseName !== 'string') return ''
@@ -93,6 +117,7 @@ export class EndfieldOperator extends plugin {
     const char = data?.char || {}
     const processed = data?.processed || {}
     const template = char?.template || {}
+    const templateId = template?.id || template?.raw_name || char?.template_id || data?.template_id || ''
 
     const rarity = 6
     const stars = Array.from({ length: Math.min(6, Math.max(1, rarity)) }, (_, i) => i + 1)
@@ -234,7 +259,7 @@ export class EndfieldOperator extends plugin {
     const potentialStars = Array.from({ length: 5 }, (_, i) => i < potentialLevel)
 
     return {
-      nameCn: template?.name_cn || '',
+      nameCn: pickOperatorCnName(templateId, template?.name_cn, template?.name),
       level: char?.level ?? 0,
       stars,
       potentialLevel,
@@ -824,7 +849,11 @@ export class EndfieldOperator extends plugin {
           const friendChars = friendData?.role_profile?.char_data || []
           if (Array.isArray(friendChars) && friendChars.length) {
             const targetName = norm(matched.name || operatorName)
-            const hit = friendChars.find((x) => norm(x?.template?.name_cn) === targetName)
+            const hit = friendChars.find((x) => {
+              const tid = norm(x?.template_id || x?.template?.id || x?.template?.raw_name)
+              const nameCn = norm(pickOperatorCnName(tid, x?.template?.name_cn, x?.template?.name))
+              return (templateId && tid === templateId) || (nameCn && nameCn === targetName)
+            })
             friendCharTemplateId = norm(hit?.template_id || hit?.template?.id || '')
           }
         } catch (err) {
@@ -1357,12 +1386,13 @@ export class EndfieldOperator extends plugin {
       }
 
       const norm = (val) => String(val || '').trim()
-      const pickCnName = (...vals) => {
+      const pickCnName = (templateId, ...vals) => {
         for (const v of vals) {
           const text = norm(v)
-          if (text) return text
+          if (!text || isOperatorRawName(text)) continue
+          return text
         }
-        return ''
+        return pickOperatorCnName(templateId)
       }
 
       // friend_detail 展示标记 / 名称映射
@@ -1374,11 +1404,14 @@ export class EndfieldOperator extends plugin {
         const friendData = isApiSuccess(friendDetailRes) ? friendPayload : (friendPayload?.data || friendPayload)
         const friendList = friendData?.role_profile?.char_data || []
         if (Array.isArray(friendList)) {
-          friendTemplateCnSet = new Set(friendList.map((x) => norm(x?.template?.name_cn)).filter(Boolean))
+          friendTemplateCnSet = new Set(friendList.map((x) => {
+            const tid = norm(x?.template_id || x?.template?.id || x?.template?.raw_name)
+            return norm(pickOperatorCnName(tid, x?.template?.name_cn, x?.template?.name))
+          }).filter(Boolean))
           friendTemplateIdSet = new Set(friendList.map((x) => norm(x?.template_id || x?.template?.id)).filter(Boolean))
           for (const item of friendList) {
-            const tid = norm(item?.template_id || item?.template?.id)
-            const cn = norm(item?.template?.name_cn)
+            const tid = norm(item?.template_id || item?.template?.id || item?.template?.raw_name)
+            const cn = norm(pickOperatorCnName(tid, item?.template?.name_cn, item?.template?.name))
             if (tid && cn && !friendNameById.has(tid)) friendNameById.set(tid, cn)
           }
         }
@@ -1414,6 +1447,7 @@ export class EndfieldOperator extends plugin {
         const synced = syncedMap.get(templateId)
         const rarity = parseInt(c.rarity?.value || '1', 10) || 1
         const name = pickCnName(
+          templateId,
           c?.name,
           char?.name,
           friendNameById.get(templateId),
