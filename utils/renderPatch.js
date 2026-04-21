@@ -203,8 +203,13 @@ async function renderEndfieldScreenshot(name, data = {}) {
 
   const durationMs = Date.now() - start
   const sentBytes = ret.reduce((sum, item) => sum + (Buffer.isBuffer(item) ? item.length : 0), 0)
-  await this.saveScreenshotCount(ret.length)
-  await this.saveScreenshotStats({ count: ret.length, durationMs, sentBytes })
+  if (typeof this.saveScreenshotCount === 'function') {
+    await this.saveScreenshotCount(ret.length)
+  }
+
+  if (typeof this.saveScreenshotStats === 'function') {
+    await this.saveScreenshotStats({ count: ret.length, durationMs, sentBytes })
+  }
 
   this.restart()
   return data.multiPage ? ret : ret[0]
@@ -220,4 +225,3 @@ export function applyRenderPatch() {
 }
 
 applyRenderPatch()
-
