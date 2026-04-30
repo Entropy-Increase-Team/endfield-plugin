@@ -72,7 +72,7 @@ export class EndfieldOperator extends plugin {
       priority: 50,
       rule: [
         {
-          reg: '^(?:[:：]|[/#](?:zmd|终末地))更新面板$',
+          reg: '^(?:[:：]|[/#](?:zmd|终末地))(?:同步|更新)面板$',
           fnc: 'getOperatorList'
         },
         {
