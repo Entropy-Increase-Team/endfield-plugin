@@ -1213,9 +1213,9 @@ export class EndfieldGacha extends plugin {
       })
     }
 
-    // 限定角色池继承（对齐 EndfieldGachaHelper / endfield-gacha）：
-    // 小保底(80) 与 大保底(120) 跨所有期数共享；免费十连不计入；按全局时间序合并后单次遍历
-    const limitedPoolNames = charPoolNames.filter((pn) => isUpCharPoolName(pn))
+    // 特许寻访继承（对齐 EndfieldGachaHelper / endfield-gacha）：
+    // 小保底(80) 与 大保底(120) 只在特许寻访各期之间共享；辉光庆典独立计算，不继承特许寻访抽数。
+    const limitedPoolNames = charPoolNames.filter((pn) => isLimitedPoolName(pn))
     if (limitedPoolNames.length > 0) {
       // 1) 合并所有限定池的付费记录，并打上池名
       const allLimitedPaid = []
@@ -1287,7 +1287,7 @@ export class EndfieldGacha extends plugin {
       // 5) 所有限定池清空单池垫抽显示，仅当前限定池展示共享保底
       for (let i = 0; i < charPoolEntries.length; i++) {
         const e = charPoolEntries[i]
-        if (!isUpCharPoolName(e.poolName)) continue
+        if (!isLimitedPoolName(e.poolName)) continue
         e.pitySinceLast6 = null
         e.pityBarPercent = 0
       }
@@ -1305,7 +1305,7 @@ export class EndfieldGacha extends plugin {
         // 更新限定池中6星角色的跨池垫抽数显示（按 seq_id 匹配）
         if (Object.keys(seqIdToSharedPity).length > 0) {
           for (const entry of charPoolEntries) {
-            if (!isUpCharPoolName(entry.poolName)) continue
+            if (!isLimitedPoolName(entry.poolName)) continue
             if (!Array.isArray(entry.images)) continue
             for (const img of entry.images) {
               if (!img || img.tag === '免费') continue
