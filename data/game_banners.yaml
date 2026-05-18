@@ -11,6 +11,14 @@ permanent_weapons:
     weapon_name: 大雷斑
 
 up_characters:
+  - pool_name: 辉光庆典
+    character_names:
+      - 骏卫
+      - 洁尔佩塔
+      - 莱万汀
+      - 艾尔黛拉
+    start_time: 05.14 12:00
+    end_time: 06.05 06:00
   - pool_name: 春雷动，万物生
     character_name: 庄方宜
     start_time: 04.17 11:00

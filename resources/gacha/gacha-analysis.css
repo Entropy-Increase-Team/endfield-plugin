@@ -93,13 +93,13 @@ html, body {
 
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 10px;
   margin-bottom: 12px;
 }
 
 .stats-row .stat-item:nth-child(-n+2) {
-  grid-column: span 3;
+  grid-column: span 4;
 }
 
 .stats-row .stat-item:nth-child(n+3) {
@@ -155,6 +155,8 @@ html, body {
 
 .stat-limited { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
 .stat-limited .stat-num { color: #dc2626; }
+.stat-joint { background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%); }
+.stat-joint .stat-num { color: #0891b2; }
 .stat-weapon { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); }
 .stat-weapon .stat-num { color: #d97706; }
 .stat-standard { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); }

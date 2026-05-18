@@ -14,9 +14,10 @@ const GACHA_KEYS = {
 }
 const SYNC_MS = { pollInterval: 1500, pollTimeout: Infinity }
 const GACHA_CACHE_DIR = path.join(process.cwd(), 'plugins', 'endfield-plugin', 'data', 'gacha')
-const GACHA_POOLS = ['limited', 'standard', 'beginner', 'weapon']
+const GACHA_POOLS = ['limited', 'joint_char', 'standard', 'beginner', 'weapon']
 const GACHA_POOL_GROUP_CONFIG = [
   { id: 'limited', keys: ['limited'], label: '特许寻访', upType: 'limited' },
+  { id: 'joint', keys: ['joint_char'], label: '辉光庆典', upType: 'limited' },
   { id: 'weapon', keys: ['weapon'], label: '武库交易所', upType: 'weapon' },
   { id: 'base', keys: ['standard', 'beginner'], label: '基础寻访', upType: '' }
 ]
@@ -395,21 +396,32 @@ export class EndfieldGacha extends plugin {
   parseBiliWikiUpResult(listRaw) {
     const list = Array.isArray(listRaw) ? listRaw : []
     const activeOnly = list.filter((a) => a?.is_active === true)
+    const getActivityUpNames = (activity) => {
+      const names = []
+      const pushName = (value) => {
+        const name = String(value || '').trim()
+        if (name && !names.includes(name)) names.push(name)
+      }
+      if (Array.isArray(activity?.up_char_names)) {
+        activity.up_char_names.forEach(pushName)
+      }
+      pushName(activity?.up_char_name)
+      pushName(activity?.up)
+      return names
+    }
     let upCharNames = []
     let upWeaponName = ''
     let activeCharPoolName = ''
     let activeWeaponPoolName = ''
 
     const charActivity = activeOnly.find((a) => (a?.type || '') === '特许寻访')
-    if (charActivity?.up && String(charActivity.up).trim()) {
-      const upStr = String(charActivity.up).trim()
-      upCharNames = [upStr]
-    }
+    upCharNames = getActivityUpNames(charActivity)
     activeCharPoolName = this.normalizePoolName(charActivity?.name)
 
     const weaponActivity = activeOnly.find((a) => (a?.type || '') === '武库申领')
-    if (weaponActivity?.up && String(weaponActivity.up).trim()) {
-      upWeaponName = String(weaponActivity.up).trim()
+    const weaponUpNames = getActivityUpNames(weaponActivity)
+    if (weaponUpNames.length > 0) {
+      upWeaponName = weaponUpNames[0]
       activeWeaponPoolName = upWeaponName
     } else {
       activeWeaponPoolName = this.normalizePoolName(weaponActivity?.name)
@@ -417,10 +429,10 @@ export class EndfieldGacha extends plugin {
 
     const poolUpMap = {}
     for (const a of list) {
-      if (!a?.name || !a?.up) continue
+      if (!a?.name) continue
       const pName = this.normalizePoolName(a.name)
-      const upStr = String(a.up).trim()
-      if (pName && upStr) poolUpMap[pName] = upStr
+      const names = getActivityUpNames(a)
+      if (pName && names.length > 0) poolUpMap[pName] = names
     }
 
     const charActivities = list.filter((a) => (a?.type || '') === '特许寻访')
@@ -463,15 +475,25 @@ export class EndfieldGacha extends plugin {
       const rows = []
       for (const item of upChars) {
         const poolName = String(item?.pool_name || '').trim()
-        const charName = String(item?.character_name || '').trim()
-        if (!poolName || !charName) continue
+        const charNames = []
+        const pushCharName = (value) => {
+          const name = String(value || '').trim()
+          if (name && !charNames.includes(name)) charNames.push(name)
+        }
+        if (Array.isArray(item?.character_names)) {
+          item.character_names.forEach(pushCharName)
+        }
+        pushCharName(item?.character_name)
+        if (!poolName || charNames.length === 0) continue
         const startTs = this.parseBannerTime(item?.start_time)
         const endTs = this.parseBannerTime(item?.end_time)
         const isActive = startTs > 0 && endTs > 0 ? (nowTs >= startTs && nowTs <= endTs) : false
         rows.push({
           type: '特许寻访',
           name: `特许寻访·${poolName}`,
-          up: charName,
+          up: charNames[0],
+          up_char_name: charNames[0],
+          up_char_names: charNames,
           start_time: item?.start_time || '',
           start_ts: startTs,
           end_ts: endTs,
@@ -521,14 +543,10 @@ export class EndfieldGacha extends plugin {
   async getCurrentUpFromBiliWiki() {
     const source = this.getBannerInfoSource()
     if (source === 'local_file') {
-      const localRes = this.getCurrentUpFromLocalBannerData()
-      if (localRes) return localRes
-      return await this.getCurrentUpFromBackendApi()
+      return this.getCurrentUpFromLocalBannerData()
     }
 
-    const apiRes = await this.getCurrentUpFromBackendApi()
-    if (apiRes) return apiRes
-    return this.getCurrentUpFromLocalBannerData()
+    return await this.getCurrentUpFromBackendApi()
   }
 
   async getNoteDataSafe(sklUser, roleId, serverId, scene) {
@@ -1040,10 +1058,10 @@ export class EndfieldGacha extends plugin {
     }
 
 
-    const charPoolKeys = ['limited', 'standard', 'beginner']
+    const charPoolKeys = ['limited', 'joint_char', 'standard', 'beginner']
     let charRecords = []
     for (const key of charPoolKeys) {
-      charRecords = charRecords.concat(this.getCachePoolRecords(cacheData, key))
+      charRecords = charRecords.concat(this.getCachePoolRecords(cacheData, key).map((r) => ({ ...r, _poolKey: key })))
     }
     const charByPoolName = {}
     const charFreeByPoolName = {}
@@ -1062,19 +1080,33 @@ export class EndfieldGacha extends plugin {
     const matchActivePool = (poolName, activeName) =>
       activeName && (poolName === activeName || poolName.includes(activeName) || activeName.includes(poolName))
     const poolUpMap = biliUp?.poolUpMap || {}
+    const isJointPoolName = (poolName) => {
+      const name = String(poolName || '').trim()
+      if (name.includes('辉光庆典')) return true
+      const recs = charByPoolName[name] || []
+      return recs.some((r) => {
+        const poolId = String(r?.pool_id || '').toLowerCase()
+        const poolKey = String(r?._poolKey || '').toLowerCase()
+        return poolKey === 'joint_char' || poolId.includes('joint')
+      })
+    }
     const isLimitedPoolName = (poolName) => {
+      if (isJointPoolName(poolName)) return false
       const recs = charByPoolName[poolName] || []
       const hasLimitedId = recs.some((r) => (r?.pool_id || '').toLowerCase().includes('limited'))
       return hasLimitedId || !!poolUpMap[poolName]
     }
+    const isUpCharPoolName = (poolName) => isLimitedPoolName(poolName) || isJointPoolName(poolName)
     for (const subPoolName of charPoolNames) {
       const groupRecords = charByPoolName[subPoolName]
       const firstPoolId = (groupRecords[0]?.pool_id || '').toLowerCase()
-      const isLimited = isLimitedPoolName(subPoolName)
+      const isLimited = isUpCharPoolName(subPoolName)
       const noWaiTag = firstPoolId.includes('standard') || firstPoolId.includes('beginner')
       // 从 poolUpMap 获取该池子的 UP 角色名（支持历史池子）
       const poolSpecificUp = poolUpMap[subPoolName]
-      const poolUpChars = poolSpecificUp ? [poolSpecificUp] : null
+      const poolUpChars = Array.isArray(poolSpecificUp)
+        ? poolSpecificUp
+        : (poolSpecificUp ? [poolSpecificUp] : null)
       const metric1Label = (isLimited || poolUpChars) ? '平均UP花费' : '每红花费'
       const showNotWaiRate = isLimited
       const metric2Label = showNotWaiRate ? '不歪率' : '出红数'
@@ -1148,7 +1180,7 @@ export class EndfieldGacha extends plugin {
           }
         }
       }
-      const headerCharName = String(poolSpecificUp || '').trim()
+      const headerCharName = String((Array.isArray(poolUpChars) ? poolUpChars[0] : poolSpecificUp) || '').trim()
       const headerCharCover = getCharHeaderCover(headerCharName)
       const fallbackCharCover = getFallbackHeaderCover(mergedImages)
       charPoolEntries.push({
@@ -1183,7 +1215,7 @@ export class EndfieldGacha extends plugin {
 
     // 限定角色池继承（对齐 EndfieldGachaHelper / endfield-gacha）：
     // 小保底(80) 与 大保底(120) 跨所有期数共享；免费十连不计入；按全局时间序合并后单次遍历
-    const limitedPoolNames = charPoolNames.filter((pn) => isLimitedPoolName(pn))
+    const limitedPoolNames = charPoolNames.filter((pn) => isUpCharPoolName(pn))
     if (limitedPoolNames.length > 0) {
       // 1) 合并所有限定池的付费记录，并打上池名
       const allLimitedPaid = []
@@ -1229,8 +1261,11 @@ export class EndfieldGacha extends plugin {
         
         if (r.rarity === 6) {
           const name = String(r.char_name || r.item_name || '').trim()
-          const poolUpName = poolUpMap[r._poolName]
-          const upNames = poolUpName ? [poolUpName] : (activeCharPoolName && (r._poolName === activeCharPoolName || r._poolName.includes(activeCharPoolName) || activeCharPoolName.includes(r._poolName)) ? fallbackUpNames : [])
+          const poolUpValue = poolUpMap[r._poolName]
+          const poolUpNames = Array.isArray(poolUpValue)
+            ? poolUpValue
+            : (poolUpValue ? [poolUpValue] : [])
+          const upNames = poolUpNames.length > 0 ? poolUpNames : (activeCharPoolName && (r._poolName === activeCharPoolName || r._poolName.includes(activeCharPoolName) || activeCharPoolName.includes(r._poolName)) ? fallbackUpNames : [])
           const isUp = upNames.length > 0 && upNames.some((u) => (u && (name === u || name.includes(u) || u.includes(name))))
 
           const seqKey = String(r.seq_id ?? '').trim()
@@ -1252,7 +1287,7 @@ export class EndfieldGacha extends plugin {
       // 5) 所有限定池清空单池垫抽显示，仅当前限定池展示共享保底
       for (let i = 0; i < charPoolEntries.length; i++) {
         const e = charPoolEntries[i]
-        if (!isLimitedPoolName(e.poolName)) continue
+        if (!isUpCharPoolName(e.poolName)) continue
         e.pitySinceLast6 = null
         e.pityBarPercent = 0
       }
@@ -1270,7 +1305,7 @@ export class EndfieldGacha extends plugin {
         // 更新限定池中6星角色的跨池垫抽数显示（按 seq_id 匹配）
         if (Object.keys(seqIdToSharedPity).length > 0) {
           for (const entry of charPoolEntries) {
-            if (!isLimitedPoolName(entry.poolName)) continue
+            if (!isUpCharPoolName(entry.poolName)) continue
             if (!Array.isArray(entry.images)) continue
             for (const img of entry.images) {
               if (!img || img.tag === '免费') continue
@@ -1313,9 +1348,10 @@ export class EndfieldGacha extends plugin {
       }
       return (a.poolName || '').localeCompare(b.poolName || '')
     })
-    // 拆分为限定特许寻访 / 常驻寻访；常驻内 基础寻访 在上、启程寻访 在下
+    // 拆分为限定特许寻访 / 辉光庆典 / 常驻寻访；常驻内 基础寻访 在上、启程寻访 在下
     const charPoolEntriesLimited = charPoolEntries.filter((e) => isLimitedPoolName(e.poolName))
-    const charPoolEntriesNormal = charPoolEntries.filter((e) => !isLimitedPoolName(e.poolName))
+    const charPoolEntriesJoint = charPoolEntries.filter((e) => isJointPoolName(e.poolName))
+    const charPoolEntriesNormal = charPoolEntries.filter((e) => !isUpCharPoolName(e.poolName))
     const normalOrder = ['基础寻访', '启程寻访']
     charPoolEntriesNormal.sort((a, b) => {
       const ai = normalOrder.indexOf(a.poolName)
@@ -1364,7 +1400,8 @@ export class EndfieldGacha extends plugin {
       const showNotWaiRate = true
       const metric2Label = '不歪率'
       // 从 poolUpMap 获取该池子的 UP 武器名（支持历史池子）
-      const poolSpecificWeaponUp = poolUpMap[subPoolName] || null
+      const poolSpecificWeaponUpRaw = poolUpMap[subPoolName] || null
+      const poolSpecificWeaponUp = Array.isArray(poolSpecificWeaponUpRaw) ? (poolSpecificWeaponUpRaw[0] || null) : poolSpecificWeaponUpRaw
       const entry = buildPoolEntry(groupRecords, {
         isChar: false,
         isLimited: false,
@@ -1459,6 +1496,7 @@ export class EndfieldGacha extends plugin {
     // 限定特许寻访倒序展示：最新在最上面，最老在最下面
     const analysisPoolsByGroup = {
       limited: charPoolEntriesLimited.slice().reverse(),
+      joint: charPoolEntriesJoint,
       weapon: weaponPoolEntries,
       base: charPoolEntriesNormal
     }
@@ -1483,6 +1521,11 @@ export class EndfieldGacha extends plugin {
         const limitedTotalPulls = charPoolEntriesLimited.reduce((sum, pool) => sum + (pool.total ?? 0), 0)
         const limitedTotal6Stars = charPoolEntriesLimited.reduce((sum, pool) => sum + (pool.star6 ?? 0), 0)
         const limitedAvgCost = limitedTotal6Stars > 0 ? Math.round(limitedTotalPulls / limitedTotal6Stars) : 0
+
+        // 计算辉光庆典平均出红
+        const jointTotalPulls = charPoolEntriesJoint.reduce((sum, pool) => sum + (pool.total ?? 0), 0)
+        const jointTotal6Stars = charPoolEntriesJoint.reduce((sum, pool) => sum + (pool.star6 ?? 0), 0)
+        const jointAvgCost = jointTotal6Stars > 0 ? Math.round(jointTotalPulls / jointTotal6Stars) : 0
         
         // 计算武器池平均出红
         const weaponTotalPulls = weaponPoolEntries.reduce((sum, pool) => sum + (pool.total ?? 0), 0)
@@ -1509,9 +1552,11 @@ export class EndfieldGacha extends plugin {
           star5: cacheSummary.star5,
           star4: cacheSummary.star4,
           limitedAvgCost,
+          jointAvgCost,
           weaponAvgCost,
           standardAvgCost,
           limitedTotal: cacheSummary.pools.limited?.total ?? 0,
+          jointTotal: cacheSummary.pools.joint_char?.total ?? 0,
           standardTotal: cacheSummary.pools.standard?.total ?? 0,
           beginnerTotal: cacheSummary.pools.beginner?.total ?? 0,
           weaponTotal: cacheSummary.pools.weapon?.total ?? 0,
@@ -1794,13 +1839,14 @@ export class EndfieldGacha extends plugin {
           let poolLine = ''
           const statsData = await hypergryphAPI.getGachaStats(token, query)
           const stats = statsData?.stats || {}
-          if (stats.limited_char_count != null || stats.standard_char_count != null || stats.beginner_char_count != null || stats.weapon_count != null) {
+          if (stats.limited_char_count != null || stats.joint_char_count != null || stats.standard_char_count != null || stats.beginner_char_count != null || stats.weapon_count != null) {
             const parts = []
             const toCount = (v) => {
               const n = Number(v)
               return Number.isFinite(n) ? n : 0
             }
             if (stats.limited_char_count != null) parts.push(`特许寻访 ${toCount(stats.limited_char_count)} 条`)
+            if (stats.joint_char_count != null) parts.push(`辉光庆典 ${toCount(stats.joint_char_count)} 条`)
             if (stats.weapon_count != null) parts.push(`武库交易所 ${toCount(stats.weapon_count)} 条`)
             if (stats.standard_char_count != null || stats.beginner_char_count != null) {
               const baseCount = toCount(stats.standard_char_count) + toCount(stats.beginner_char_count)
