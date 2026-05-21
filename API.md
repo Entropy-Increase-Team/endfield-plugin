@@ -1,6 +1,6 @@
 # Endfield-API 接口文档
 
-版本号：3.4.0
+版本号：3.5.0
 
 ## 概述
 
@@ -658,6 +658,252 @@ X-API-Key: sk_xxx
 - `start`：按 `apiKey + IP + email` 做细粒度限流（分钟级）
 - `status`：按 `apiKey + IP + poll_token` 做轮询限流（秒级）
 
+#### Google 第三方登录桥接（Browser-Bridge）
+
+用于 Google OAuth 回调无法直达业务域名时的桥接方案（由浏览器插件捕获回调参数后回传后端）。
+
+前端负责调用 `POST /login/skport/google/start` 创建 flow 并拉起授权页；插件仅负责监听回调并自动调用 `complete`。
+
+1) `POST /login/skport/google/start`
+- 作用：由前端创建 Google 登录 flow，返回 `flow_id` 与 `auth_url`
+- 可选入参：`callback_url`，但必须是白名单地址（当前固定 `https://www.skport.com/?tpa_action=login`）
+- 建议：前端缓存 `flow_id`，并拉起授权页
+
+请求示例：
+```http
+POST /login/skport/google/start
+Content-Type: application/json
+X-API-Key: sk_xxx
+
+{
+  "callback_url": "https://www.skport.com/?tpa_action=login"
+}
+```
+
+响应示例：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "provider": "skport",
+    "flow_id": "2d8f5f7c-7d7e-4a80-9aa3-0f3f6f0c9e20",
+    "status": "pending",
+    "auth_url": "https://accounts.google.com/o/oauth2/v2/auth?...",
+    "callback_url": "https://www.skport.com/?tpa_action=login",
+    "expires_in": 300,
+    "status_endpoint": "/login/skport/google/status",
+    "complete_endpoint": "/login/skport/google/complete",
+    "cancel_endpoint": "/login/skport/google/cancel"
+  }
+}
+```
+
+2) `POST /login/skport/google/complete`
+- 作用：提交插件捕获到的 `channel_token` 完成登录兑换
+- 入参：`channel_token`，可选 `channel_id`（默认 2），`flow_id`（可选）
+- 自动化模式：`flow_id` 为空时，后端按当前 API Key（或匿名）自动匹配最近未完成 flow
+- 处理：后端执行 `token_by_third_party_token -> oauth grant -> generate_cred_by_code`，最终写入 `framework_token`
+
+请求示例：
+```http
+POST /login/skport/google/complete
+Content-Type: application/json
+X-API-Key: sk_xxx
+
+{
+  "channel_id": 2,
+  "channel_token": "eyJ0b2tlbiI6Ii4uLiIsInR5cGUiOjJ9"
+}
+```
+
+3) `GET /login/skport/google/status?flow_id=...`
+- 作用：轮询 flow 状态
+- 支持：`flow_id` 可选；为空时自动查询当前 API Key（或匿名）最近 flow
+- 状态：`pending / completed / failed / cancelled`
+- 当 `completed` 时返回 `framework_token` 与 `available_roles`
+
+4) `POST /login/skport/google/cancel`
+- 作用：取消未完成 flow
+
+**安全与约束**：
+- `flow_id` 默认 TTL 5 分钟，过期后不可继续兑换。
+- `complete` 为一次性完成语义；重复完成会返回冲突错误。
+- API Key 场景下，`status/complete/cancel` 必须与创建 flow 的 API Key 用户一致。
+- 服务端仅存储 `channel_token` 的哈希（`channel_token_hash`），避免明文落库。
+- 自动化模式下，插件仅提交 `channel_token`，后端自动匹配“当前调用方最近未完成 flow”。
+
+**错误码（新增）**：
+- `SKPORT_GOOGLE_FLOW_NOT_FOUND`：flow 不存在
+- `SKPORT_GOOGLE_FLOW_EXPIRED`：flow 已过期
+- `SKPORT_GOOGLE_FLOW_INVALID_STATUS`：flow 状态不允许该操作
+- `SKPORT_GOOGLE_FLOW_ALREADY_COMPLETED`：flow 已完成
+- `SKPORT_GOOGLE_FLOW_INTERNAL_ERROR`：flow 处理失败
+
+#### Facebook 第三方登录桥接（Browser-Bridge）
+
+用于 Facebook OAuth 回调无法直达业务域名时的桥接方案（由浏览器插件捕获回调参数后回传后端）。
+
+前端负责调用 `POST /login/skport/facebook/start` 创建 flow 并拉起授权页；插件仅负责监听回调并自动调用 `complete`。
+
+1) `POST /login/skport/facebook/start`
+- 作用：由前端创建 Facebook 登录 flow，返回 `flow_id` 与 `auth_url`
+- 可选入参：`callback_url`，但必须是白名单地址（当前固定 `https://www.skport.com/?tpa_action=login`）
+- 建议：前端缓存 `flow_id`，并拉起授权页
+
+请求示例：
+```http
+POST /login/skport/facebook/start
+Content-Type: application/json
+X-API-Key: sk_xxx
+
+{
+  "callback_url": "https://www.skport.com/?tpa_action=login"
+}
+```
+
+响应示例：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "provider": "skport",
+    "flow_id": "2d8f5f7c-7d7e-4a80-9aa3-0f3f6f0c9e21",
+    "status": "pending",
+    "auth_url": "https://www.facebook.com/v13.0/dialog/oauth?...",
+    "callback_url": "https://www.skport.com/?tpa_action=login",
+    "expires_in": 300,
+    "status_endpoint": "/login/skport/facebook/status",
+    "complete_endpoint": "/login/skport/facebook/complete",
+    "cancel_endpoint": "/login/skport/facebook/cancel"
+  }
+}
+```
+
+2) `POST /login/skport/facebook/complete`
+- 作用：提交插件捕获到的 `channel_token` 完成登录兑换
+- 入参：`channel_token`，可选 `channel_id`（默认 3），`flow_id`（可选）
+- 自动化模式：`flow_id` 为空时，后端按当前 API Key（或匿名）自动匹配最近未完成 flow
+- 处理：后端执行 `token_by_third_party_token -> oauth grant -> generate_cred_by_code`，最终写入 `framework_token`
+
+请求示例：
+```http
+POST /login/skport/facebook/complete
+Content-Type: application/json
+X-API-Key: sk_xxx
+
+{
+  "channel_id": 3,
+  "channel_token": "eyJ0b2tlbiI6Ii4uLiIsInR5cGUiOjJ9"
+}
+```
+
+3) `GET /login/skport/facebook/status?flow_id=...`
+- 作用：轮询 flow 状态
+- 支持：`flow_id` 可选；为空时自动查询当前 API Key（或匿名）最近 flow
+- 状态：`pending / completed / failed / cancelled`
+- 当 `completed` 时返回 `framework_token` 与 `available_roles`
+
+4) `POST /login/skport/facebook/cancel`
+- 作用：取消未完成 flow
+
+**安全与约束**：
+- `flow_id` 默认 TTL 5 分钟，过期后不可继续兑换。
+- `complete` 为一次性完成语义；重复完成会返回冲突错误。
+- API Key 场景下，`status/complete/cancel` 必须与创建 flow 的 API Key 用户一致。
+- 服务端仅存储 `channel_token` 的哈希（`channel_token_hash`），避免明文落库。
+- 自动化模式下，插件仅提交 `channel_token`，后端自动匹配“当前调用方最近未完成 flow”。
+
+**错误码（新增）**：
+- `SKPORT_FACEBOOK_FLOW_NOT_FOUND`：flow 不存在
+- `SKPORT_FACEBOOK_FLOW_EXPIRED`：flow 已过期
+- `SKPORT_FACEBOOK_FLOW_INVALID_STATUS`：flow 状态不允许该操作
+- `SKPORT_FACEBOOK_FLOW_ALREADY_COMPLETED`：flow 已完成
+- `SKPORT_FACEBOOK_FLOW_INTERNAL_ERROR`：flow 处理失败
+
+#### Apple 第三方登录桥接（Browser-Bridge）
+
+用于 Apple OAuth 回调无法直达业务域名时的桥接方案（由浏览器插件捕获回调参数后回传后端）。
+
+前端负责调用 `POST /login/skport/apple/start` 创建 flow 并拉起授权页；插件仅负责监听回调并自动调用 `complete`。
+
+1) `POST /login/skport/apple/start`
+- 作用：由前端创建 Apple 登录 flow，返回 `flow_id` 与 `auth_url`
+- 可选入参：`callback_url`，但必须是白名单地址（当前固定 `https://www.skport.com/?tpa_action=login`）
+- 建议：前端缓存 `flow_id`，并拉起授权页
+
+请求示例：
+```http
+POST /login/skport/apple/start
+Content-Type: application/json
+X-API-Key: sk_xxx
+
+{
+  "callback_url": "https://www.skport.com/?tpa_action=login"
+}
+```
+
+响应示例：
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "provider": "skport",
+    "flow_id": "2d8f5f7c-7d7e-4a80-9aa3-0f3f6f0c9e21",
+    "status": "pending",
+    "auth_url": "https://appleid.apple.com/auth/authorize?...",
+    "callback_url": "https://www.skport.com/?tpa_action=login",
+    "expires_in": 300,
+    "status_endpoint": "/login/skport/apple/status",
+    "complete_endpoint": "/login/skport/apple/complete",
+    "cancel_endpoint": "/login/skport/apple/cancel"
+  }
+}
+```
+
+2) `POST /login/skport/apple/complete`
+- 作用：提交插件捕获到的 `channel_token` 完成登录兑换
+- 入参：`channel_token`，可选 `channel_id`（默认 4），`flow_id`（可选）
+- 自动化模式：`flow_id` 为空时，后端按当前 API Key（或匿名）自动匹配最近未完成 flow
+- 处理：后端执行 `token_by_third_party_token -> oauth grant -> generate_cred_by_code`，最终写入 `framework_token`
+
+请求示例：
+```http
+POST /login/skport/apple/complete
+Content-Type: application/json
+X-API-Key: sk_xxx
+
+{
+  "channel_id": 4,
+  "channel_token": "eyJjb2RlIjoiLi4uIiwidHlwZSI6Mn0="
+}
+```
+
+3) `GET /login/skport/apple/status?flow_id=...`
+- 作用：轮询 flow 状态
+- 支持：`flow_id` 可选；为空时自动查询当前 API Key（或匿名）最近 flow
+- 状态：`pending / completed / failed / cancelled`
+- 当 `completed` 时返回 `framework_token` 与 `available_roles`
+
+4) `POST /login/skport/apple/cancel`
+- 作用：取消未完成 flow
+
+**安全与约束**：
+- `flow_id` 默认 TTL 5 分钟，过期后不可继续兑换。
+- `complete` 为一次性完成语义；重复完成会返回冲突错误。
+- API Key 场景下，`status/complete/cancel` 必须与创建 flow 的 API Key 用户一致。
+- 服务端仅存储 `channel_token` 的哈希（`channel_token_hash`），避免明文落库。
+- 自动化模式下，插件仅提交 `channel_token`，后端自动匹配“当前调用方最近未完成 flow”。
+
+**错误码（新增）**：
+- `SKPORT_APPLE_FLOW_NOT_FOUND`：flow 不存在
+- `SKPORT_APPLE_FLOW_EXPIRED`：flow 已过期
+- `SKPORT_APPLE_FLOW_INVALID_STATUS`：flow 状态不允许该操作
+- `SKPORT_APPLE_FLOW_ALREADY_COMPLETED`：flow 已完成
+- `SKPORT_APPLE_FLOW_INTERNAL_ERROR`：flow 处理失败
+
 ---
 
 ### Cred 绑定
@@ -1019,6 +1265,17 @@ X-Framework-Token: your-framework-token
 }
 ```
 
+### 获取终末地枚举数据
+
+```http
+GET /api/endfield/enums
+X-Framework-Token: your-framework-token
+```
+
+**说明**:
+- 转发森空岛 `/web/v1/game/endfield/enums`，返回稀有度、职业、属性、武器类型、技能类型、装备类型、词条、成就分类等枚举数据。
+- `skport` 暂时不支持该接口；后续国际服补齐上游能力后，将取消 provider 限制，国服/国际服均可使用。
+
 ### 获取角色详情卡片
 
 ```http
@@ -1053,6 +1310,22 @@ X-Framework-Token: your-framework-token
 - 2026-03-13 版本后，后端会尝试自动修补 `tacticalItem.iconUrl`：先用缓存补全，仍缺失时回源 `search/tactical-items` 建立目录映射后再补全。
 - 兼容两类结构：`tacticalItem` 直接对象，以及 `tacticalItem.tacticalItemData` 包装结构（`iconUrl`/`icon_url` 均支持）。
 - 若上游目录接口本身也缺失对应图标，最终仍可能为空。
+
+### 获取影拓丰碑数据
+
+```http
+GET /api/endfield/card/indie-hard
+X-Framework-Token: your-framework-token
+```
+
+**Query 参数**（全部可选，不提供则按 provider 对应绑定库解析目标角色）:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| roleId / role_id | string | 否 | 指定游戏角色 ID |
+| serverId / server_id | int | 否 | 指定服务器 ID，建议与 roleId 一起传 |
+
+> 角色选择优先级：`roleId`/`role_id` 显式指定 > `framework_token` 对应主绑定（`is_primary=true`）> 任意有效绑定（兜底）> 登录会话默认角色。
+> 转发森空岛 `/api/v1/game/endfield/card/indie-hard`。`skport` 暂时不支持该接口；后续国际服补齐上游能力后，将取消 provider 限制，国服/国际服均可使用。
 
 ### 终末地签到
 
@@ -3176,14 +3449,63 @@ Authorization: Bearer <jwt> 或 X-API-Key 或 X-Anonymous-Token
 ### 我的蓝图
 
 ```http
-# 我的蓝图（含草稿，可按状态筛选）
-GET /api/blueprints/my/list?status=published&page=1
+# 我的蓝图（含草稿，可按状态和审核状态筛选）
+GET /api/blueprints/my/list?status=published&review_status=approved&page=1
 Authorization: Bearer <jwt>
 
 # 我点赞的蓝图
 GET /api/blueprints/my/liked?page=1
 Authorization: Bearer <jwt>
 ```
+
+**`/api/blueprints/my/list` 查询参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `page` | `int` | 否 | 页码，默认 1 |
+| `page_size` | `int` | 否 | 每页数量，默认 20 |
+| `status` | `string` | 否 | 发布状态筛选：`published` / `draft` / `archived` |
+| `review_status` | `string` | 否 | 审核状态筛选：`pending` / `manual_pending` / `approved` / `rejected` |
+
+说明：
+- `status` 和 `review_status` 可同时使用，会取交集
+- 不传则返回所有状态的蓝图
+- `review_status` 各值含义：`pending`=AI 审核中、`manual_pending`=待人工审核、`approved`=审核通过、`rejected`=审核不通过
+
+### 蓝图审核状态查询
+
+```http
+# 查询单个蓝图的审核状态（轻量接口，适用于前端轮询）
+GET /api/blueprints/:id/review-status
+Authorization: Bearer <jwt>
+```
+
+**响应示例**
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "id": "6647a1b2c3d4e5f6a7b8c9d0",
+    "review_status": "approved",
+    "review_reason": "",
+    "reviewed_at": "2025-05-16T12:30:00Z"
+  }
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | `string` | 蓝图 ID |
+| `review_status` | `string` | 审核状态：`pending` / `manual_pending` / `approved` / `rejected` |
+| `review_reason` | `string` | 拒绝原因（仅 `rejected` 时有值） |
+| `reviewed_at` | `string?` | 审核完成时间（ISO 8601，审核完成前不返回） |
+
+说明：
+- 仅允许查询自己的蓝图
+- 相比详情接口 `GET /api/blueprints/:id`，本接口只返回审核相关字段，响应更轻量
+- 推荐轮询间隔：3~5 秒，最大轮询时长 2 分钟
 
 ### 数据集合
 
@@ -4405,9 +4727,14 @@ u8_token
 | 类型 | 值 | 说明 |
 |------|-----|------|
 | 限定池 | `E_CharacterGachaPoolType_Special` | 特许寻访 |
+| 联合池 | `E_CharacterGachaPoolType_Joint` | 辉光庆典（联合寻访，独立卡池） |
 | 常驻池 | `E_CharacterGachaPoolType_Standard` | 基础寻访 |
 | 新手池 | `E_CharacterGachaPoolType_Beginner` | 启程寻访 |
 | 武器池 | `weapon` | 武器寻访 |
+
+> **联合池说明（2026-05 更新）**：`E_CharacterGachaPoolType_Joint`（辉光庆典）是多UP角色的联合寻访池。
+> 自 v3.5.0 起，联合池作为**独立卡池类型** `joint_char` 存储和统计，不再归入限定池。
+> 联合池与限定池共享角色 seqId 命名空间（`/api/record/char`），但在数据模型、统计计数和全服排名中完全独立。
 
 ### 数据模型说明
 
@@ -4424,13 +4751,15 @@ u8_token
   "is_official": true,
   "records": {
     "limited_char": [...],   // 限定角色池
+    "joint_char": [...],     // 联合角色池
     "standard_char": [...],  // 常驻角色池
     "beginner_char": [...],  // 新手池
     "weapon": [...]          // 武器池
   },
   "stats": {
     "total_count": 200,
-    "limited_char_count": 100,
+    "limited_char_count": 80,
+    "joint_char_count": 20,
     "standard_char_count": 60,
     "beginner_char_count": 20,
     "weapon_count": 20,
@@ -4459,7 +4788,7 @@ X-Framework-Token: your-framework-token
 **Query 参数**:
 | 参数 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| pools | string | 否 | 全部 | 卡池类型，逗号分隔（`limited`/`standard`/`beginner`/`weapon`） |
+| pools | string | 否 | 全部 | 卡池类型，逗号分隔（`limited`/`joint`/`standard`/`beginner`/`weapon`） |
 | page | int | 否 | 1 | 页码，从 1 开始 |
 | limit | int | 否 | 500 | 每页数量，最大 500 |
 | role_id | string | 否 | - | 指定角色 UID（绑定中的 `role_id`） |
@@ -4469,6 +4798,7 @@ X-Framework-Token: your-framework-token
 | 参数值 | 说明 |
 |--------|------|
 | `limited` | 限定角色池 |
+| `joint` | 联合角色池 |
 | `standard` | 常驻角色池 |
 | `beginner` | 新手池 |
 | `weapon` | 武器池 |
@@ -4525,10 +4855,11 @@ X-Framework-Token: your-framework-token
     "page": 1,
     "limit": 500,
     "pages": 1,
-    "pools": ["limited_char", "standard_char", "beginner_char", "weapon"],
+    "pools": ["limited_char", "joint_char", "standard_char", "beginner_char", "weapon"],
     "stats": {
       "total_count": 200,
-      "limited_char_count": 100,
+      "limited_char_count": 80,
+      "joint_char_count": 20,
       "standard_char_count": 60,
       "beginner_char_count": 20,
       "weapon_count": 20,
@@ -4554,7 +4885,7 @@ X-Framework-Token: your-framework-token
 
 **筛选特定卡池示例**:
 ```http
-GET /api/endfield/gacha/records?pools=limited,weapon&page=1&limit=100
+GET /api/endfield/gacha/records?pools=limited,joint,weapon&page=1&limit=100
 ```
 
 **分页说明**:
@@ -4791,7 +5122,8 @@ X-Framework-Token: your-framework-token
   "data": {
     "stats": {
       "total_count": 200,
-      "limited_char_count": 100,
+      "limited_char_count": 80,
+      "joint_char_count": 20,
       "standard_char_count": 60,
       "beginner_char_count": 20,
       "weapon_count": 20,
@@ -4800,7 +5132,8 @@ X-Framework-Token: your-framework-token
       "star4_count": 175
     },
     "pool_stats": {
-      "limited_char": {"total": 100, "star6": 3, "star5": 10},
+      "limited_char": {"total": 80, "star6": 2, "star5": 8},
+      "joint_char": {"total": 20, "star6": 1, "star5": 2},
       "standard_char": {"total": 60, "star6": 1, "star5": 5},
       "beginner_char": {"total": 20, "star6": 1, "star5": 2},
       "weapon": {"total": 20, "star6": 0, "star5": 3}
@@ -4983,7 +5316,7 @@ X-Framework-Token: your-framework-token
 
 ### 全服统计（公开接口）
 
-获取全服抽卡统计数据，用于展示全服玩家的抽卡情况。支持按平台（国服/国际服）和按限定池或武器池分期过滤。
+获取全服抽卡统计数据，用于展示全服玩家的抽卡情况。支持按平台（国服/国际服）和按限定池、联合池或武器池分期过滤。
 
 > **注意**：此接口为公开接口，不需要认证。数据会缓存 5 分钟（不同 provider + 分期参数组合独立缓存）。
 
@@ -4999,21 +5332,22 @@ GET /api/endfield/gacha/global-stats?weapon_pool_period=讯行申领
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | provider | string | 否 | 平台过滤：`skland`（国服）/`skport`（国际服）；不传为全量（国服+国际服） |
-| pool_period | string | 否 | 限定池分期过滤（传入卡池名称），只统计该期限定池的数据 |
+| pool_period | string | 否 | 限定/联合池分期过滤（传入卡池名称），只统计该期限定池或联合池的数据 |
 | weapon_pool_period | string | 否 | 武器池分期过滤（传入卡池名称），只统计该期武器池的数据 |
 | refresh | string | 否 | 传 `true` 强制刷新缓存 |
 
 **分期过滤行为**：
 - 当传入 `pool_period` 时：
   - `by_type.limited` 只包含匹配 `pool_name` 的限定池记录
-  - `ranking.limited` 只包含该期的数据
+  - `by_type.joint` 只包含匹配 `pool_name` 的联合池记录
+  - `ranking.limited` 和 `ranking.joint` 只包含该期的数据
   - `current_pool` 返回该期卡池的 UP 角色信息
   - 其他卡池类型（常驻/新手/武器）不受影响
 - 当传入 `weapon_pool_period` 时：
   - `by_type.weapon` 只包含匹配 `pool_name` 的武器池记录
   - `ranking.weapon` 只包含该期的数据
   - 限定/常驻/新手池不受影响
-- `pool_periods` 与 `weapon_pool_periods` 始终返回所有期数的汇总（不受 filter 影响）
+- `pool_periods`、`joint_pool_periods` 与 `weapon_pool_periods` 始终返回所有期数的汇总（不受 filter 影响）
 
 **平台分组行为**：
 - `provider=skland`：仅统计国服数据；`by_channel` 返回官服/B服分组，`by_region` 为空
@@ -5069,6 +5403,17 @@ GET /api/endfield/gacha/global-stats?weapon_pool_period=讯行申领
           "star6_avg_pity": 100.0
         }
       ],
+      "joint_pool_periods": [
+        {
+          "pool_name": "辉光庆典",
+          "up_char_names": ["莱万汀", "洁尔佩塔", "伊薛", "芥蔚"],
+          "total_pulls": 20000,
+          "star6_count": 200,
+          "up_count": 100,
+          "up_avg_pity": 200.0,
+          "star6_avg_pity": 100.0
+        }
+      ],
       "weapon_pool_periods": [
         {
           "pool_name": "讯行申领",
@@ -5105,6 +5450,7 @@ GET /api/endfield/gacha/global-stats?weapon_pool_period=讯行申领
             {"range": "71-80", "count": 150}
           ]
         },
+        "joint": { "...same structure as limited..." },
         "standard": { "...": "..." },
         "beginner": { "...": "..." },
         "weapon": { "...": "..." },
@@ -5169,6 +5515,13 @@ GET /api/endfield/gacha/global-stats?weapon_pool_period=讯行申领
           ],
           "five_star": [...]
         },
+        "joint": {
+          "six_star": [
+            {"char_id": "ghi", "char_name": "莱万汀", "count": 50, "percent": 25.0},
+            {"char_id": "jkl", "char_name": "洁尔佩塔", "count": 45, "percent": 22.5}
+          ],
+          "five_star": [...]
+        },
         "standard": { "...": "..." },
         "weapon": { "...": "..." }
       }
@@ -5194,6 +5547,7 @@ GET /api/endfield/gacha/global-stats?weapon_pool_period=讯行申领
 | `limited_up_avg_pity` | 限定角色池平均UP出货（限定池抽数/限定UP数） |
 | `current_pool` | 当前/选中卡池 UP 信息 |
 | `pool_periods` | 限定池分期列表（各期抽数、6星数、UP出货数、平均UP出货） |
+| `joint_pool_periods` | 联合池分期列表（各期抽数、6星数、UP出货数、平均UP出货），结构与 `pool_periods` 相同 |
 | `weapon_pool_periods` | 武器池分期列表（各期抽数、6星数、UP出货数、平均UP出货） |
 | `by_type` | 按卡池类型分类的统计 |
 | `by_channel` | 按渠道统计（兼容历史口径：仅统计国服 `skland` 的官服/B服） |
@@ -5211,12 +5565,23 @@ GET /api/endfield/gacha/global-stats?weapon_pool_period=讯行申领
 | `up_char_name` | UP角色名称（向后兼容，取第一个） |
 | `up_char_id` | UP角色ID（向后兼容） |
 
-> **UP 角色判定**：每条限定池抽卡记录根据其 `pool_name` 匹配 `wiki_char_pools` 中对应卡池的 UP 角色列表（`dot_type=label_type_up`），确保不同期数的 UP 角色正确分类。
+> **UP 角色判定**：每条限定池/联合池抽卡记录根据其 `pool_name` 匹配 `wiki_char_pools` 中对应卡池的 UP 角色列表。优先使用 `dot_type=label_type_up` 标记，若无标记则降级使用 `rarity=rarity_6` 推断（适用于多UP庆典池），确保不同期数的 UP 角色正确分类。
 
 **分期统计 (`pool_periods`)**:
 | 字段 | 说明 |
 |------|------|
 | `pool_name` | 卡池名称 |
+| `up_char_names` | 该期 UP 角色名列表 |
+| `total_pulls` | 该期总抽数（不含免费） |
+| `star6_count` | 该期 6 星出货数 |
+| `up_count` | 该期 UP 出货数 |
+| `up_avg_pity` | 该期平均UP出货（总抽数/UP出货数） |
+| `star6_avg_pity` | 该期平均6星出货（总抽数/6星出货数） |
+
+**联合池分期统计 (`joint_pool_periods`)**:
+| 字段 | 说明 |
+|------|------|
+| `pool_name` | 联合池名称 |
 | `up_char_names` | 该期 UP 角色名列表 |
 | `total_pulls` | 该期总抽数（不含免费） |
 | `star6_count` | 该期 6 星出货数 |
@@ -5266,6 +5631,7 @@ GET /api/endfield/gacha/global-stats?weapon_pool_period=讯行申领
 | 字段 | 说明 |
 |------|------|
 | `ranking.limited` | 限定池排名（受 `pool_period` 过滤影响） |
+| `ranking.joint` | 联合池排名（受 `pool_period` 过滤影响） |
 | `ranking.standard` | 常驻池排名 |
 | `ranking.weapon` | 武器池排名 |
 | `char_name` | 角色/武器名称 |
@@ -5276,10 +5642,11 @@ GET /api/endfield/gacha/global-stats?weapon_pool_period=讯行申领
 | 类型 | 说明 |
 |------|------|
 | `limited` | 限定角色池 |
+| `joint` | 联合角色池 |
 | `standard` | 常驻角色池 |
 | `beginner` | 新手池 |
 | `weapon` | 武器池 |
-| `character` | 角色池合计（限定+常驻） |
+| `character` | 角色池合计（限定+联合+常驻） |
 
 ---
 
@@ -5313,13 +5680,23 @@ GET /api/endfield/gacha/simulate/pools
       {
         "pool_type": "limited",
         "pool_name": "轻飘飘的信使",
+        "up_char_names": ["洁尔佩塔"],
         "up_char_name": "洁尔佩塔",
         "is_active": true,
         "is_current": true
       },
       {
+        "pool_type": "joint",
+        "pool_name": "辉光庆典",
+        "up_char_names": ["莱万汀", "洁尔佩塔", "伊薛", "芥蔚"],
+        "up_char_name": "莱万汀",
+        "is_active": true,
+        "is_current": false
+      },
+      {
         "pool_type": "limited",
         "pool_name": "熔火灼痕",
+        "up_char_names": ["莱万汀"],
         "up_char_name": "莱万汀",
         "is_active": false,
         "is_current": false
@@ -5327,6 +5704,7 @@ GET /api/endfield/gacha/simulate/pools
       {
         "pool_type": "weapon",
         "pool_name": "讯行申领",
+        "up_char_names": ["使命必达"],
         "up_char_name": "使命必达",
         "is_active": true,
         "is_current": true
@@ -5334,12 +5712,12 @@ GET /api/endfield/gacha/simulate/pools
       {
         "pool_type": "standard",
         "pool_name": "基础寻访",
-        "up_char_name": "",
+        "up_char_names": [],
         "is_active": true,
         "is_current": true
       }
     ],
-    "total": 6
+    "total": 7
   }
 }
 ```
@@ -5347,14 +5725,17 @@ GET /api/endfield/gacha/simulate/pools
 **字段说明**:
 | 字段 | 说明 |
 |------|------|
-| `pool_type` | 卡池类型：`limited`（限定角色）/ `weapon`（武器）/ `standard`（常驻） |
+| `pool_type` | 卡池类型：`limited`（限定角色）/ `joint`（联合角色）/ `weapon`（武器）/ `standard`（常驻） |
 | `pool_name` | 卡池名称 |
-| `up_char_name` | UP 角色/武器名（常驻池为空） |
+| `up_char_names` | UP 角色/武器名列表（支持多UP，常驻池为空数组） |
+| `up_char_name` | UP 角色/武器名（向后兼容，取第一个；常驻池为空或省略） |
 | `is_active` | 是否当前活跃（在有效期内） |
 | `is_current` | 是否当前期（前端默认选中） |
 
+> **多UP池**：如"辉光庆典"等庆典池，`up_char_names` 包含所有 UP 角色。前端应优先使用 `up_char_names` 数组展示，`up_char_name` 仅用于向后兼容。
+
 **数据来源**：
-- 角色限定池：从 `wiki_char_pools`（森空岛官方 Wiki 数据），`chars[dot_type="label_type_up"]` 获取 UP 角色名
+- 角色限定池：从 `wiki_char_pools`（森空岛官方 Wiki 数据），优先 `chars[dot_type="label_type_up"]`，降级使用 `chars[rarity="rarity_6"]` 获取 UP 角色名
 - 武器池：从 `bili_activities`（B站 Wiki 活动数据），`type="武库申领"` 的 `up` 字段获取 UP 武器名
 - 常驻池：固定返回一个"基础寻访"
 
@@ -5369,7 +5750,7 @@ GET /api/endfield/gacha/simulate/rules?pool_type=limited
 **Query 参数**:
 | 参数 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| pool_type | string | 否 | limited | 卡池类型：`limited`/`weapon`/`standard` |
+| pool_type | string | 否 | limited | 卡池类型：`limited`/`joint`/`weapon`/`standard`（联合池使用限定池规则） |
 
 **响应示例**:
 ```json
@@ -5656,7 +6037,7 @@ GET /api/endfield/gacha/pool-chars
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | pool_id | string | 否 | 卡池ID，如 `special_1_0_1` |
-| pool_type | string | 否 | 卡池类型：`limited`/`standard`/`beginner`/`weapon` |
+| pool_type | string | 否 | 卡池类型：`limited`/`joint`/`standard`/`beginner`/`weapon` |
 
 **响应示例**:
 ```json
@@ -5976,8 +6357,8 @@ X-Framework-Token: your-framework-token
       "maxActivation": 100
     },
     "weeklyMission": {
-      "score": 4,
-      "total": 10
+      "score": 40,
+      "total": 100
     }
   }
 }
@@ -10075,6 +10456,17 @@ const callWithAPIKey = async (apiKey, endpoint) => {
 
 ## 更新日志
 
+### v3.5.0 (2026-05)
+
+- ✅ **联合池独立化**（`joint_char`）
+  - `E_CharacterGachaPoolType_Joint`（辉光庆典）作为独立卡池类型存储和统计，不再归入限定池
+  - 数据模型：`records.joint_char` 独立存储联合池记录，`stats.joint_char_count` 独立计数
+  - 全服统计：`by_type.joint` 独立统计、`ranking.joint` 独立排名、`joint_pool_periods` 分期列表
+  - 卡池角色分布：`pool_type=joint` 独立分类
+  - 模拟器：联合池使用限定池规则（保底机制一致）
+  - 前端：新增联合池独立 Tab、独立分期选择器、独立分布图表
+  - 联合池与限定池共享角色 seqId 空间（去重）但保底计数独立
+
 ### v3.4.0 (2026-03-12)
 
 - ✅ **卡池信息管理 API**（`/api/endfield/gacha/admin/*`）
@@ -10294,9 +10686,17 @@ const callWithAPIKey = async (apiKey, endpoint) => {
 
 - ✅ **模拟抽卡卡池选择**
   - 新增 `GET /api/endfield/gacha/simulate/pools` 接口，返回可供模拟的卡池列表（含 UP 信息）
-  - 角色限定池从 `wiki_char_pools` 获取 UP 角色名
+  - `SimulatorPoolInfo` 新增 `up_char_names` 字段（`[]string`），支持多UP角色展示（如辉光庆典4UP池）
+  - `up_char_name` 保留向后兼容（取第一个UP角色名）
+  - 角色限定池从 `wiki_char_pools` 获取 UP 角色名，优先 `dot_type`，降级 `rarity_6`
   - 武器池从 `bili_activities`（B站 Wiki 活动数据）获取 UP 武器名
   - 前端模拟器新增卡池选择器，支持选择过往限定池/武器池
+
+- ✅ **多UP池同步与识别**
+  - Wiki 同步层（`syncCharPool`）：当卡池所有角色 `dotType` 为空时，自动将 `rarity_6` 角色推断为 `label_type_up`
+  - 名称解析失败时输出 WARN 日志，便于排查 Wiki 条目缺失
+  - `buildPoolInfoFromWikiPool`、`buildCharPoolUpMap` 均增加 `rarity_6` 降级策略
+  - 确保抽卡分析和模拟器在多UP场景（如4UP庆典池）下正确处理
 
 - ✅ **武器池 UP 自动化**
   - 移除 `gacha.yaml` 配置文件和 `GachaConfig` 相关代码
