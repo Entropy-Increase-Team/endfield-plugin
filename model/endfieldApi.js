@@ -114,6 +114,10 @@ export default class EndfieldApi {
       achieve: {
         url: `${baseUrl}/api/endfield/achieve`,
         query: data.roleId ? `roleId=${data.roleId}&serverId=${data.serverId || 1}` : ''
+      },
+      indie_hard: {
+        url: `${baseUrl}/api/endfield/card/indie-hard`,
+        query: data.roleId ? `roleId=${data.roleId}&serverId=${data.serverId || 1}` : ''
       }
     }
   }

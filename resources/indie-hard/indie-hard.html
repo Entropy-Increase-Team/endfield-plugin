@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}} - {{group.name}}</title>
+  <link rel="stylesheet" href="{{_res_path}}indie-hard/indie-hard.css">
+</head>
+<body>
+  <div class="indie-page">
+    <div class="hero">
+      {{if group.pic}}
+      <img class="hero-bg" src="{{group.pic}}" alt="" onerror="this.style.display='none'">
+      {{/if}}
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <div class="role-line">
+          <div class="role-meta">
+            <span class="eyebrow">ARKNIGHTS: ENDFIELD</span>
+            <span class="role-name">{{role.name}}</span>
+            <span class="role-uid">Lv.{{role.level}} · UID {{role.roleId}}</span>
+          </div>
+          {{if pluResPath}}
+          <img class="logo" src="{{pluResPath}}img/ET logo.svg" alt="Logo">
+          {{/if}}
+        </div>
+
+        <div class="title-row">
+          <div>
+            <div class="title-kicker">{{title}} {{group.index}}/{{group.total}}</div>
+            <h1>{{group.name}}</h1>
+            <div class="activity">{{group.activityName}}{{if group.isInActivity}} · 进行中{{/if}}</div>
+          </div>
+          <div class="medal {{group.achievement.isPlated ? 'plated' : ''}}">
+            {{if group.achievement.icon}}
+            <img src="{{group.achievement.icon}}" alt="" onerror="this.style.display='none'">
+            {{/if}}
+            <div>
+              <div class="medal-name">{{group.achievement.name}}</div>
+              <div class="medal-status">{{group.achievement.status}}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-card">
+            <span>活动时间</span>
+            <b>{{group.timeRange}}</b>
+          </div>
+          <div class="summary-card">
+            <span>普通进度</span>
+            <b>{{group.progress.normalPass}}/{{group.progress.total}}</b>
+          </div>
+          <div class="summary-card">
+            <span>苦难进度</span>
+            <b>{{group.progress.hardPass}}/{{group.progress.total}}</b>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dungeon-list">
+      {{each group.dungeons dungeon idx}}
+      <section class="dungeon-card">
+        <div class="dungeon-head">
+          <div class="dungeon-index">{{dungeon.index}}</div>
+          <div>
+            <h2>{{dungeon.name}}</h2>
+            {{if dungeon.desc}}
+            <p>{{dungeon.desc}}</p>
+            {{/if}}
+          </div>
+        </div>
+
+        <div class="mode-grid">
+          <div class="mode-card normal-mode {{dungeon.normal.isPass ? 'pass' : ''}}">
+            <div class="mode-title">
+              <span class="mode-label">{{dungeon.normal.label}}</span>
+              <b>{{dungeon.normal.status}}</b>
+            </div>
+            <div class="mode-meta">
+              <span>推荐 Lv.{{dungeon.normal.recommendLevel}}</span>
+              <span>{{dungeon.normal.bestSummary}}</span>
+            </div>
+            {{if dungeon.normal.featureText}}
+            <div class="mode-feature">
+              <span>战场规则</span>
+              <p>{{dungeon.normal.featureText}}</p>
+            </div>
+            {{/if}}
+            {{if dungeon.normal.team && dungeon.normal.team.length > 0}}
+            <div class="team-grid">
+              {{each dungeon.normal.team char cIdx}}
+              <div class="char-card">
+                {{if char.avatarUrl}}
+                <img src="{{char.avatarUrl}}" alt="" onerror="this.style.display='none'">
+                {{/if}}
+                <div class="char-info">
+                  <b>{{char.name}}</b>
+                  <span>{{char.rarity}}星 {{char.property}} {{char.level}} {{char.phase}}</span>
+                </div>
+              </div>
+              {{/each}}
+            </div>
+            {{else}}
+            <div class="empty-record">暂未挑战</div>
+            {{/if}}
+            {{if dungeon.normal.enemies && dungeon.normal.enemies.length > 0}}
+            <div class="enemy-title">敌对生物</div>
+            <div class="enemy-mini-row">
+              {{each dungeon.normal.enemies enemy eIdx}}
+              <div class="enemy-mini-card">
+                {{if enemy.imageUrl}}
+                <img src="{{enemy.imageUrl}}" alt="" onerror="this.style.display='none'">
+                {{/if}}
+                <div>
+                  <b>{{enemy.name}}</b>
+                  <span>Lv.{{enemy.level}}</span>
+                </div>
+              </div>
+              {{/each}}
+            </div>
+            {{/if}}
+          </div>
+
+          <div class="mode-card hard-mode {{dungeon.hard.isPass ? 'pass' : ''}}">
+            <div class="mode-title">
+              <span class="mode-label">{{dungeon.hard.label}}</span>
+              <b>{{dungeon.hard.status}}</b>
+            </div>
+            <div class="mode-meta">
+              <span>推荐 Lv.{{dungeon.hard.recommendLevel}}</span>
+              <span>{{dungeon.hard.bestSummary}}</span>
+            </div>
+            {{if dungeon.hard.featureText}}
+            <div class="mode-feature">
+              <span>战场规则</span>
+              <p>{{dungeon.hard.featureText}}</p>
+            </div>
+            {{/if}}
+            {{if dungeon.hard.team && dungeon.hard.team.length > 0}}
+            <div class="team-grid">
+              {{each dungeon.hard.team char cIdx}}
+              <div class="char-card">
+                {{if char.avatarUrl}}
+                <img src="{{char.avatarUrl}}" alt="" onerror="this.style.display='none'">
+                {{/if}}
+                <div class="char-info">
+                  <b>{{char.name}}</b>
+                  <span>{{char.rarity}}星 {{char.property}} {{char.level}} {{char.phase}}</span>
+                </div>
+              </div>
+              {{/each}}
+            </div>
+            {{else}}
+            <div class="empty-record">暂未挑战</div>
+            {{/if}}
+            {{if dungeon.hard.enemies && dungeon.hard.enemies.length > 0}}
+            <div class="enemy-title">敌对生物</div>
+            <div class="enemy-mini-row">
+              {{each dungeon.hard.enemies enemy eIdx}}
+              <div class="enemy-mini-card">
+                {{if enemy.imageUrl}}
+                <img src="{{enemy.imageUrl}}" alt="" onerror="this.style.display='none'">
+                {{/if}}
+                <div>
+                  <b>{{enemy.name}}</b>
+                  <span>Lv.{{enemy.level}}</span>
+                </div>
+              </div>
+              {{/each}}
+            </div>
+            {{/if}}
+          </div>
+        </div>
+
+      </section>
+      {{/each}}
+    </div>
+
+    <footer class="footer">
+      <div>{{@copyright}}</div>
+    </footer>
+  </div>
+</body>
+</html>
