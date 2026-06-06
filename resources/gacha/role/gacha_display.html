@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>十连抽卡结果</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        .gacha-container {
+            display: flex;
+            width: 100%;
+            height: calc(100% - 50px);
+            position: relative;
+            gap: 4px;
+            padding: 0 3%;
+            align-items: stretch;
+        }
+
+        .panel {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border-radius: 2px;
+        }
+
+        /* 四星 - 紫色 */
+        .panel.star-4 {
+            background: linear-gradient(180deg,
+                #000 0%,
+                #000 50%,
+                #2d1b4e 58%,
+                #5b2d8e 68%,
+                #7b3fa0 78%,
+                #5b2d8e 90%,
+                #3d1f5e 100%);
+        }
+
+        /* 五星 - 金黄色 */
+        .panel.star-5 {
+            background: linear-gradient(180deg,
+                #000 0%,
+                #000 50%,
+                #3d2e00 58%,
+                #c8a000 68%,
+                #e6b800 78%,
+                #a07800 90%,
+                #5a4200 100%);
+        }
+
+        /* 六星 - 橙红色（铺满整条） */
+        .panel.star-6 {
+            background: linear-gradient(180deg,
+                #5a1c00 0%,
+                #7a2800 15%,
+                #9e3500 30%,
+                #b84000 45%,
+                #d44a00 60%,
+                #ff6020 72%,
+                #b03800 85%,
+                #5a1c00 100%);
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg,
+                rgba(0, 0, 0, 1) 0%,
+                rgba(0, 0, 0, 1) 45%,
+                rgba(0, 0, 0, 0) 55%,
+                rgba(0, 0, 0, 0) 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* 六星不遮挡顶部 */
+        .panel.star-6::before {
+            background: none;
+        }
+
+        /* 面板发光边缘 */
+        .panel.star-5::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            box-shadow: inset 0 0 15px rgba(255, 200, 0, 0.2);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .panel.star-6::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            box-shadow: inset 0 0 20px rgba(255, 80, 0, 0.3);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* 顶部立绘区域 */
+        .bust-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 55%;
+            z-index: 2;
+            overflow: hidden;
+            -webkit-mask-image: linear-gradient(180deg, black 75%, transparent 100%);
+            mask-image: linear-gradient(180deg, black 75%, transparent 100%);
+        }
+
+        .bust-area img {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            height: auto;
+        }
+
+        /* 底部剪影区域 */
+        .silhouette-area {
+            position: absolute;
+            bottom: 0;
+            left: 5%;
+            right: 5%;
+            height: 45%;
+            z-index: 3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .silhouette-area .shadow-figure {
+            /* 初始样式，JS 加载后会用 inline style 覆盖 */
+            width: 68%;
+            height: 100%;
+            object-fit: contain;
+            object-position: bottom center;
+        }
+
+        /* 脚下影子 */
+        .foot-shadow {
+            position: absolute;
+            z-index: 51;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        /* 五六星剪影放大 — 由 JS 动态定位，此处不再覆盖 */
+
+        /* 星级标识 */
+        .star-badge {
+            position: absolute;
+            bottom: 3%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            display: flex;
+            gap: 1px;
+        }
+
+        .star-badge .star {
+            width: 12px;
+            height: 12px;
+            display: inline-block;
+        }
+
+        .star-badge .star img {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 顶部光效 */
+        .panel .glow-top {
+            position: absolute;
+            top: 50%;
+            left: -50%;
+            right: -50%;
+            height: 30%;
+            border-radius: 50%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .star-4 .glow-top {
+            background: radial-gradient(ellipse, rgba(150, 80, 220, 0.3) 0%, transparent 70%);
+        }
+
+        .star-5 .glow-top {
+            background: radial-gradient(ellipse, rgba(255, 215, 0, 0.35) 0%, transparent 70%);
+        }
+
+        .star-6 .glow-top {
+            background: radial-gradient(ellipse, rgba(255, 100, 30, 0.4) 0%, transparent 70%);
+        }
+
+        /* NEW 标签 */
+        .new-tag {
+            position: absolute;
+            top: 45%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            padding: 2px 12px;
+        }
+
+        /* 地面反射效果 */
+        .floor-area {
+            display: none;
+        }
+
+        /* 底部地面反射区域 */
+        .ground-reflection {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            z-index: 50;
+            display: flex;
+            gap: 4px;
+            padding: 0 3%;
+            pointer-events: none;
+        }
+
+        .ground-reflection .reflect-strip {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ground-reflection .reflect-strip::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        .ground-reflection .reflect-strip::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg,
+                rgba(0, 0, 0, 0) 0%,
+                rgba(0, 0, 0, 0.6) 50%,
+                rgba(0, 0, 0, 0.95) 100%);
+        }
+
+        .ground-reflection .reflect-strip.ref-4::before {
+            background: linear-gradient(180deg, #3d1f5e 0%, #2a1545 50%, #0a0412 100%);
+        }
+
+        .ground-reflection .reflect-strip.ref-5::before {
+            background: linear-gradient(180deg, #5a4200 0%, #3d2e00 50%, #0a0800 100%);
+        }
+
+        .ground-reflection .reflect-strip.ref-6::before {
+            background: linear-gradient(180deg, #5a1c00 0%, #3a1200 50%, #0a0400 100%);
+        }
+
+        /* 地面高光线 */
+        .ground-reflection .reflect-strip .highlight-line {
+            position: absolute;
+            top: 0;
+            left: 10%;
+            right: 10%;
+            height: 1px;
+            z-index: 1;
+        }
+
+        .ground-reflection .reflect-strip.ref-4 .highlight-line {
+            background: linear-gradient(90deg, transparent, rgba(150, 80, 220, 0.5), transparent);
+            box-shadow: 0 0 6px rgba(150, 80, 220, 0.3);
+        }
+
+        .ground-reflection .reflect-strip.ref-5 .highlight-line {
+            background: linear-gradient(90deg, transparent, rgba(255, 200, 0, 0.6), transparent);
+            box-shadow: 0 0 8px rgba(255, 200, 0, 0.4);
+        }
+
+        .ground-reflection .reflect-strip.ref-6 .highlight-line {
+            background: linear-gradient(90deg, transparent, rgba(255, 100, 30, 0.7), transparent);
+            box-shadow: 0 0 10px rgba(255, 100, 30, 0.5);
+        }
+
+        /* 右上角按钮 */
+        .top-right-btns {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+
+        .top-right-btns button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            transition: background 0.2s;
+        }
+
+        .top-right-btns button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* 面板间深度分隔线 */
+        .panel + .panel {
+            box-shadow: -3px 0 10px rgba(0, 0, 0, 0.8);
+        }
+
+        /* 面板内网格纹理 */
+        .panel .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.3;
+            background-image:
+                radial-gradient(circle, rgba(255,255,255,0.08) 30%, transparent 30%);
+            background-size: 3.3px 3.3px;
+            background-position: 1.6px 1.6px;
+            -webkit-mask-image: linear-gradient(180deg, transparent 0%, transparent 25%, black 50%, black 100%);
+            mask-image: linear-gradient(180deg, transparent 0%, transparent 25%, black 50%, black 100%);
+        }
+
+        .panel.star-5 .grid-overlay {
+            opacity: 0.35;
+            background-image:
+                radial-gradient(circle, rgba(255,200,0,0.12) 30%, transparent 30%);
+        }
+
+        .panel.star-6 .grid-overlay {
+            opacity: 0.35;
+            background-image:
+                radial-gradient(circle, rgba(255,100,0,0.12) 30%, transparent 30%);
+            -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 15%, black 100%);
+            mask-image: linear-gradient(180deg, transparent 0%, black 15%, black 100%);
+        }
+
+        /* 六星炫彩效果 */
+        @keyframes iridescent {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
+        }
+
+        .panel.star-6 .iridescent-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 0;
+            pointer-events: none;
+            background: linear-gradient(135deg,
+                rgba(255, 50, 0, 0.15) 0%,
+                rgba(255, 150, 0, 0.1) 15%,
+                rgba(255, 220, 50, 0.12) 30%,
+                rgba(200, 100, 255, 0.08) 45%,
+                rgba(255, 80, 0, 0.15) 60%,
+                rgba(255, 200, 50, 0.1) 75%,
+                rgba(255, 50, 100, 0.12) 90%,
+                rgba(255, 50, 0, 0.15) 100%);
+            background-size: 200% 200%;
+            animation: iridescent 4s ease-in-out infinite;
+            mix-blend-mode: screen;
+        }
+
+        @keyframes shimmer-move {
+            0% { transform: translateX(-100%) rotate(15deg); }
+            100% { transform: translateX(200%) rotate(15deg); }
+        }
+
+        .panel.star-6 .shimmer-streak {
+            position: absolute;
+            top: -20%;
+            left: 0;
+            width: 40%;
+            height: 140%;
+            z-index: 0;
+            pointer-events: none;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(255, 200, 100, 0.08) 40%,
+                rgba(255, 255, 255, 0.12) 50%,
+                rgba(255, 200, 100, 0.08) 60%,
+                transparent 100%);
+            animation: shimmer-move 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="gacha-container" id="gachaContainer"></div>
+    <div class="ground-reflection" id="groundReflection"></div>
+
+    <div class="top-right-btns">
+        <button>分享</button>
+        <button>关闭</button>
+    </div>
+
+
+    <script>
+        const gachaResults = [
+            { id: 'chr_0023_antal', star: 4, isNew: false },
+            { id: 'chr_0012_avywen', star: 5, isNew: true },
+            { id: 'chr_0023_antal', star: 4, isNew: false },
+            { id: 'chr_0023_antal', star: 4, isNew: false },
+            { id: 'chr_0025_ardelia', star: 6, isNew: true },
+            { id: 'chr_0023_antal', star: 4, isNew: false },
+            { id: 'chr_0026_lastrite', star: 6, isNew: false },
+            { id: 'chr_0021_whiten', star: 5, isNew: false },
+            { id: 'chr_0023_antal', star: 4, isNew: false },
+            { id: 'chr_0019_karin', star: 4, isNew: false },
+        ];
+
+        const container = document.getElementById('gachaContainer');
+        const bustImages = [];
+        const silhouetteImages = [];
+        const footShadowImages = [];
+
+        // 剪影统一缩放系数（占剪影容器高度的比例）
+        const silhouetteScale = 0.95;
+        // 五六星剪影额外放大系数
+        const silhouetteScaleByStar = { 4: 0.8, 5: 0.8, 6: 0.8 };
+
+        // 预计算的脚部对齐数据（避免 file:// 下 canvas CORS 问题）
+        // feetCX/feetY: 剪影脚底中心坐标, shCX/shTopY: 阴影顶部中心坐标
+        const alignmentData = {
+            'chr_0023_antal': { feetCX: 101, feetY: 425, shCX: 156.5, shTopY: 0 },
+            'chr_0012_avywen': { feetCX: 127.5, feetY: 423, shCX: 127.5, shTopY: 1 },
+            'chr_0016_laevat': { feetCX: 175.5, feetY: 413, shCX: 176.5, shTopY: 0 },
+        };
+
+        // 像素分析结果缓存（浏览器直开时为空对象，由 puppeteer 注入填充）
+        const __PIXEL_CACHE__ = (typeof window !== 'undefined' && window.__INJECTED_PIXEL_CACHE__) || {};
+        window.__NEW_PIXEL_DATA__ = {};
+        window.__TIMING__ = { start: performance.now() };
+        const __mark = (k) => { window.__TIMING__[k] = Math.round(performance.now() - window.__TIMING__.start); };
+        let __analyzeTotal = 0;
+        let __analyzeCount = 0;
+
+        function cachedFeetBottom(charId, img) {
+            if (__PIXEL_CACHE__[charId] && __PIXEL_CACHE__[charId].feet !== undefined) {
+                return __PIXEL_CACHE__[charId].feet;
+            }
+            const t0 = performance.now();
+            const result = findFeetBottom(analyzeImage(img));
+            __analyzeTotal += performance.now() - t0;
+            __analyzeCount++;
+            if (!window.__NEW_PIXEL_DATA__[charId]) window.__NEW_PIXEL_DATA__[charId] = {};
+            window.__NEW_PIXEL_DATA__[charId].feet = result;
+            return result;
+        }
+
+        function cachedShadowTop(charId, img) {
+            if (__PIXEL_CACHE__[charId] && __PIXEL_CACHE__[charId].sh !== undefined) {
+                return __PIXEL_CACHE__[charId].sh;
+            }
+            const t0 = performance.now();
+            const result = findShadowTop(analyzeImage(img));
+            __analyzeTotal += performance.now() - t0;
+            __analyzeCount++;
+            if (!window.__NEW_PIXEL_DATA__[charId]) window.__NEW_PIXEL_DATA__[charId] = {};
+            window.__NEW_PIXEL_DATA__[charId].sh = result;
+            return result;
+        }
+
+        gachaResults.forEach((result, index) => {
+            const panel = document.createElement('div');
+            panel.className = `panel star-${result.star}`;
+
+            const glowTop = document.createElement('div');
+            glowTop.className = 'glow-top';
+
+            const gridOverlay = document.createElement('div');
+            gridOverlay.className = 'grid-overlay';
+
+            const bustArea = document.createElement('div');
+            bustArea.className = 'bust-area';
+            const bustImg = document.createElement('img');
+            bustImg.src = `role/chargacha/${result.id}.png`;
+            bustImg.alt = result.id;
+            bustArea.appendChild(bustImg);
+            bustImages.push(bustImg);
+
+            const silhouetteArea = document.createElement('div');
+            silhouetteArea.className = 'silhouette-area';
+            const shadowFigure = document.createElement('img');
+            shadowFigure.className = 'shadow-figure';
+            shadowFigure.src = `role/gachashadow/${result.id}.png`;
+            shadowFigure.alt = 'silhouette';
+            shadowFigure.dataset.star = result.star;
+            silhouetteArea.appendChild(shadowFigure);
+            silhouetteImages.push(shadowFigure);
+
+            const footShadow = document.createElement('img');
+            footShadow.className = 'foot-shadow';
+            footShadow.src = `role/gachashadow/${result.id}_s.png`;
+            footShadow.alt = 'shadow';
+            footShadowImages.push(footShadow);
+
+            const floorArea = document.createElement('div');
+            floorArea.className = 'floor-area';
+
+            const starBadge = document.createElement('div');
+            starBadge.className = 'star-badge';
+            for (let i = 0; i < result.star; i++) {
+                const star = document.createElement('span');
+                star.className = 'star';
+                const starImg = document.createElement('img');
+                starImg.src = 'role/star.svg';
+                star.appendChild(starImg);
+                starBadge.appendChild(star);
+            }
+
+            panel.appendChild(gridOverlay);
+            panel.appendChild(glowTop);
+            panel.appendChild(bustArea);
+            panel.appendChild(floorArea);
+            panel.appendChild(footShadow);
+            panel.appendChild(silhouetteArea);
+            panel.appendChild(starBadge);
+
+            if (result.isNew) {
+                const newTag = document.createElement('div');
+                newTag.className = 'new-tag';
+                newTag.textContent = 'NEW';
+                panel.appendChild(newTag);
+            }
+
+            if (result.star === 6) {
+                const iridescentOverlay = document.createElement('div');
+                iridescentOverlay.className = 'iridescent-overlay';
+                panel.appendChild(iridescentOverlay);
+
+                const shimmerStreak = document.createElement('div');
+                shimmerStreak.className = 'shimmer-streak';
+                panel.appendChild(shimmerStreak);
+            }
+
+            container.appendChild(panel);
+        });
+
+        // 生成地面反射条
+        const groundRef = document.getElementById('groundReflection');
+        gachaResults.forEach((result, i) => {
+            const strip = document.createElement('div');
+            strip.className = `reflect-strip ref-${result.star}`;
+            const hl = document.createElement('div');
+            hl.className = 'highlight-line';
+            strip.appendChild(hl);
+
+            // 把对应面板的脚下影子移入反射条
+            const panel = container.children[i];
+            const footShadow = panel.querySelector('.foot-shadow');
+            if (footShadow) strip.appendChild(footShadow);
+
+            groundRef.appendChild(strip);
+        });
+
+        // 等所有立绘加载完后，最矮的完整显示对齐黑边，其他底边对齐顶部溢出
+        __mark('domBuilt');
+        Promise.all(bustImages.map(img => new Promise(resolve => {
+            if (img.complete) resolve();
+            else img.onload = resolve;
+        }))).then(() => {
+            __mark('bustLoaded');
+            const panelWidth = bustImages[0].parentElement.offsetWidth;
+            // 每张图按面板宽度缩放后的高度比例
+            const ratios = bustImages.map(img => img.naturalHeight / img.naturalWidth);
+            const minRatio = Math.min(...ratios);
+            // 最矮图片按面板宽度显示时的实际高度
+            const minHeight = panelWidth * minRatio;
+
+            // 设置bust-area高度为最矮图片高度（对齐黑边）
+            document.querySelectorAll('.bust-area').forEach(area => {
+                area.style.height = minHeight + 'px';
+            });
+
+            // 剪影底端紧贴面板底边
+            document.querySelectorAll('.silhouette-area').forEach(area => {
+                area.style.bottom = '0';
+                area.style.top = 'auto';
+            });
+
+            // 所有图片宽度=面板宽度，高度自动，底边对齐
+            bustImages.forEach(img => {
+                img.style.width = panelWidth + 'px';
+                img.style.left = '50%';
+                img.style.transform = 'translateX(-50%)';
+            });
+        });
+
+        // 像素分析：每行按非透明像素拆分成段，保留最长一段（避开尾巴/武器）
+        function analyzeImage(img) {
+            const w = img.naturalWidth;
+            const h = img.naturalHeight;
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                const data = ctx.getImageData(0, 0, w, h).data;
+                const ALPHA = 20;
+                // 允许小间隙的水平段连通：≤ GAP 的透明像素视作连续
+                const GAP = Math.max(2, Math.round(w * 0.02));
+
+                const rows = [];
+                let maxMainW = 0;
+                for (let y = 0; y < h; y++) {
+                    let mainL = -1, mainR = -1, mainW = 0;
+                    let curL = -1, curR = -1, curGap = 0;
+                    for (let x = 0; x < w; x++) {
+                        const a = data[(y * w + x) * 4 + 3];
+                        if (a > ALPHA) {
+                            if (curL < 0) curL = x;
+                            curR = x;
+                            curGap = 0;
+                        } else if (curL >= 0) {
+                            curGap++;
+                            if (curGap > GAP) {
+                                const segW = curR - curL + 1;
+                                if (segW > mainW) { mainW = segW; mainL = curL; mainR = curR; }
+                                curL = -1; curR = -1; curGap = 0;
+                            }
+                        }
+                    }
+                    if (curL >= 0) {
+                        const segW = curR - curL + 1;
+                        if (segW > mainW) { mainW = segW; mainL = curL; mainR = curR; }
+                    }
+                    rows.push({ width: mainW, l: mainL, r: mainR });
+                    if (mainW > maxMainW) maxMainW = mainW;
+                }
+                return { rows, maxW: maxMainW, w, h };
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // 找脚底：从下往上扫主段宽度，只取脚部接触区域的窄行
+        function findFeetBottom(analysis) {
+            if (!analysis || analysis.maxW === 0) return null;
+            const { rows, maxW, w, h } = analysis;
+            const threshold = Math.max(3, maxW * 0.25);
+
+            // 从底向上找第一个主段达到阈值的行
+            let feetY = -1;
+            for (let i = rows.length - 1; i >= 0; i--) {
+                if (rows[i].width >= threshold) { feetY = i; break; }
+            }
+            if (feetY < 0) return null;
+
+            // 取脚底行的宽度作为参考，只纳入宽度不超过 1.5 倍的行（排除上方宽体）
+            const feetRowW = rows[feetY].width;
+            const maxFeetW = feetRowW * 1.5;
+            const scan = Math.min(10, Math.ceil(h * 0.03));
+            let l = w, r = -1;
+            for (let yy = feetY; yy >= Math.max(0, feetY - scan); yy--) {
+                if (rows[yy].width >= threshold && rows[yy].width <= maxFeetW) {
+                    if (rows[yy].l < l) l = rows[yy].l;
+                    if (rows[yy].r > r) r = rows[yy].r;
+                }
+            }
+            const centerX = r >= 0 ? (l + r) / 2 : w / 2;
+            return { y: feetY, centerX, width: r >= 0 ? (r - l + 1) : 0 };
+        }
+
+        // 找影子顶部接触区：跳过杂点，用实质行的中心
+        function findShadowTop(analysis) {
+            if (!analysis || analysis.maxW === 0) return null;
+            const { rows, maxW, w, h } = analysis;
+
+            // 找顶部第一行有像素的位置
+            let topY = -1;
+            for (let i = 0; i < rows.length; i++) {
+                if (rows[i].width > 0) { topY = i; break; }
+            }
+            if (topY < 0) return null;
+
+            // 跳过顶部杂点：找第一个宽度 >= maxW*0.3 的行作为实质起始行
+            const minSubstantial = maxW * 0.3;
+            let startY = topY;
+            for (let i = topY; i < Math.min(rows.length, topY + 20); i++) {
+                if (rows[i].width >= minSubstantial) { startY = i; break; }
+            }
+
+            // 取起始行附近几行的中心
+            const scan = Math.min(8, Math.ceil(h * 0.03));
+            const refW = rows[startY].width;
+            const maxTopW = refW * 1.8;
+            let l = w, r = -1;
+            for (let yy = startY; yy <= Math.min(rows.length - 1, startY + scan); yy++) {
+                if (rows[yy].width >= minSubstantial && rows[yy].width <= maxTopW) {
+                    if (rows[yy].l < l) l = rows[yy].l;
+                    if (rows[yy].r > r) r = rows[yy].r;
+                }
+            }
+            const centerX = r >= 0 ? (l + r) / 2 : w / 2;
+            return { y: topY, centerX, width: r >= 0 ? (r - l + 1) : 0 };
+        }
+
+        // 剪影 + 倒影对齐
+        Promise.all([...silhouetteImages, ...footShadowImages].map(img => new Promise(resolve => {
+            if (img.complete && img.naturalWidth) resolve();
+            else { img.onload = resolve; img.onerror = resolve; }
+        }))).then(() => {
+            __mark('silLoaded');
+            silhouetteImages.forEach((sil, i) => {
+                const shadow = footShadowImages[i];
+                const silArea = sil.parentElement;
+                const silAreaH = silArea.offsetHeight;
+                const panel = silArea.closest('.panel');
+                const panelW = panel.offsetWidth;
+
+                const star = parseInt(sil.dataset.star, 10);
+                const starMult = silhouetteScaleByStar[star] || 1.0;
+                const targetH = silAreaH * silhouetteScale * starMult;
+
+                const charId = gachaResults[i].id;
+                const precomputed = alignmentData[charId];
+
+                // 优先用缓存的像素检测，失败则用预计算数据，再失败用画布中心
+                let feetCX, feetY;
+                const feetDetected = cachedFeetBottom(charId, sil);
+                if (feetDetected) {
+                    feetCX = feetDetected.centerX;
+                    feetY = feetDetected.y;
+                } else if (precomputed) {
+                    feetCX = precomputed.feetCX;
+                    feetY = precomputed.feetY;
+                } else {
+                    feetCX = sil.naturalWidth / 2;
+                    feetY = sil.naturalHeight - 1;
+                }
+
+                const sScale = targetH / sil.naturalHeight;
+                const silW = sil.naturalWidth * sScale;
+
+                // 垂直：脚底贴齐容器底边
+                const silTop = silAreaH - feetY * sScale;
+                // 水平：脚部中心对齐面板中心
+                const silAreaLeft = silArea.offsetLeft;
+                const silLeft = (panelW / 2 - silAreaLeft) - feetCX * sScale;
+
+                Object.assign(sil.style, {
+                    position: 'absolute',
+                    height: targetH + 'px',
+                    width: silW + 'px',
+                    maxWidth: 'none',
+                    objectFit: 'unset',
+                    transform: 'none',
+                    bottom: 'auto',
+                    top: silTop + 'px',
+                    left: silLeft + 'px'
+                });
+
+                if (shadow) {
+                    let shCX, shTopY;
+                    const shDetected = cachedShadowTop(charId, shadow);
+                    if (shDetected) {
+                        shCX = shDetected.centerX;
+                        shTopY = shDetected.y;
+                    } else if (precomputed) {
+                        shCX = precomputed.shCX;
+                        shTopY = precomputed.shTopY;
+                    } else {
+                        shCX = shadow.naturalWidth / 2;
+                        shTopY = 0;
+                    }
+
+                    const shScale = sScale;
+                    const shW = shadow.naturalWidth * shScale;
+                    const shH = shadow.naturalHeight * shScale;
+                    const strip = shadow.parentElement;
+                    const stripW = strip.offsetWidth;
+
+                    // 水平：阴影脚印中心对齐条带中心（= 面板中心）
+                    const shLeft = stripW / 2 - shCX * shScale;
+                    const shTopOffset = -shTopY * shScale;
+
+                    Object.assign(shadow.style, {
+                        position: 'absolute',
+                        height: shH + 'px',
+                        width: shW + 'px',
+                        maxWidth: 'none',
+                        objectFit: 'unset',
+                        transform: 'none',
+                        bottom: 'auto',
+                        top: shTopOffset + 'px',
+                        left: shLeft + 'px'
+                    });
+                }
+            });
+            __mark('layoutDone');
+            window.__TIMING__.analyzeTotalMs = Math.round(__analyzeTotal);
+            window.__TIMING__.analyzeCount = __analyzeCount;
+            window.__RENDER_DONE__ = true;
+        });
+    </script>
+</body>
+</html>

@@ -98,8 +98,6 @@ export class EndfieldArea extends plugin {
         return true
       }
 
-      const areaMap = setting.getData('areaMap') || {}
-
       // 构建各地区渲染数据
       const getCountPair = (value) => {
         if (value == null) return { count: 0, total: 0 }
@@ -132,7 +130,7 @@ export class EndfieldArea extends plugin {
       }
 
       const zoneList = zones.map((zone) => {
-        const zoneName = zone.zoneName || areaMap[zone.zoneId] || zone.zoneId || '未知'
+        const zoneName = zone.zoneName || zone.zoneId || '未知'
         // 根据地区名称选择总调度券图标
         let moneyIcon = ''
         if (zoneName.includes('四号谷地')) {
@@ -210,7 +208,7 @@ export class EndfieldArea extends plugin {
           : collectionSource
         const levelStats = levelsSource.map((lv) => {
           const levelId = lv.levelId || ''
-          const name = lv.name || areaMap[levelId] || levelId || '未知'
+          const name = lv.name || levelId || '未知'
           const chest = getCountPair(lv.trchestCount)
           const puzzle = getCountPair(lv.puzzleCount)
           const blackbox = getCountPair(lv.blackboxCount)
@@ -380,7 +378,6 @@ export class EndfieldArea extends plugin {
         return true
       }
 
-      const roomMap = setting.getData('baseRoomMap') || {}
       const userBase = noteRes?.code === 0 ? (noteRes.data?.base || {}) : {}
 
       // 从 card/detail 构建 charId → 头像映射
@@ -399,7 +396,7 @@ export class EndfieldArea extends plugin {
       // 构建房间渲染数据（API 已过滤空房间）
       const operatorMap = setting.getData('operatorMap') || {}
       const roomList = rooms.map((room, idx) => {
-        const roomName = room.roomName || roomMap[room.id] || room.id || '未知'
+        const roomName = room.roomName || room.id || '未知'
         const lastReportTs = Number(room.lastReportTs ?? 0)
         const lastReportTime = lastReportTs ? new Date(lastReportTs * 1000).toLocaleString('zh-CN') : ''
         const chars = (room.chars || []).map((c) => {

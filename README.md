@@ -14,7 +14,7 @@
 
 - 一个适用于 [Yunzai 系列机器人框架](https://github.com/yhArcadia/Yunzai-Bot-plugins-index) 的明日方舟：终末地游戏数据查询插件
 
-- 当前版本：`2.1.7`（2026-05-21）
+- 当前版本：`2.1.8`（2026-06-05）
 
 - 支持 Cred / 网页授权 / 扫码 / 手机号绑定，支持账号便签、角色列表、影拓丰碑、干员面板、Wiki、攻略、帝江号与地区建设等查询
 
@@ -100,6 +100,11 @@ git clone https://github.com/Entropy-Increase-Team/endfield-plugin ./plugins/end
 详细数据 仅能查询 在展柜的4名干员
 并且此功能需要 APIKey 为 Pro 等级
 
+#### 建设查询说明
+
+- `:地区建设` 使用统一后端 `/api/endfield/domain` 返回的地区与关卡名称。
+- `:帝江号建设` 使用统一后端 `/api/endfield/spaceship` 返回的房间名称，干员名称保留本地映射兜底。
+
 ### 公告
 
 | 命令 | 说明 |
@@ -122,6 +127,7 @@ git clone https://github.com/Entropy-Increase-Team/endfield-plugin ./plugins/end
 | `:重置抽卡` | 重置个人模拟抽卡状态 |
 
 - `:抽卡分析` 现按「特许寻访 / 辉光庆典 / 武库交易所 / 基础寻访」分组生成独立图片，辉光庆典按 UP 池规则统计。
+- `:十连` 角色池优先使用游戏内抽卡样式模板；`:百连` 按 10 组十连图片合并转发。
 
 ### Wiki 查询（需绑定）
 

@@ -193,7 +193,7 @@ stamina:
   push_setting_group_ok: "已改为推送到群聊 {groupId}"
 
 attendance:
-  sign_failed: "签到失败，请稍后重试。"
+  sign_failed: "签到失败，请稍后重试，或者重新登录。"
   already_signed: "今日已完成签到，无需重复操作。"
   cache_hit: "今日已签到（缓存）"
   force_hint: |-

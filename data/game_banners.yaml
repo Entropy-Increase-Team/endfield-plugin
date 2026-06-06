@@ -11,6 +11,14 @@ permanent_weapons:
     weapon_name: 大雷斑
 
 up_characters:
+  - pool_name: 逐罪者
+    character_name: 卡缪
+    start_time: 06.26 12:00
+    end_time: 07.17 6:00
+  - pool_name: 拳出无悔
+    character_name: 弥弗
+    start_time: 06.05 12:00
+    end_time: 06.26 11:59
   - pool_name: 辉光庆典
     character_names:
       - 骏卫
@@ -45,6 +53,14 @@ up_characters:
     end_time: 02.07 11:59
 
 up_weapons:
+  - pool_name: 染赤申领
+    weapon_name: 镀红祝福
+    start_time: 06.26 12:00
+    end_time: 07.17 6:00
+  - pool_name: 绛结申领
+    weapon_name: 赤缨
+    start_time: 06.05 12:00
+    end_time: 06.26 11:59
   - pool_name: 行舟申领
     weapon_name: 孤舟
     start_time: 04.17 11:00

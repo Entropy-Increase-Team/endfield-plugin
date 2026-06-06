@@ -1,6 +1,22 @@
 import { getMessage } from '../utils/common.js'
 import hypergryphAPI from '../model/hypergryphApi.js'
 import setting from '../utils/setting.js'
+import common from '../../../lib/common/common.js'
+import fs from 'node:fs'
+import path from 'node:path'
+
+const PLUGIN_ROOT = path.join(process.cwd(), 'plugins', 'endfield-plugin')
+const ROLE_GACHA_TEMPLATE_SOURCE = path.join(PLUGIN_ROOT, 'resources', 'gacha', 'role', 'gacha_display.html')
+const ROLE_GACHA_TEMPLATE_ADAPTER = path.join(process.cwd(), 'temp', 'endfield-plugin', 'gacha-role-adapter.html')
+const ROLE_GACHA_ASSET_ROOT = `${PLUGIN_ROOT.replace(/\\/g, '/')}/resources/gacha/role/`
+const ROLE_GACHA_CHARGACHA_DIR = path.join(PLUGIN_ROOT, 'resources', 'gacha', 'role', 'role', 'chargacha')
+const ROLE_GACHA_FALLBACK_IDS = {
+  6: ['chr_0025_ardelia', 'chr_0026_lastrite'],
+  5: ['chr_0012_avywen', 'chr_0021_whiten'],
+  4: ['chr_0023_antal', 'chr_0019_karin']
+}
+
+let roleNameToIdCache = null
 
 /** 模拟抽卡 Redis 键 */
 const SIMULATE_KEYS = {
@@ -29,6 +45,70 @@ const PITY_SIMULATE = { charSoft: 80, charHard: 120, weaponMax: 40 }
 
 /** 十连/百连/单抽 规则后缀（规则里与 getRulePrefix 拼接）；simulateDispatch 内用后缀正则单独匹配 */
 const SIMULATE_CMD_SUFFIX = '(十连|百连|单抽)(?:\\s*[（(]?(常驻|UP|武器|限定)[）)]?)?$'
+
+function hasRoleGachaAsset(id) {
+  return !!id && fs.existsSync(path.join(ROLE_GACHA_CHARGACHA_DIR, `${id}.png`))
+}
+
+function getRoleNameToIdMap() {
+  if (roleNameToIdCache) return roleNameToIdCache
+  const operatorMap = setting.getData('operatorMap') || {}
+  roleNameToIdCache = new Map()
+  for (const [id, name] of Object.entries(operatorMap)) {
+    if (hasRoleGachaAsset(id)) {
+      roleNameToIdCache.set(String(name || '').trim(), id)
+    }
+  }
+  return roleNameToIdCache
+}
+
+function resolveRoleGachaId(char = {}) {
+  const idCandidates = [
+    char.id,
+    char.char_id,
+    char.charId,
+    char.template_id,
+    char.templateId
+  ].map(v => String(v || '').trim()).filter(Boolean)
+  for (const id of idCandidates) {
+    if (hasRoleGachaAsset(id)) return id
+  }
+
+  const nameCandidates = [
+    char.name,
+    char.char_name,
+    char.charName
+  ].map(v => String(v || '').trim()).filter(Boolean)
+  const nameMap = getRoleNameToIdMap()
+  for (const name of nameCandidates) {
+    const id = nameMap.get(name)
+    if (id) return id
+  }
+  return ''
+}
+
+function pickFallbackRoleGachaId(rarity) {
+  const list = ROLE_GACHA_FALLBACK_IDS[Number(rarity)] || ROLE_GACHA_FALLBACK_IDS[4]
+  return list[Math.floor(Math.random() * list.length)]
+}
+
+function ensureRoleGachaAdapterTemplate() {
+  const source = fs.readFileSync(ROLE_GACHA_TEMPLATE_SOURCE, 'utf8')
+  let html = source
+    .replace(/const gachaResults = \[[\s\S]*?\];/, 'const gachaResults = {{@ gachaResultsJson }};')
+    .replace('<script>', '<script>\n        const assetRoot = {{@ assetRootJson }};')
+    .replace(/`role\/chargacha\/\$\{result\.id\}\.png`/g, '`${assetRoot}role/chargacha/${result.id}.png`')
+    .replace(/`role\/gachashadow\/\$\{result\.id\}\.png`/g, '`${assetRoot}role/gachashadow/${result.id}.png`')
+    .replace(/`role\/gachashadow\/\$\{result\.id\}_s\.png`/g, '`${assetRoot}role/gachashadow/${result.id}_s.png`')
+    .replace(/starImg\.src = 'role\/star\.svg';/g, 'starImg.src = `${assetRoot}role/star.svg`;')
+    .replace(/\s*<div class="top-right-btns">[\s\S]*?<\/div>\s*/, '\n')
+
+  fs.mkdirSync(path.dirname(ROLE_GACHA_TEMPLATE_ADAPTER), { recursive: true })
+  if (!fs.existsSync(ROLE_GACHA_TEMPLATE_ADAPTER) || fs.readFileSync(ROLE_GACHA_TEMPLATE_ADAPTER, 'utf8') !== html) {
+    fs.writeFileSync(ROLE_GACHA_TEMPLATE_ADAPTER, html, 'utf8')
+  }
+  return ROLE_GACHA_TEMPLATE_ADAPTER
+}
 
 export class EndfieldGachaSimulate extends plugin {
   constructor() {
@@ -166,7 +246,43 @@ export class EndfieldGachaSimulate extends plugin {
     if (rarity === 6 && list.length > 0) list = list.filter((c) => !!c.is_up === !!isUp)
     if (list.length === 0 && rarity === 6) list = Array.isArray(pool.star6_chars) ? pool.star6_chars : []
     const char = list[Math.floor(Math.random() * list.length)]
-    return char ? { cover: char.cover || '', name: char.name || '' } : {}
+    return char ? { cover: char.cover || '', name: char.name || '', id: resolveRoleGachaId(char) } : {}
+  }
+
+  buildRoleGachaResults(results = [], pickChar) {
+    return (Array.isArray(results) ? results : []).slice(0, 10).map((r) => {
+      const rarity = Math.max(4, Math.min(6, Number(r?.rarity) || 4))
+      const charInfo = typeof pickChar === 'function' ? pickChar(rarity, r?.is_up) : {}
+      return {
+        id: charInfo?.id || pickFallbackRoleGachaId(rarity),
+        star: rarity,
+        isNew: !!(r?.is_new ?? r?.isNew)
+      }
+    })
+  }
+
+  async renderRoleGachaTenResult(payload, pickChar) {
+    if (!this.e?.runtime?.puppeteer?.screenshot || payload.poolType === 'weapon') return null
+    const roleResults = this.buildRoleGachaResults(payload.results, pickChar)
+    if (roleResults.length !== 10) return null
+
+    try {
+      const tplFile = ensureRoleGachaAdapterTemplate()
+      const img = await this.e.runtime.puppeteer.screenshot('endfield-plugin/gacha/role-result', {
+        tplFile,
+        saveId: `role-result-${this.e.user_id || '0'}-${Date.now()}-${payload.batchIndex || 1}`,
+        gachaResultsJson: JSON.stringify(roleResults),
+        assetRootJson: JSON.stringify(`${ROLE_GACHA_ASSET_ROOT}/`.replace(/\/+$/, '/')),
+        scale: 1.4,
+        imgType: 'png',
+        viewport: { width: 1600, height: 900 },
+        pageGotoParams: { timeout: 120000, waitUntil: 'networkidle2' }
+      })
+      return img || null
+    } catch (e) {
+      logger.error(`[终末地插件][模拟抽卡] role模板渲染失败: ${e?.message || e}`)
+      return null
+    }
   }
 
   async renderSimulateResult(mode, payload) {
@@ -180,11 +296,18 @@ export class EndfieldGachaSimulate extends plugin {
     }
     const baseOpt = { scale: 1.6, retType: 'base64', viewport: { width: pageWidth, height: viewportHeight } }
     const poolType = payload.poolType
-    let poolCharsData = null
-    try {
-      poolCharsData = await hypergryphAPI.getGachaPoolChars(poolType)
-    } catch (e) {}
+    let poolCharsData = payload.poolCharsData || null
+    if (!poolCharsData) {
+      try {
+        poolCharsData = await hypergryphAPI.getGachaPoolChars(poolType)
+      } catch (e) {}
+    }
     const pickChar = (rarity, isUp) => this.pickRandomCharFromPool(poolCharsData, poolType, rarity, isUp)
+
+    if (mode === 'ten' && payload.results) {
+      const roleImg = await this.renderRoleGachaTenResult(payload, pickChar)
+      if (roleImg) return roleImg
+    }
 
     let rulesData = SIMULATE_RULES_CACHE.get(poolType) || null
     if (!rulesData) {
@@ -376,6 +499,7 @@ export class EndfieldGachaSimulate extends plugin {
     }
     let prevState = await this.loadSimulateState(scope, poolType)
     const allResults = []
+    const batches = []
     let lastState = null
     for (let i = 0; i < 10; i++) {
       const data = await hypergryphAPI.postGachaSimulateTen(poolType, prevState)
@@ -384,9 +508,12 @@ export class EndfieldGachaSimulate extends plugin {
         return true
       }
       const base = i * 10
+      const batchResults = []
       for (const r of data.results) {
-        allResults.push({ ...r, pull_number: base + (r.pull_number || 0) })
+        batchResults.push({ ...r, pull_number: base + (r.pull_number || 0) })
       }
+      allResults.push(...batchResults)
+      batches.push({ results: batchResults, state: data.state || null, stats: data.stats || null })
       prevState = data.state || null
       lastState = prevState
     }
@@ -401,13 +528,6 @@ export class EndfieldGachaSimulate extends plugin {
         if (r.is_up) upCount += 1
       }
     }
-    const stats = {
-      total_pulls: 100,
-      six_star_count: star6Count,
-      five_star_count: allResults.filter((r) => r.rarity === 5).length,
-      up_six_star_count: upCount,
-      up_rate: star6Count ? ((upCount / star6Count) * 100).toFixed(2) : null
-    }
     const lines = allResults.map((r) => {
       const star = r.rarity === 6 ? getMessage('gacha_simulate.star_6') : r.rarity === 5 ? getMessage('gacha_simulate.star_5') : getMessage('gacha_simulate.star_4')
       const tag = r.rarity === 6 && r.is_up ? ` ${getMessage('gacha_simulate.tag_up')}` : r.rarity === 6 && !r.is_up ? ` ${getMessage('gacha_simulate.tag_off')}` : ''
@@ -420,17 +540,47 @@ export class EndfieldGachaSimulate extends plugin {
       up: upCount,
       total: 100
     })
-    const img = await this.renderSimulateResult('ten', {
-      title,
-      results: allResults,
-      stats: { ...stats, total_pulls: 100 },
-      star6Count,
-      upCount,
-      poolType,
-      poolLabel,
-      state: lastState
-    })
-    await this.reply(img || msg)
+    const poolCharsData = (await hypergryphAPI.getGachaPoolChars(poolType).catch(() => null)) || { pools: [] }
+    const forwardParts = []
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i]
+      let batchStar6Count = 0
+      let batchUpCount = 0
+      for (const r of batch.results) {
+        if (r.rarity === 6) {
+          batchStar6Count += 1
+          if (r.is_up) batchUpCount += 1
+        }
+      }
+      const batchStats = batch.stats || {
+        total_pulls: batch.results.length,
+        six_star_count: batchStar6Count,
+        five_star_count: batch.results.filter((r) => r.rarity === 5).length,
+        up_six_star_count: batchUpCount,
+        up_rate: batchStar6Count ? ((batchUpCount / batchStar6Count) * 100).toFixed(2) : null
+      }
+      const img = await this.renderSimulateResult('ten', {
+        title: `${title} ${i + 1}/10`,
+        results: batch.results,
+        stats: batchStats,
+        star6Count: batchStar6Count,
+        upCount: batchUpCount,
+        poolType,
+        poolLabel,
+        state: batch.state || lastState,
+        batchIndex: i + 1,
+        poolCharsData
+      })
+      if (img) {
+        forwardParts.push([img])
+      }
+    }
+    if (forwardParts.length > 0) {
+      const forwardMsg = await common.makeForwardMsg(this.e, forwardParts, title)
+      await this.e.reply(forwardMsg)
+      return true
+    }
+    await this.reply(msg)
     return true
   }
 
