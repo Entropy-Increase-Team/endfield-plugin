@@ -178,7 +178,10 @@ GET /health
 
 ```http
 GET /health/detailed
+X-Admin-Secret: your-admin-secret
 ```
+
+> 详细健康检查包含数据库、Redis、运行时等内部状态，需要管理员密钥。
 
 **响应示例**:
 ```json
@@ -1325,7 +1328,32 @@ X-Framework-Token: your-framework-token
 | serverId / server_id | int | 否 | 指定服务器 ID，建议与 roleId 一起传 |
 
 > 角色选择优先级：`roleId`/`role_id` 显式指定 > `framework_token` 对应主绑定（`is_primary=true`）> 任意有效绑定（兜底）> 登录会话默认角色。
-> 转发森空岛 `/api/v1/game/endfield/card/indie-hard`。`skport` 暂时不支持该接口；后续国际服补齐上游能力后，将取消 provider 限制，国服/国际服均可使用。
+> 国服与国际服均转发 `/api/v1/game/endfield/card/indie-hard`，按当前 `X-Framework-Token` 对应的 provider 选择 `skland` 或 `skport` 上游。
+
+### 获取危机合约详情
+
+```http
+GET /api/endfield/card/crisis-contract?contractId=xxx
+X-Framework-Token: your-framework-token
+```
+
+**Query 参数**:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| contractId / contract_id | string | **是** | 危机合约 ID，可从 `/api/endfield/card/detail` 返回的 `detail.crisisContract[].id` 获取 |
+| roleId / role_id | string | 否 | 指定游戏角色 ID |
+| serverId / server_id | int | 否 | 指定服务器 ID，建议与 roleId 一起传 |
+
+> 角色选择优先级：`roleId`/`role_id` 显式指定 > `framework_token` 对应主绑定（`is_primary=true`）> 任意有效绑定（兜底）> 登录会话默认角色。
+> 国服转发 `/api/v1/game/endfield/card/crisis-contract`，国际服按相同路径转发 `skport` 上游；返回 `data.crisisContract` 原始结构。
+
+**响应字段概览**:
+| 字段 | 说明 |
+|------|------|
+| `crisisContract.status` | 活动状态与摘要，包括最高分、挑战次数、奖章、周常/词条/关卡任务、活动时间、KV/头图 |
+| `crisisContract.history` | 挑战历史记录与最佳记录 |
+| `crisisContract.indicators` | 危机词条列表，包括依赖、分值、解锁状态、描述参数 |
+| `crisisContract.dungeon` | 关卡信息，包括敌人、推荐等级、描述和特性 |
 
 ### 终末地签到
 
@@ -2967,6 +2995,7 @@ Authorization: Bearer <jwt> 或 X-API-Key 或 X-Anonymous-Token
 | facility | string | 否 | 设备 item_id（逗号分隔） |
 | creator_id | string | 否 | 创作者用户 ID |
 | keyword | string | 否 | 标题/描述关键词搜索 |
+| q | string | 否 | `keyword` 的短别名 |
 | sort | string | 否 | 排序字段，默认 `-created_at`。支持：`created_at`, `-created_at`, `updated_at`, `-updated_at`, `likes_count`, `-likes_count`, `views_count`, `-views_count`, `copies_count`, `-copies_count`, `favorites_count`, `-favorites_count` |
 | page | int | 否 | 页码，默认 1 |
 | page_size | int | 否 | 每页数量，默认 20，最大 50 |
@@ -3256,7 +3285,13 @@ Authorization: Bearer <jwt> 或 X-API-Key 或 X-Anonymous-Token
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| key | string | 是 | 图片的 object key（上传接口返回的 `key` 字段） |
+| key | string | 是 | 图片的 object key（上传接口返回的 `key` 字段），也兼容传入已签名 URL |
+
+**访问控制**：
+- key 必须位于存储配置的 `path_prefix` 下。
+- 已发布且审核通过的蓝图图片可被任意有效认证访问。
+- 未发布、待审核或私有图片仅创建者本人可签名访问。
+- 已拒绝的图片不可签名访问。
 
 **响应示例**：
 ```json
@@ -7101,6 +7136,7 @@ GET /api/hypergryph/app-list
 
 ```http
 GET /api/endfield/admin/credential-status
+X-Admin-Secret: your-admin-secret
 ```
 
 **响应示例**:
@@ -7129,10 +7165,29 @@ GET /api/endfield/admin/credential-status
 }
 ```
 
+### 手动触发凭证检查
+
+```http
+POST /api/endfield/admin/check-credentials
+X-Admin-Secret: your-admin-secret
+```
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "message": "凭证检查任务已启动"
+  }
+}
+```
+
 ### 手动触发凭证清理
 
 ```http
 POST /api/endfield/admin/cleanup-credentials
+X-Admin-Secret: your-admin-secret
 Content-Type: application/json
 
 {
@@ -7144,6 +7199,8 @@ Content-Type: application/json
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | cleanup_type | string | 否 | 清理类型：`expired`（过期）/ `duplicate`（重复）/ `all`（全部），默认 `all` |
+
+> 手动检查和清理接口同一时间只允许一个任务运行，触发间隔为 5 分钟。
 
 **响应示例**:
 ```json
@@ -7170,7 +7227,7 @@ Content-Type: application/json
 
 Web 平台支持两种登录方式：
 1. **账号密码登录** - 使用邮箱注册，支持密码登录
-2. **OAuth 登录** - QQ / GitHub 第三方登录
+2. **OAuth 登录** - QQ / GitHub / Google 第三方登录
 
 两种方式的用户可以互相绑定，统一使用 JWT 令牌机制。
 
@@ -7416,12 +7473,11 @@ GET /api/v1/auth/oauth/:provider
 **路径参数**:
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| provider | string | OAuth 提供商：`qq` 或 `github` |
+| provider | string | OAuth 提供商：`qq`、`github` 或 `google` |
 
 **Query 参数**:
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| redirect_uri | string | 否 | 自定义回调地址 |
 | action | string | 否 | `bind` 表示绑定操作（已登录用户绑定 OAuth），不传则为登录/注册 |
 
 **响应示例**:
@@ -7436,14 +7492,45 @@ GET /api/v1/auth/oauth/:provider
 }
 ```
 
-> **绑定操作说明**：当 `action=bind` 时，返回的 `state` 会带有 `bind:` 前缀。
-> OAuth 回调时后端检测到此前缀，会将 `code` 直接传递给前端（而非消费它），
-> 前端再用当前用户的 JWT + code 调用 `/api/v1/auth/link-oauth` 完成绑定。
+> **安全说明**：`state` 会写入 Redis 并在回调时一次性消费。服务端使用配置中的固定 OAuth 回调地址，客户端传入的 `redirect_uri` 会被忽略。
+>
+> **绑定操作说明**：当 `action=bind` 时，返回的 `state` 会带有 `bind:` 前缀。OAuth 回调时后端会生成一次性 `code_ticket`，前端使用当前用户 JWT + `code_ticket` 调用 `/api/v1/auth/link-oauth` 完成绑定。
 
 ### OAuth 回调
 
 ```http
 GET /api/v1/auth/callback/:provider?code=xxx&state=xxx
+```
+
+**登录/注册成功响应**：302 重定向到前端 OAuth 回调页。
+
+```http
+Location: https://web.example.com/oauth/callback?ticket=oauth-login-ticket&provider=github&state=xxx&is_new_user=false
+```
+
+> **前端处理约定**：登录/注册回调 URL 不再直接携带 `access_token` / `refresh_token`。前端必须读取 `ticket`，再调用 `POST /api/v1/auth/oauth/exchange` 换取 JWT。前端站点如果有语言前缀跳转（例如 `/oauth/callback` → `/zh-CN/oauth/callback`），必须完整保留 `ticket`、`provider`、`state`、`is_new_user` 等 Query 参数。
+
+**绑定成功响应**：302 重定向到前端 OAuth 回调页。
+
+```http
+Location: https://web.example.com/oauth/callback?code_ticket=oauth-code-ticket&provider=github&state=bind:xxx&action=bind
+```
+
+> **绑定处理约定**：绑定回调 URL 不直接携带第三方 `code`。前端必须读取一次性 `code_ticket`，并携带当前登录用户的 `Authorization: Bearer <access_token>` 调用 `POST /api/v1/auth/link-oauth`。
+
+### 兑换 OAuth 登录票据
+
+OAuth 登录/注册回调会把一次性 `ticket` 放到前端回调 URL，前端用该接口换取 JWT Token。票据有效期 5 分钟且只能使用一次。
+
+> **重复调用保护**：`ticket` 在后端 Redis 中一次性消费。React StrictMode、重复渲染、刷新页面或用户重复打开同一回调地址都可能导致重复请求；前端必须对同一个 `ticket` 做请求去重，避免二次消费后出现“未获取到登录凭证”。
+
+```http
+POST /api/v1/auth/oauth/exchange
+Content-Type: application/json
+
+{
+  "ticket": "oauth-login-ticket"
+}
 ```
 
 **响应示例**:
@@ -7462,7 +7549,8 @@ GET /api/v1/auth/callback/:provider?code=xxx&state=xxx
       "avatar": "https://...",
       "is_developer": false
     },
-    "is_new_user": false
+    "is_new_user": false,
+    "provider": "github"
   }
 }
 ```
@@ -7677,7 +7765,7 @@ Content-Type: application/json
 
 为 OAuth 用户设置用户名。**只能设置一次，设置后不可更改**。
 
-> 适用于通过 QQ/GitHub 登录的用户，这些用户首次登录时没有用户名。
+> 适用于通过 QQ/GitHub/Google 登录的用户，这些用户首次登录时没有用户名。
 
 ```http
 POST /api/v1/auth/set-username
@@ -7731,7 +7819,7 @@ Content-Type: application/json
 
 为 OAuth 用户首次设置密码。设置密码后，用户可以使用邮箱+密码登录。
 
-> 适用于通过 QQ/GitHub 登录且尚未设置密码的用户。已设置密码的用户请使用"修改密码"接口。
+> 适用于通过 QQ/GitHub/Google 登录且尚未设置密码的用户。已设置密码的用户请使用"修改密码"接口。
 
 ```http
 POST /api/v1/auth/set-password
@@ -7779,19 +7867,19 @@ Content-Type: application/json
 
 > ⚠️ 需要认证：`Authorization: Bearer <access_token>`
 
-将已登录的账号绑定到第三方 OAuth（QQ/GitHub）。绑定后，用户可以使用 OAuth 登录同一个账号。
+将已登录的账号绑定到第三方 OAuth（QQ/GitHub/Google）。绑定后，用户可以使用 OAuth 登录同一个账号。
 
 #### 完整绑定流程
 
 ```
 1. 前端调用 GET /api/v1/auth/oauth/:provider?action=bind 获取授权 URL
    - 返回的 state 带有 "bind:" 前缀
-2. 打开弹窗跳转到 OAuth 授权页面（QQ/GitHub）
+2. 打开弹窗跳转到 OAuth 授权页面（QQ/GitHub/Google）
 3. 用户授权后，OAuth 提供商回调到后端 /api/v1/auth/callback/:provider
 4. 后端检测到 state 以 "bind:" 开头：
-   - 不消费 code，不创建新用户
-   - 重定向到前端 /oauth/callback，携带 code、provider、action=bind
-5. 前端检测到 action=bind，用当前用户的 JWT + code 调用本接口
+   - 创建一次性 code_ticket
+   - 重定向到前端 /oauth/callback，携带 code_ticket、provider、state、action=bind
+5. 前端检测到 action=bind，用当前用户的 JWT + code_ticket 调用本接口
 6. 后端检查 OAuth 账号状态：
    - 情况 A：OAuth 未被使用 → 直接绑定成功
    - 情况 B：OAuth 已是独立账号（无邮箱密码）→ 返回 need_confirm_merge
@@ -7801,6 +7889,8 @@ Content-Type: application/json
 
 > **重要**：绑定流程与登录流程的区别在于 `action=bind` 参数。
 > 如果不传此参数，后端会将 OAuth 账号作为独立用户处理（登录或创建新用户）。
+>
+> **一次性票据**：`code_ticket` 与登录 `ticket` 一样只能消费一次。前端应在 OAuth API 封装层对同一个 `provider + code_ticket` 做请求去重，页面组件不应直接拼装或重复调用绑定接口。
 
 ```http
 POST /api/v1/auth/link-oauth
@@ -7809,20 +7899,23 @@ Content-Type: application/json
 
 {
   "provider": "github",
-  "code": "oauth-authorization-code"
+  "code_ticket": "oauth-code-ticket"
 }
 ```
 
 **请求参数（首次绑定）**:
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| provider | string | 是 | OAuth 提供商：`qq` 或 `github` |
-| code | string | 是 | OAuth 授权码（从回调 URL 获取） |
+| provider | string | 是 | OAuth 提供商：`qq`、`github` 或 `google` |
+| code_ticket | string | 条件必填 | OAuth 绑定回调的一次性授权码票据 |
+| code | string | 条件必填 | OAuth 授权码，兼容旧调用；推荐使用 `code_ticket` |
+
+> 新代码必须优先使用 `code_ticket`。`code` 仅用于历史兼容，不应作为 QQ / GitHub / Google 绑定流程的新实现依据。
 
 **请求参数（确认合并）**:
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| provider | string | 是 | OAuth 提供商：`qq` 或 `github` |
+| provider | string | 是 | OAuth 提供商：`qq`、`github` 或 `google` |
 | confirm_merge | boolean | 是 | 设为 `true` 确认合并账号 |
 | oauth_id | string | 是 | 要合并的 OAuth ID（从 need_confirm_merge 响应获取） |
 
@@ -7948,6 +8041,7 @@ Content-Type: application/json
 - 授权的是 **Framework Token**（游戏数据凭证），不是用户账号
 - **需要 API Key 认证**：创建请求、轮询状态、获取数据都需要同一个 API Key
 - 只有创建授权请求的 API Key 用户才能获取授权结果
+- 已授权客户端记录会写入 `api_key_user_id`，查询、轮询、按平台用户检索均按 API Key 所属用户隔离
 - **多绑定支持**：同一用户可对同一客户端授权多个游戏绑定，每个绑定独立一条授权记录
 - **`client_id`** 区分不同的第三方应用（bot A / bot B），**`platform_id`**（可选）标识该平台上的具体用户（如 QQ 号）
 - Web 用户撤销授权时，系统会**刷新 Framework Token**，使授权给客户端的旧 Token 失效
@@ -9354,9 +9448,13 @@ GET/POST /api/v1/subscription/epay/notify
 ```
 
 - **IP 白名单**校验 + **签名验证**（RSA 或 MD5）
+- RSA 回调必须携带 `timestamp`，时间窗口为 5 分钟
+- 支付成功前会校验 `pid`、订单号、平台交易号、金额、支付方式、订单标题
 - 支付成功（`trade_status=TRADE_SUCCESS`）后自动激活订阅或请求量包
-- 幂等处理：同一订单重复回调不会重复激活
+- 幂等处理：同一订单重复回调、同一平台交易号重复绑定其他订单都会被拦截
 - 返回 `success` 字符串确认接收
+
+> `epay.allowed_ips` 配置为空时跳过 IP 校验并记录告警；生产环境建议配置易支付平台回调出口 IP。
 
 #### 同步跳转
 
@@ -10092,11 +10190,16 @@ curl "http://localhost:15618/api/v1/auth/check-username?username=testuser"
 # 获取 OAuth 登录 URL
 curl http://localhost:15618/api/v1/auth/oauth/github
 
+# 使用 OAuth 回调返回的一次性登录票据换取 Token
+curl -X POST http://localhost:15618/api/v1/auth/oauth/exchange \
+  -H "Content-Type: application/json" \
+  -d '{"ticket": "oauth-login-ticket"}'
+
 # 绑定 OAuth 到现有账号
 curl -X POST http://localhost:15618/api/v1/auth/link-oauth \
   -H "Authorization: Bearer your-access-token" \
   -H "Content-Type: application/json" \
-  -d '{"provider": "github", "code": "xxx", "redirect_uri": "https://yoursite.com/callback"}'
+  -d '{"provider": "github", "code_ticket": "oauth-code-ticket"}'
 
 # 解绑 OAuth
 curl -X POST http://localhost:15618/api/v1/auth/unlink-oauth \
@@ -10293,14 +10396,14 @@ const login = async (account, password) => {
 };
 
 // 4. 绑定 OAuth（登录后）
-const linkOAuth = async (provider, code, redirectUri) => {
+const linkOAuth = async (provider, codeTicket) => {
   const res = await fetch('http://localhost:15618/api/v1/auth/link-oauth', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ provider, code, redirect_uri: redirectUri })
+    body: JSON.stringify({ provider, code_ticket: codeTicket })
   });
   return res.json();
 };
@@ -10332,8 +10435,17 @@ const getOAuthURL = async (provider) => {
 // 2. 跳转到登录页面
 window.location.href = await getOAuthURL('github');
 
-// 3. OAuth 回调后获取到 access_token，存储到 localStorage
-const { access_token, refresh_token } = await handleOAuthCallback();
+// 3. OAuth 回调 URL 中拿到 ticket 后，换取 Token 并存储
+const exchangeOAuthTicket = async (ticket) => {
+  const res = await fetch('http://localhost:15618/api/v1/auth/oauth/exchange', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ticket })
+  });
+  const { data } = await res.json();
+  return data;
+};
+const { access_token, refresh_token } = await exchangeOAuthTicket(ticketFromCallback);
 localStorage.setItem('access_token', access_token);
 localStorage.setItem('refresh_token', refresh_token);
 
@@ -10455,6 +10567,43 @@ const callWithAPIKey = async (apiKey, endpoint) => {
 ---
 
 ## 更新日志
+
+### v3.5.4 (2026-06-29)
+
+- ✅ **OAuth 回调文档同步**
+  - 明确 QQ/GitHub/Google 登录回调只返回一次性 `ticket`，前端必须调用 `POST /api/v1/auth/oauth/exchange` 换取 JWT
+  - 明确绑定回调只返回一次性 `code_ticket`，前端必须携带当前 JWT 调用 `POST /api/v1/auth/link-oauth`
+  - 补充前端语言前缀跳转必须保留 Query 参数，以及同票据请求去重要求
+
+### v3.5.3 (2026-06-27)
+
+- ✅ **影拓丰碑接口支持 skport**
+  - `GET /api/endfield/card/indie-hard` 取消国服 provider 限制
+  - 支持 `skland` 与 `skport` 凭证，按当前 provider 转发 `/api/v1/game/endfield/card/indie-hard`
+
+### v3.5.2 (2026-06-27)
+
+- ✅ **危机合约详情接口**
+  - 新增 `GET /api/endfield/card/crisis-contract`
+  - 支持 `skland` 与 `skport` 凭证，按当前 provider 转发 `/api/v1/game/endfield/card/crisis-contract`
+  - 新增必填参数 `contractId`（兼容 `contract_id`），可从 `card/detail` 的 `detail.crisisContract[].id` 获取
+  - 继续沿用双凭证语义：接口认证三选一 + `X-Framework-Token` 游戏数据凭证
+
+### v3.5.1 (2026-05-26)
+
+- ✅ **OAuth 回调安全加固**
+  - 登录回调返回一次性 `ticket`，前端通过 `POST /api/v1/auth/oauth/exchange` 换取 Token
+  - 绑定回调返回一次性 `code_ticket`，前端通过 JWT + `code_ticket` 完成绑定
+  - OAuth `state` 后端 Redis 存储并一次性消费
+
+- ✅ **管理与回调接口加固**
+  - `/health/detailed`、凭证检查、凭证清理统一要求 `X-Admin-Secret`
+  - 易支付回调增加时间戳、商户号、金额、订单标题、支付方式、交易号校验
+  - 蓝图图片签名限制为允许存储前缀、公开已审图片或本人图片
+
+- ✅ **部署与前端管理页安全**
+  - Docker Compose 收敛 MongoDB/Redis 端口暴露并默认关闭 Swagger
+  - 管理页密钥改用 `sessionStorage`，降低长期本地持久化风险
 
 ### v3.5.0 (2026-05)
 
@@ -10773,8 +10922,8 @@ const callWithAPIKey = async (apiKey, endpoint) => {
   - **修复**：
     - `GET /api/v1/auth/oauth/:provider` 新增 `action=bind` 参数
     - 绑定操作时 state 带 `bind:` 前缀
-    - OAuth 回调检测到 `bind:` 前缀时，不消费 code，直接重定向给前端
-    - 前端用 JWT + code 调用 `/api/v1/auth/link-oauth` 完成绑定
+    - OAuth 回调检测到 `bind:` 前缀时生成一次性 `code_ticket` 并重定向给前端
+    - 前端用 JWT + `code_ticket` 调用 `/api/v1/auth/link-oauth` 完成绑定
   - **结果**：绑定后 QQ 登录和账号密码登录是同一个用户，用户 ID 相同
 
 - ✅ **文档更新**
@@ -11133,7 +11282,7 @@ const callWithAPIKey = async (apiKey, endpoint) => {
 ### v1.2.0 (2026-01-26)
 
 - ✅ 新增 Web 平台认证系统
-  - OAuth 登录（QQ、GitHub）
+  - OAuth 登录（QQ、GitHub、Google）
   - JWT 令牌管理（Access Token + Refresh Token）
   - 用户信息接口
 - ✅ 新增数据授权服务

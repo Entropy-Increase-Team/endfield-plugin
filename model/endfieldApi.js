@@ -118,6 +118,19 @@ export default class EndfieldApi {
       indie_hard: {
         url: `${baseUrl}/api/endfield/card/indie-hard`,
         query: data.roleId ? `roleId=${data.roleId}&serverId=${data.serverId || 1}` : ''
+      },
+      crisis_contract: {
+        url: `${baseUrl}/api/endfield/card/crisis-contract`,
+        query: (() => {
+          const params = []
+          const contractId = data.contractId || data.contract_id || ''
+          if (contractId) params.push(`contractId=${encodeURIComponent(contractId)}`)
+          const roleId = data.roleId || data.role_id || ''
+          const serverId = data.serverId || data.server_id || ''
+          if (roleId) params.push(`roleId=${encodeURIComponent(roleId)}`)
+          if (roleId || serverId) params.push(`serverId=${encodeURIComponent(serverId || 1)}`)
+          return params.join('&')
+        })()
       }
     }
   }

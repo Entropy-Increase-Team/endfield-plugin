@@ -5,6 +5,24 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循扩展的语义化版本规范（x.y.z 格式）。
 
+## [2.2.0] - 2026-06-30
+
+### feat
+- **新增危机合约查询**
+  - 新增 `:危机合约`、`:危机`、`:合约` 命令，支持按名称或 ID 查询
+  - 自动从 `card/detail` 的 `detail.crisisContract` 选择当前合约，并请求 `/api/endfield/card/crisis-contract`
+  - 图片展示最高评分、挑战次数、奖章、任务与挑战记录
+  - 新增 `:危机 指标` 独立指标视图，默认危机图片隐藏指标与关卡敌人
+
+### docs
+- **文档与版本更新**
+  - `README.md` 当前版本更新为 `2.2.0`（2026-06-30）
+  - `README.md`、默认帮助菜单与 `API.md` 补充危机合约说明
+
+### changed
+- **版本号统一为 2.2.0**
+  - `package.json` 版本号更新为 `2.2.0`
+
 ## [2.1.8] - 2026-06-05
 
 ### feat

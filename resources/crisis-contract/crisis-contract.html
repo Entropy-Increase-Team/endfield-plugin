@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}} - {{contract.name}}</title>
+  <link rel="stylesheet" href="{{_res_path}}crisis-contract/crisis-contract.css">
+</head>
+<body>
+  <div class="crisis-page {{isIndicatorView ? 'indicator-view' : ''}}">
+    <section class="hero">
+      {{if contract.cover}}
+      <img class="hero-bg" src="{{contract.cover}}" alt="" onerror="this.style.display='none'">
+      {{/if}}
+      <div class="hero-mask"></div>
+      <div class="hero-content">
+        <div class="top-line">
+          <div>
+            <div class="eyebrow">ARKNIGHTS: ENDFIELD</div>
+            <div class="role-name">{{role.name}}</div>
+            <div class="role-meta">Lv.{{role.level}} · UID {{role.roleId}}</div>
+          </div>
+          {{if pluResPath}}
+          <img class="logo" src="{{pluResPath}}img/ET logo.svg" alt="Logo">
+          {{/if}}
+        </div>
+
+        <div class="title-row">
+          <div class="title-main">
+            <div class="title-kicker">{{title}}{{if contract.id}} · {{contract.id}}{{/if}}</div>
+            <h1>{{contract.name}}</h1>
+            <div class="activity">{{contract.gameplayTimeRange || contract.timeRange}}</div>
+          </div>
+          <div class="record-medal">
+            <div class="medal-box {{medal.isPlated ? 'plated' : ''}}">
+              {{if medal.icon}}<img src="{{medal.icon}}" alt="" onerror="this.style.display='none'">{{/if}}
+              <div>
+                <span>最高记录</span>
+                <b>{{highest}}</b>
+              </div>
+            </div>
+            <div class="medal-name">{{medal.name}}{{if medal.status}} · {{medal.status}}{{/if}}</div>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          {{each summaryCards card}}
+          <div class="summary-card">
+            <span>{{card.label}}</span>
+            <b>{{card.value}}</b>
+          </div>
+          {{/each}}
+        </div>
+      </div>
+    </section>
+
+    {{if !isIndicatorView && history.best}}
+    <section class="record-section">
+      <div class="section-title">
+        <span>BEST RECORD</span>
+        <h2>最佳记录</h2>
+      </div>
+      <div class="record-card best-record {{history.best.isPass ? 'pass' : 'failed'}}">
+        <div class="record-side">
+          <div class="record-status">{{history.best.status}}</div>
+          <div class="record-wave">{{history.best.waveText}}</div>
+          <div class="score-label">指标总计</div>
+          <div class="record-score">{{history.best.indicatorCount}}</div>
+          <div class="score-label">战斗时长</div>
+          <div class="record-duration">{{history.best.duration || '—'}}</div>
+        </div>
+        <div class="record-body">
+          <div class="record-date">{{history.best.date}}</div>
+          <div class="team-strip">
+            {{each history.best.chars char}}
+            <div class="team-unit">
+              {{if char.avatarUrl}}<img src="{{char.avatarUrl}}" alt="" onerror="this.style.display='none'">{{/if}}
+              <div class="unit-meta"><span>LV</span><b>{{char.level}}</b>{{if char.potentialLevel !== ''}}<em>潜{{char.potentialLevel}}</em>{{/if}}</div>
+            </div>
+            {{/each}}
+          </div>
+        </div>
+      </div>
+    </section>
+    {{/if}}
+
+    {{if !isIndicatorView && history.records && history.records.length > 0}}
+    <section class="record-section">
+      <div class="section-title">
+        <span>HISTORY</span>
+        <h2>历史记录</h2>
+      </div>
+      <div class="record-list">
+        {{each history.records record}}
+        <div class="record-card {{record.isPass ? 'pass' : 'failed'}} {{record.isBest ? 'best-tag' : ''}}">
+          <div class="record-side">
+            <div class="record-status">{{record.status}}</div>
+            <div class="record-wave">{{record.waveText}}</div>
+            <div class="score-label">指标总计</div>
+            <div class="record-score">{{record.indicatorCount}}</div>
+            <div class="score-label">战斗时长</div>
+            <div class="record-duration">{{record.duration || '—'}}</div>
+          </div>
+          <div class="record-body">
+            <div class="record-date">{{record.date}}</div>
+            <div class="team-strip">
+              {{each record.chars char}}
+              <div class="team-unit">
+                {{if char.avatarUrl}}<img src="{{char.avatarUrl}}" alt="" onerror="this.style.display='none'">{{/if}}
+                <div class="unit-meta"><span>LV</span><b>{{char.level}}</b>{{if char.potentialLevel !== ''}}<em>潜{{char.potentialLevel}}</em>{{/if}}</div>
+              </div>
+              {{/each}}
+              {{if record.chars.length === 0}}<div class="empty-team">无队伍数据</div>{{/if}}
+            </div>
+          </div>
+        </div>
+        {{/each}}
+      </div>
+    </section>
+    {{/if}}
+
+    {{if isIndicatorView}}
+    <section class="panel indicators-panel">
+      <div class="section-title light">
+        <span>INDICATORS</span>
+        <h2>{{isIndicatorView ? '指标总览' : '指标信息'}}</h2>
+      </div>
+      <div class="indicator-stat-grid">
+        {{each indicatorDisplay.statCards card}}
+        <div class="indicator-stat">
+          <span>{{card.label}}</span>
+          <b>{{card.value}}</b>
+        </div>
+        {{/each}}
+      </div>
+      <div class="indicator-block">
+        <div class="mini-title">基础指标 {{indicatorDisplay.stats.basic}} · {{indicatorDisplay.basicTotal}} 组</div>
+        <div class="indicator-group-grid">
+          {{each indicatorDisplay.basic item}}
+          <div class="indicator-group-card">
+            <div class="indicator-icon">{{if item.icon}}<img src="{{item.icon}}" alt="" onerror="this.style.display='none'">{{/if}}</div>
+            <div class="indicator-group-main">
+              <b>{{item.name}}</b>
+              {{if item.descPreview}}<p>{{item.descPreview}}</p>{{/if}}
+              {{if item.dependsText}}<span class="depends-line">依赖 {{item.dependsText}}</span>{{/if}}
+            </div>
+            <div class="score-tags">
+              {{each item.scoreTags score}}
+              <em>{{score}}</em>
+              {{/each}}
+            </div>
+          </div>
+          {{/each}}
+        </div>
+        {{if indicatorDisplay.basicHidden > 0}}
+        <div class="indicator-more">另有 {{indicatorDisplay.basicHidden}} 组基础指标</div>
+        {{/if}}
+      </div>
+      <div class="indicator-block">
+        <div class="mini-title">综合指标 {{indicatorDisplay.stats.advanced}} · {{indicatorDisplay.advancedTotal}} 组</div>
+        <div class="indicator-group-grid">
+          {{each indicatorDisplay.advanced item}}
+          <div class="indicator-group-card advanced">
+            <div class="indicator-icon">{{if item.icon}}<img src="{{item.icon}}" alt="" onerror="this.style.display='none'">{{/if}}</div>
+            <div class="indicator-group-main">
+              <b>{{item.name}}</b>
+              {{if item.descPreview}}<p>{{item.descPreview}}</p>{{/if}}
+              {{if item.dependsText}}<span class="depends-line">依赖 {{item.dependsText}}</span>{{/if}}
+            </div>
+            <div class="score-tags">
+              {{each item.scoreTags score}}
+              <em>{{score}}</em>
+              {{/each}}
+            </div>
+          </div>
+          {{/each}}
+        </div>
+        {{if indicatorDisplay.advancedHidden > 0}}
+        <div class="indicator-more">另有 {{indicatorDisplay.advancedHidden}} 组综合指标</div>
+        {{/if}}
+      </div>
+      {{if indicatorDisplay.hint}}<div class="indicator-hint">{{indicatorDisplay.hint}}</div>{{/if}}
+    </section>
+    {{/if}}
+
+    {{if showDungeon}}
+    <section class="panel dungeon-panel">
+      <div class="section-title light dungeon-headline">
+        <div>
+          <span>DUNGEON</span>
+          <h2>{{dungeon.name}}</h2>
+        </div>
+        <div class="level-badge">推荐 Lv.{{dungeon.recommendLevel}}</div>
+      </div>
+      {{if dungeon.desc}}<div class="dungeon-desc">{{dungeon.desc}}</div>{{/if}}
+      {{if dungeon.enemies && dungeon.enemies.length > 0}}
+      <div class="enemy-title">敌对生物</div>
+      <div class="enemy-grid">
+        {{each dungeon.enemies enemy}}
+        <div class="enemy-card">
+          {{if enemy.imageUrl}}<img src="{{enemy.imageUrl}}" alt="" onerror="this.style.display='none'">{{/if}}
+          <div>
+            <b>{{enemy.name}}</b>
+            <span>Lv.{{enemy.level}}</span>
+            {{if enemy.ability}}<p>{{enemy.ability}}</p>{{/if}}
+          </div>
+        </div>
+        {{/each}}
+      </div>
+      {{/if}}
+    </section>
+    {{/if}}
+
+    <footer class="footer">
+      <div>{{@copyright}}</div>
+    </footer>
+  </div>
+</body>
+</html>

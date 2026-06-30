@@ -159,6 +159,13 @@ indie_hard:
   get_failed: "获取影拓丰碑数据失败。"
   no_match: "未找到与「{keyword}」匹配的影拓丰碑。"
 
+crisis_contract:
+  title: "危机合约"
+  loading: "正在获取危机合约数据..."
+  not_found_info: "暂无危机合约数据。"
+  get_failed: "获取危机合约数据失败。"
+  no_match: "未找到与「{keyword}」匹配的危机合约。"
+
 help:
   title: "终末地插件帮助"
   fallback_title: "终末地插件指令帮助（森空岛）"
