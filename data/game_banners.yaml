@@ -11,10 +11,18 @@ permanent_weapons:
     weapon_name: 大雷斑
 
 up_characters:
+  - pool_name: 晨星于此闪耀
+    character_name: 梨诺
+    start_time: 08.09 12:00
+    end_time: 08.31 06:00
+  - pool_name: 临渊望北
+    character_name: 决
+    start_time: 07.16 12:00
+    end_time: 08.09 11:59
   - pool_name: 逐罪者
     character_name: 卡缪
     start_time: 06.26 12:00
-    end_time: 07.17 6:00
+    end_time: 07.16 6:00
   - pool_name: 拳出无悔
     character_name: 弭弗
     start_time: 06.05 12:00
@@ -53,6 +61,14 @@ up_characters:
     end_time: 02.07 11:59
 
 up_weapons:
+  - pool_name: 明曜申领
+    weapon_name: 曜夜的首演
+    start_time: 08.09 12:00
+    end_time: 08.31 06:00
+  - pool_name: 军列申领
+    weapon_name: 四二式·肃阵
+    start_time: 07.16 12:00
+    end_time: 08.09 11:59
   - pool_name: 染赤申领
     weapon_name: 镀红祝福
     start_time: 06.26 12:00
